@@ -982,7 +982,13 @@ function recarregarTelaAtiva(){
 
 /* ---------- contexto ---------- */
 async function carregarContexto(forcar){
-  CTX = await api('contexto', forcar ? { semCache: '1' } : {});
+  aplicarContexto(await api('contexto', forcar ? { semCache: '1' } : {}));
+}
+
+/* Pinta o cabeçalho a partir de um contexto já em mãos — venha ele de uma
+   chamada própria ou de carona na resposta do "entrar". */
+function aplicarContexto(ctx){
+  CTX = ctx;
   ULTIMA = new Date();
   const R = CTX.regras || {};
   el('hdr-sub').innerHTML = esc(CTX.hoje) + '  ·  follow-up até ' + R.followup + 'd' +
@@ -2227,6 +2233,8 @@ function passoIdentificacao(){
   }
 
   el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
+  let ultimo = '';
+  try { ultimo = localStorage.getItem('recall_ultimo_nome') || ''; } catch (e) {}
   /* A opção em branco no começo é de propósito: deixando o nome como está e
      digitando só o código, entram as contas ocultas — é assim no app de
      vendas, e quem usa os dois não deveria ter de lembrar de dois jeitos.
@@ -2237,14 +2245,22 @@ function passoIdentificacao(){
     `<div class="grid-campo">
       <div class="campo"><label>Nome</label><select id="pt-nome">
         <option value="">— selecione —</option>
-        ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
+        ${nomes.map(u => `<option${u.nome === ultimo ? ' selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></div>
       <div class="campo"><label>Código de acesso</label>
-        <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
+        <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
+          placeholder="••••"></div></div>
      <div class="nota">Não compartilhe seu código. Tudo que você registrar fica gravado com o seu nome.</div>` +
     (nomes.length ? '' :
       '<div class="nota">A lista de nomes ainda não chegou. Ela aparece sozinha assim que a planilha responder.</div>');
   el('pt-ok').textContent = 'Entrar';
   el('pt-ok').style.display = '';
+  /* Enter no código entra, e o cursor já começa lá quando o nome está
+     escolhido: para quem abre o app todo dia, é um toque e quatro dígitos. */
+  const campoCod = el('pt-codigo');
+  if (campoCod){
+    campoCod.onkeydown = ev => { if (ev.key === 'Enter') el('pt-ok').click(); };
+    setTimeout(() => { try { campoCod.focus(); } catch (e) {} }, 60);
+  }
 }
 
 /* Cinco toques no monograma, dentro de três segundos. Não é senha — é só para
@@ -2421,10 +2437,14 @@ el('pt-ok').onclick = () => {
       try {
         localStorage.setItem('recall_sessao', JSON.stringify({nome: r.usuario.nome, codigo: cod}));
         localStorage.setItem('recall_usuario', JSON.stringify(r.usuario));
+        /* guarda só o NOME de quem entrou por último, para a próxima abertura
+           já vir escolhido e sobrar digitar o código. O código não fica
+           guardado para isso — ele continua sendo pedido toda vez. */
+        if (nome) localStorage.setItem('recall_ultimo_nome', r.usuario.nome);
       } catch (e) {}
       if (!r.precisa_termo) {
         fecharPortao(); limparCache();
-        entrarNoApp().catch(falhar);
+        entrarNoApp(r.painel).catch(falhar);
         return;
       }
       irPasso(2);
@@ -2486,28 +2506,11 @@ async function iniciar(){
   el('config').style.display = 'none';
   el('app').style.display = 'block';
 
-  let sess = null;
-  try { sess = JSON.parse(localStorage.getItem('recall_sessao') || 'null'); } catch (e) {}
-
-  /* JÁ IDENTIFICADO — entra direto.
-     A versão anterior perguntava "entrar" ao servidor antes de mostrar
-     qualquer coisa, e só então desenhava a tela. Eram duas idas à planilha
-     antes do primeiro pixel. Não é preciso: toda chamada que devolve dado de
-     paciente já carrega nome e código e é conferida no servidor. Se a sessão
-     não valer mais, a primeira dessas chamadas devolve "reautenticar" e o
-     app volta para a porta sozinho. */
-  if (sess && sess.nome && sess.codigo){
-    let guardadoU = null;
-    try { guardadoU = JSON.parse(localStorage.getItem('recall_usuario') || 'null'); } catch (e) {}
-    USUARIO = guardadoU && guardadoU.nome ? guardadoU : { nome: sess.nome, papel: '' };
-    PT.usuario = USUARIO; PT.codigo = sess.codigo;
-    pintarUsuario();
-    esconderCarregando();
-    entrarNoApp().catch(falhar);
-    return;
-  }
-
-  /* SEM SESSÃO — a porta aparece agora, com o que já está no aparelho. */
+  /* A ABERTURA FAZ UMA COISA SÓ: mostrar a identificação.
+     Igual ao painel de vendas. Não restaura sessão, não pede contexto, não
+     monta fila nenhuma antes de alguém dizer quem é. A tela aparece com a
+     lista que já está guardada no aparelho — sem esperar resposta de
+     servidor — e a lista nova, se vier, repinta por baixo. */
   const guardado = portaGuardada();
   if (guardado){
     USUARIOS_ABERTOS = guardado.usuarios || [];
@@ -2516,7 +2519,6 @@ async function iniciar(){
   abrirPortao();
   esconderCarregando();
 
-  /* e a lista se atualiza em segundo plano, sem segurar a tela */
   api('autorizados', {}).then(a => {
     if (!a) return;
     USUARIOS_ABERTOS = a.usuarios || [];
@@ -2530,10 +2532,22 @@ async function iniciar(){
 }
 
 /** Depois da identificação: carrega o contexto e abre a fila do dia. */
-async function entrarNoApp(){
-  await carregarContexto();
+async function entrarNoApp(painel){
+  /* O "entrar" já devolve cabeçalho e fila do dia. Usando o que veio, a
+     entrada custa UMA ida à planilha em vez de três. Faltando alguma parte
+     — servidor antigo, ou um dos dois falhou lá —, busca só a que faltou. */
+  if (painel && painel.contexto) aplicarContexto(painel.contexto);
+  else await carregarContexto();
+
   posicionarFicha();
-  await carregarAcompanhamento();
+
+  if (painel && painel.acompanhamento){
+    montarFiltrosAc();
+    CACHE['ac:' + assinatura(AC)] = painel.acompanhamento;
+    pintarAcompanhamento(painel.acompanhamento);
+  } else {
+    await carregarAcompanhamento();
+  }
 }
 
 iniciar();
