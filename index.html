@@ -640,7 +640,11 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 <!-- ===================== PORTÃO DE ACESSO ===================== -->
 <div id="portao"><div class="pt-in">
   <div class="pt-topo"><img id="pt-logo" alt=""></div>
-  <div class="t-passos">
+  <!-- A régua de passos nasce escondida. Na identificação ela não informa
+       nada: quem já assinou nunca verá os passos 2 a 4, e quem ainda não
+       assinou descobre isso depois de entrar. Só aparece quando o motor
+       responde que o termo é necessário — é assim no painel de vendas. -->
+  <div class="t-passos" id="pt-passos" style="display:none">
     <div data-p="1">1 · Identificação</div><div data-p="2">2 · Aviso</div>
     <div data-p="3">3 · Termo</div><div data-p="4">4 · Assinatura</div>
   </div>
@@ -699,6 +703,22 @@ const CACHE = {};
 const SEL = { recall: [], dormente: [] };
 function assinatura(o){ return JSON.stringify(o); }
 function limparCache(){ Object.keys(CACHE).forEach(k => delete CACHE[k]); }
+/* UMA TELA QUE FALHA TEM DE DIZER QUE FALHOU.
+   Antes, se a chamada de uma aba desse erro, o "carregando a fila" ficava na
+   tela para sempre: quem olhava via um aplicativo pensando, não um aplicativo
+   quebrado, e ficava esperando. Agora o erro aparece escrito, com um botão
+   para tentar de novo. */
+function blocoFalha(id, erro, refazer){
+  const alvo = el(id);
+  if (!alvo) return;
+  const msg = (erro && erro.message) ? erro.message : String(erro || 'erro desconhecido');
+  alvo.innerHTML = '<div class="aviso-box"><b>Não consegui carregar esta tela.</b><br>' +
+    esc(msg) + '</div><div style="text-align:center;padding:6px 0 14px">' +
+    '<button class="bt" data-tentar="1">Tentar de novo</button></div>';
+  const bt = alvo.querySelector('[data-tentar]');
+  if (bt) bt.onclick = () => { try { refazer(); } catch (e) {} };
+}
+
 function blocoCarregando(txt){
   return `<div class="mod-carreg"><img class="mod-mono" alt="" src="${monogramaSrc()}">
     <span>${esc(txt || 'carregando')}</span></div>`;
@@ -833,6 +853,9 @@ async function api(acao, params){
     try { localStorage.removeItem('recall_sessao'); } catch (e) {}
     USUARIO = null;
     abrirPortao();
+    /* Cair na tela de entrada sem explicação é o pior jeito de falhar: a
+       pessoa acha que o aplicativo se perdeu. O motivo vem escrito. */
+    try { ptErro(d.erro || 'Sua sessão expirou. Entre de novo.'); } catch (e) {}
     throw new Error(d.erro || 'Entre de novo no aplicativo.');
   }
   if (d && d.erro) throw new Error(d.erro);
@@ -1046,6 +1069,8 @@ async function carregarFila(tela){
     const d = await api('fila', f);
     CACHE[ch] = d;
     pintarFila(tela, d);
+  } catch (e) {
+    blocoFalha(pre + '-lista', e, () => carregarFila(tela).catch(() => {}));
   } finally {
     marcarAtualizando(pre + '-lista', false);
   }
@@ -1212,6 +1237,8 @@ async function carregarAcompanhamento(){
     const d = await api('acompanhamento', AC);
     CACHE[ch] = d;
     pintarAcompanhamento(d);
+  } catch (e) {
+    blocoFalha('ac-lista', e, () => carregarAcompanhamento().catch(() => {}));
   } finally {
     marcarAtualizando('ac-lista', false);
   }
@@ -1799,6 +1826,8 @@ async function carregarFollow(){
     const d = await api('followup', FU);
     CACHE[ch] = d;
     pintarFollow(d);
+  } catch (e) {
+    blocoFalha('fu-lista', e, () => carregarFollow().catch(() => {}));
   } finally {
     marcarAtualizando('fu-lista', false);
   }
@@ -1926,6 +1955,8 @@ async function carregarAgenda(){
     const d = await api('agenda', { de: f(hoje), ate: f(ate) });
     CACHE[ch] = d;
     pintarAgenda(d);
+  } catch (e) {
+    blocoFalha('ag-lista', e, () => carregarAgenda().catch(() => {}));
   } finally {
     marcarAtualizando('ag-lista', false);
   }
@@ -2057,6 +2088,8 @@ async function carregarIndicadores(){
     CACHE[ch] = d;
     CACHE['ind:' + ESCOPO + ':' + d.mes] = d;
     pintarIndicadores(d);
+  } catch (e) {
+    blocoFalha('ind-corpo', e, () => carregarIndicadores().catch(() => {}));
   } finally {
     marcarAtualizando('ind-corpo', false);
   }
@@ -2189,11 +2222,13 @@ function ptErro(msg){
   e.textContent = msg; e.classList.add('on');
 }
 function ptPassos(){
+  if (PT.passo > 1) el('pt-passos').style.display = 'flex';
   document.querySelectorAll('.t-passos div').forEach(d =>
     d.setAttribute('data-on', Number(d.dataset.p) <= PT.passo ? '1' : '0'));
 }
 function abrirPortao(){
   el('portao').classList.add('on');
+  el('pt-passos').style.display = 'none';   // volta ao estado enxuto
   el('pt-logo').src = monogramaSrc();
   ligarEntradaTecnica();
   el('pt-rodape').innerHTML = 'Recall e Follow-up · desenvolvido por Decisão Consultoria<br>' +
@@ -2232,7 +2267,7 @@ function passoIdentificacao(){
     return;
   }
 
-  el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
+  el('pt-sub').textContent = 'Gestão de recall e follow-up do Instituto Kássila Nasser.';
   let ultimo = '';
   try { ultimo = localStorage.getItem('recall_ultimo_nome') || ''; } catch (e) {}
   /* A opção em branco no começo é de propósito: deixando o nome como está e
@@ -2248,10 +2283,7 @@ function passoIdentificacao(){
         ${nomes.map(u => `<option${u.nome === ultimo ? ' selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></div>
       <div class="campo"><label>Código de acesso</label>
         <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
-          placeholder="••••"></div></div>
-     <div class="nota">Não compartilhe seu código. Tudo que você registrar fica gravado com o seu nome.</div>` +
-    (nomes.length ? '' :
-      '<div class="nota">A lista de nomes ainda não chegou. Ela aparece sozinha assim que a planilha responder.</div>');
+          placeholder="••••"></div></div>`;
   el('pt-ok').textContent = 'Entrar';
   el('pt-ok').style.display = '';
   /* Enter no código entra, e o cursor já começa lá quando o nome está
@@ -2447,6 +2479,7 @@ el('pt-ok').onclick = () => {
         entrarNoApp(r.painel).catch(falhar);
         return;
       }
+      el('pt-passos').style.display = 'flex';
       irPasso(2);
     }).catch(e => { el('pt-ok').disabled = false; ptErro('Falha ao falar com a planilha: ' + (e.message || e)); });
     return;
@@ -2532,6 +2565,35 @@ async function iniciar(){
 }
 
 /** Depois da identificação: carrega o contexto e abre a fila do dia. */
+/* AQUECIMENTO DAS ABAS.
+   O Apps Script atende uma chamada por vez para a mesma conta, então pedir
+   as seis telas de uma vez não adianta — elas entram em fila. O que adianta
+   é usar o tempo em que a pessoa está lendo a primeira tela: assim que o
+   painel aparece, o app busca as outras abas UMA A UMA, em silêncio, e
+   guarda cada resposta. Quando a pessoa clica, a tela já está no bolso.
+
+   Regras: nunca atropela um pedido que a pessoa fez (se ela trocou de aba, o
+   aquecimento para), e nunca mostra erro — é trabalho de bastidor. */
+let AQUECENDO = false;
+async function aquecerAbas(){
+  if (AQUECENDO) return;
+  AQUECENDO = true;
+  const roteiro = [
+    ['fila:recall:'  + assinatura(FILTROS.recall),   'fila',      FILTROS.recall],
+    ['follow:'       + assinatura(FU),               'followup',  FU],
+    ['fila:dormente:' + assinatura(FILTROS.dormente), 'fila',     FILTROS.dormente]
+  ];
+  for (const [chave, acao, params] of roteiro){
+    if (CACHE[chave]) continue;
+    try {
+      await new Promise(r => setTimeout(r, 400));   // deixa a tela respirar
+      const d = await api(acao, params);
+      CACHE[chave] = d;
+    } catch (e) { /* bastidor: silêncio */ }
+  }
+  AQUECENDO = false;
+}
+
 async function entrarNoApp(painel){
   /* O "entrar" já devolve cabeçalho e fila do dia. Usando o que veio, a
      entrada custa UMA ida à planilha em vez de três. Faltando alguma parte
@@ -2548,6 +2610,9 @@ async function entrarNoApp(painel){
   } else {
     await carregarAcompanhamento();
   }
+
+  /* a partir daqui a tela já está pronta; o resto vem por baixo */
+  setTimeout(() => { aquecerAbas(); }, 300);
 }
 
 iniciar();
