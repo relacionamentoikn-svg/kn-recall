@@ -2404,8 +2404,13 @@ function passoIdentificacao(){
   }
 
   el('pt-sub').textContent = 'Gestão de recall e follow-up do Instituto Kássila Nasser.';
-  let ultimo = '';
-  try { ultimo = localStorage.getItem('recall_ultimo_nome') || ''; } catch (e) {}
+  /* A tela abre sempre em "— selecione —", sem nome nenhum escolhido.
+     Guardar o último nome parecia gentileza, mas o aplicativo é usado por
+     mais de uma pessoa no mesmo aparelho: quem chegasse depois encontrava o
+     nome de outra pessoa já marcado e entraria por cima sem perceber. Num
+     sistema em que cada contato fica gravado com nome, isso é registro
+     errado, não comodidade. E para quem entra sem escolher nome, o campo
+     pré-preenchido era um passo a mais, não a menos. */
   /* A opção em branco no começo é de propósito: deixando o nome como está e
      digitando só o código, entram as contas ocultas — é assim no app de
      vendas, e quem usa os dois não deveria ter de lembrar de dois jeitos.
@@ -2416,7 +2421,7 @@ function passoIdentificacao(){
     `<div class="grid-campo">
       <div class="campo"><label>Nome</label><select id="pt-nome">
         <option value="">— selecione —</option>
-        ${nomes.map(u => `<option${u.nome === ultimo ? ' selected' : ''}>${esc(u.nome)}</option>`).join('')}</select></div>
+        ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
       <div class="campo"><label>Código de acesso</label>
         <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
           placeholder="••••"></div></div>`;
@@ -2605,10 +2610,7 @@ el('pt-ok').onclick = () => {
       try {
         localStorage.setItem('recall_sessao', JSON.stringify({nome: r.usuario.nome, codigo: cod}));
         localStorage.setItem('recall_usuario', JSON.stringify(r.usuario));
-        /* guarda só o NOME de quem entrou por último, para a próxima abertura
-           já vir escolhido e sobrar digitar o código. O código não fica
-           guardado para isso — ele continua sendo pedido toda vez. */
-        if (nome) localStorage.setItem('recall_ultimo_nome', r.usuario.nome);
+        localStorage.removeItem('recall_ultimo_nome');   // resquício da versão anterior
       } catch (e) {}
       if (!r.precisa_termo) {
         fecharPortao(); limparCache();
