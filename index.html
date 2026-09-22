@@ -921,6 +921,7 @@ const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
 
 /* ---------- navegação ---------- */
 function irPara(t){
+  USUARIO_PEDIU = true;   // a partir do primeiro clique, o aquecimento não começa mais
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tela === t));
   document.querySelectorAll('.tela').forEach(s => s.classList.toggle('on', s.id === 'tela-' + t));
   window.scrollTo(0, 0);
@@ -2574,24 +2575,32 @@ async function iniciar(){
 
    Regras: nunca atropela um pedido que a pessoa fez (se ela trocou de aba, o
    aquecimento para), e nunca mostra erro — é trabalho de bastidor. */
-let AQUECENDO = false;
+let AQUECENDO = false, USUARIO_PEDIU = false;
+
 async function aquecerAbas(){
   if (AQUECENDO) return;
   AQUECENDO = true;
-  const roteiro = [
-    ['fila:recall:'  + assinatura(FILTROS.recall),   'fila',      FILTROS.recall],
-    ['follow:'       + assinatura(FU),               'followup',  FU],
-    ['fila:dormente:' + assinatura(FILTROS.dormente), 'fila',     FILTROS.dormente]
-  ];
-  for (const [chave, acao, params] of roteiro){
-    if (CACHE[chave]) continue;
-    try {
-      await new Promise(r => setTimeout(r, 400));   // deixa a tela respirar
-      const d = await api(acao, params);
-      CACHE[chave] = d;
-    } catch (e) { /* bastidor: silêncio */ }
+  try {
+    const pedidos = [
+      { chave: 'fila:recall:'   + assinatura(FILTROS.recall),   acao: 'fila',     params: FILTROS.recall },
+      { chave: 'follow:'        + assinatura(FU),               acao: 'followup', params: FU },
+      { chave: 'fila:dormente:' + assinatura(FILTROS.dormente), acao: 'fila',     params: FILTROS.dormente }
+    ].filter(x => !CACHE[x.chave]);
+
+    if (!pedidos.length || USUARIO_PEDIU) return;
+
+    /* UMA chamada para as três telas. O cronômetro na clínica mostrou que o
+       trabalho na planilha custa de 0,7 a 1,4 s por tela, enquanto o caminho
+       até o Apps Script custa mais que isso — e é pago por chamada, não por
+       tela. Três chamadas pagavam o caminho três vezes. */
+    const lote = await api('pacote', { pedidos: JSON.stringify(pedidos) });
+    if (!lote) return;
+    Object.keys(lote).forEach(k => { if (lote[k] && !lote[k].erro) CACHE[k] = lote[k]; });
+  } catch (e) {
+    /* bastidor: nunca aparece para quem está usando */
+  } finally {
+    AQUECENDO = false;
   }
-  AQUECENDO = false;
 }
 
 async function entrarNoApp(painel){
