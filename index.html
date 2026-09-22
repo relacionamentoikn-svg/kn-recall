@@ -37,6 +37,9 @@
      propósito — vermelho puro fica reservado ao farol do follow-up, que é
      decisão do dia, para as duas telas não competirem pela mesma urgência. */
   --f-quente:#2E7D57; --f-morno:#C98A16; --f-frio:#C0623A; --f-dormente:#8C807A;
+  /* Alto padrão: metais, não semáforo. A régua de dias fala de urgência; esta
+     fala de patrimônio, e misturar as duas linguagens confunde a leitura. */
+  --f-ouro:#A87B1E; --f-prata:#6C7A82; --f-bronze:#8A5A33;
   /* farol do follow-up — este SIM é semáforo de verdade, e só nesta tela */
   --verde:#1F7A4D; --ambar:#C98A16; --vermelho:#C0392B; --decidir:#7A5C99;
 }
@@ -138,6 +141,16 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .regua button[aria-pressed="true"]{box-shadow:inset 0 0 0 3px rgba(255,255,255,.85)}
 .regua b{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;line-height:1}
 .regua span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.fx-OURO{background:var(--f-ouro)}.fx-PRATA{background:var(--f-prata)}
+.fx-BRONZE{background:var(--f-bronze)}
+.tj-OURO{background:var(--f-ouro)}.tj-PRATA{background:var(--f-prata)}
+.tj-BRONZE{background:var(--f-bronze)}
+.tag.ht{background:#FBF3E2;border-color:#E3CF9F;color:#7A5810;font-weight:600;letter-spacing:.04em}
+.tag.ht.PRATA{background:#EFF2F4;border-color:#CBD5DA;color:#4A585F}
+.tag.ht.BRONZE{background:#F7EDE6;border-color:#DFC3AC;color:#6E4526}
+.ht-escolha{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ht-escolha button{flex:1 1 auto;min-width:74px}
+.ht-escolha button[aria-pressed="true"]{background:var(--vinho);border-color:var(--vinho);color:#fff}
 .fx-QUENTE{background:var(--f-quente)}.fx-MORNO{background:var(--f-morno)}
 .fx-FRIO{background:var(--f-frio)}.fx-DORMENTE{background:var(--f-dormente)}
 .legenda{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
@@ -477,6 +490,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
     <button data-tela="acompanhamento" class="on" onclick="irPara('acompanhamento')">Acompanhamento</button>
     <button data-tela="recall" onclick="irPara('recall')">Recall</button>
     <button data-tela="dormente" onclick="irPara('dormente')">Dormente</button>
+    <button data-tela="highticket" onclick="irPara('highticket')">High Ticket</button>
     <button data-tela="follow" onclick="irPara('follow')">Follow-up</button>
     <button data-tela="agenda" onclick="irPara('agenda')">Agenda</button>
     <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
@@ -561,6 +575,35 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
         <div class="barra-sel" id="dm-barra"></div>
       </div>
       <div class="ficha-slot" id="slot-dormente"></div>
+    </div>
+    <div class="nota">A carteira dormente é trabalho de campanha, não de fila diária: volume alto e conversão
+      baixa. Por isso ela tem tela própria e indicador próprio — misturada ao recall, escondia o desempenho
+      das faixas quente, morno e frio.</div>
+  </section>
+
+  <section class="tela" id="tela-highticket">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Alto padrão</div>
+        <div class="grande" id="ht-grande">—</div>
+        <div class="sub" id="ht-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Classificação <span class="aux">definida pela gestora comercial, não pelo sistema</span></h3>
+        <div class="regua" id="ht-regua"></div>
+        <div class="legenda" id="ht-legenda"></div>
+      </div>
+    </div>
+    <div class="mini bloco" id="ht-mini"></div>
+    <div class="aviso-box" id="ht-aviso" style="display:none"></div>
+    <div class="split">
+      <div>
+        <div class="filtros bloco" id="ht-filtros"></div>
+        <div class="sec" id="ht-rotulo">Carteira de alto padrão</div>
+        <div class="lista" id="ht-lista"><div class="carregando">Carregando…</div></div>
+        <div class="barra-sel" id="ht-barra"></div>
+      </div>
+      <div class="ficha-slot" id="slot-highticket"></div>
     </div>
     <div class="nota">A carteira dormente é trabalho de campanha, não de fila diária: volume alto e conversão
       baixa. Por isso ela tem tela própria e indicador próprio — misturada ao recall, escondia o desempenho
@@ -690,7 +733,12 @@ let TERMOS = null;
 let MODO_TECNICO = false;
 const FILTROS = {
   recall:   { aba: 'RECALL',   faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'PRIORIDADE', busca: '', so_novas: 'SIM' },
-  dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' }
+  dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' },
+  /* A aba de alto padrão não é fila de prospecção: é carteira de
+     relacionamento. Por isso nasce mostrando TODAS, e não só quem nunca foi
+     contatada — esconder quem já foi tocada esvaziaria justamente a tela das
+     pacientes que mais importam. */
+  highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'NAO' }
 };
 const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '' };
 const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
@@ -700,7 +748,8 @@ const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
    cada troca de aba era uma ida completa à planilha — 2.133 pacientes lidos
    de novo só para mostrar a mesma coisa. */
 const CACHE = {};
-const SEL = { recall: [], dormente: [] };
+const SEL = { recall: [], dormente: [], highticket: [] };
+const PREFIXO = { recall: 'rc', dormente: 'dm', highticket: 'ht' };
 function assinatura(o){ return JSON.stringify(o); }
 function limparCache(){ Object.keys(CACHE).forEach(k => delete CACHE[k]); }
 /* UMA TELA QUE FALHA TEM DE DIZER QUE FALHOU.
@@ -933,6 +982,7 @@ function irPara(t){
   if (t === 'acompanhamento') carregarAcompanhamento().catch(falhar);
   if (t === 'recall')      carregarFila('recall').catch(falhar);
   if (t === 'dormente')    carregarFila('dormente').catch(falhar);
+  if (t === 'highticket')  carregarFila('highticket').catch(falhar);
   if (t === 'follow')      carregarFollow().catch(falhar);
   if (t === 'agenda')      carregarAgenda().catch(falhar);
   if (t === 'indicadores') carregarIndicadores().catch(falhar);
@@ -1060,7 +1110,7 @@ function pintarAtualizacao(){
    ========================================================================== */
 async function carregarFila(tela){
   const f = FILTROS[tela];
-  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const pre = PREFIXO[tela];
   montarFiltrosFila(tela);
   const ch = 'fila:' + tela + ':' + assinatura(f);
   if (CACHE[ch]) pintarFila(tela, CACHE[ch]);
@@ -1079,7 +1129,7 @@ async function carregarFila(tela){
 
 function pintarFila(tela, d){
   const f = FILTROS[tela];
-  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const pre = PREFIXO[tela];
   const faixas = Object.keys(d.faixas);
   const totalAba = faixas.reduce((s, k) => s + d.faixas[k], 0) || 1;
   const R = d.regras;
@@ -1087,12 +1137,24 @@ function pintarFila(tela, d){
     QUENTE:   `${R.followup + 1} a ${R.quente} dias`,
     MORNO:    `${R.quente + 1} a ${R.morno} dias`,
     FRIO:     `${R.morno + 1} a ${R.frio} dias`,
-    DORMENTE: `mais de ${R.frio} dias`
+    DORMENTE: `mais de ${R.frio} dias`,
+    OURO:   'classificada pela gestora',
+    PRATA:  'classificada pela gestora',
+    BRONZE: 'classificada pela gestora'
   };
+  const ehHt = tela === 'highticket';
 
   el(pre + '-grande').innerHTML = `${d.na_aba.toLocaleString('pt-BR')}<small style="margin-left:8px">pacientes</small>`;
   el(pre + '-sub').textContent = brl(d.valor) + ' em histórico · ' + d.total.toLocaleString('pt-BR') +
     ' na carteira · ' + d.encerradas + ' encerradas';
+
+  if (ehHt){
+    const cx = el('ht-aviso');
+    cx.style.display = d.na_aba ? 'none' : 'block';
+    cx.innerHTML = '<b>Nenhuma paciente classificada ainda.</b><br>' +
+      'A classificação é manual: abra a ficha de uma paciente e escolha Ouro, Prata ou Bronze. ' +
+      'A partir daí ela sai das filas de Recall e Dormente e passa a viver só aqui.';
+  }
 
   el(pre + '-regua').innerHTML = faixas.map(k => {
     const largura = Math.max(14, Math.round(d.faixas[k] / totalAba * 100));
@@ -1107,13 +1169,18 @@ function pintarFila(tela, d){
   ).join('');
 
   const r = d.resumo || {};
-  el(pre + '-mini').innerHTML =
-    `<div><b>${r.na_fila || 0}</b><span>na fila, sem contato</span></div>` +
+  el(pre + '-mini').innerHTML = ehHt
+    ? `<div><b>${d.na_aba}</b><span>classificadas</span></div>` +
+      `<div><b>${brl(d.valor)}</b><span>histórico do grupo</span></div>` +
+      `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
+      `<div><b>${r.nunca_contatada || 0}</b><span>nunca contatadas</span></div>`
+    : `<div><b>${r.na_fila || 0}</b><span>na fila, sem contato</span></div>` +
     `<div><b>${r.em_contato || 0}</b><span>em contato</span></div>` +
     `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
     `<div><b>${(r.sem_aprovado || 0).toLocaleString('pt-BR')}</b><span>nunca aprovaram nada</span></div>`;
 
-  el(pre + '-rotulo').textContent = `Fila de trabalho — ${d.exibidos.toLocaleString('pt-BR')} paciente(s)` +
+  el(pre + '-rotulo').textContent = (ehHt ? 'Carteira de alto padrão' : 'Fila de trabalho') +
+    ` — ${d.exibidos.toLocaleString('pt-BR')} paciente(s)` +
     (f.faixa !== 'TODAS' ? ` · ${f.faixa.toLowerCase()} (${legendaTxt[f.faixa]})` : '') +
     ` · ${rotuloOrdem(f.ordem)}`;
 
@@ -1142,7 +1209,7 @@ function rotuloOrdem(o){
 
 function montarFiltrosFila(tela){
   const f = FILTROS[tela];
-  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const pre = PREFIXO[tela];
   const perfis = [['TODOS','Todos os perfis'],['NUNCA_APROVOU','Nunca aprovou'],['SO_CONSULTA','Só consulta'],
     ['CONSULTA_1_PROC','Consulta + 1 proc.'],['CONSULTA_N_PROC','Consulta + vários'],['PROC_SEM_CONSULTA','Proc. sem consulta']];
   const temps = [['TODAS','Qualquer temperatura'],['FORTE','Forte'],['MEDIO','Médio'],['FRACO','Fraco'],['NUNCA','Nunca contatada']];
@@ -1150,15 +1217,17 @@ function montarFiltrosFila(tela){
   const escopos = [['SIM','Só nunca contatadas'],['NAO','Todas, inclusive em acompanhamento']];
 
   const cx = el(pre + '-filtros');
+  const ehHt = tela === 'highticket';
   cx.innerHTML =
     campoBusca(pre + '-busca', 'Buscar nesta fila por nome ou telefone', f.busca) +
-    campoSelecao(pre + '-perfil', 'Perfil', perfis, f.perfil) +
+    (ehHt ? '' : campoSelecao(pre + '-perfil', 'Perfil', perfis, f.perfil)) +
     campoSelecao(pre + '-temp', 'Temperatura', temps, f.temperatura) +
     campoSelecao(pre + '-ordem', 'Ordem', ordens, f.ordem) +
-    campoSelecao(pre + '-escopo', 'Mostrar', escopos, f.so_novas);
+    (ehHt ? '' : campoSelecao(pre + '-escopo', 'Mostrar', escopos, f.so_novas));
 
   const liga = (id, campo) => {
-    el(id).onchange = () => { f[campo] = el(id).value; carregarFila(tela).catch(falhar); };
+    const c = el(id);
+    if (c) c.onchange = () => { f[campo] = c.value; carregarFila(tela).catch(falhar); };
   };
   liga(pre + '-perfil', 'perfil');
   liga(pre + '-temp', 'temperatura');
@@ -1170,6 +1239,7 @@ function montarFiltrosFila(tela){
 function cartaoPaciente(p, tela){
   const tags = [];
   if (p.perfil) tags.push(`<span class="tag${p.perfil === 'NUNCA_APROVOU' ? ' roxo' : ''}">${esc(ROTULO_PERFIL[p.perfil] || p.perfil)}</span>`);
+  if (p.classe_ht) tags.push(`<span class="tag ht ${esc(p.classe_ht)}">Alto padrão · ${esc(p.classe_ht)}</span>`);
   if (p.valor)  tags.push(`<span class="tag val">${brl(p.valor)} no histórico</span>`);
   if (p.temperatura) tags.push(`<span class="tag ${esc(p.temperatura)}">${esc(ROTULO_TEMP[p.temperatura] || p.temperatura)}</span>`);
   tags.push(`<span class="tag">${p.tentativas
@@ -1363,7 +1433,7 @@ function alternarSel(tela, chave, ligado){
 }
 
 function pintarBarraSel(tela){
-  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const pre = PREFIXO[tela];
   const barra = el(pre + '-barra');
   if (!barra) return;
   const n = SEL[tela].length;
@@ -1375,6 +1445,7 @@ function pintarBarraSel(tela){
        <button class="bt" data-a="todas">Selecionar as exibidas</button>
        <button class="bt" data-a="limpar">Limpar</button>
        <button class="bt" data-a="xlsx">Baixar Excel</button>
+       <button class="bt" data-a="sintetico">Relatório sintético</button>
        <button class="bt prim" data-a="pdf">Imprimir PDF</button>
      </div>`;
   barra.querySelectorAll('[data-a]').forEach(b => {
@@ -1387,7 +1458,11 @@ function pintarBarraSel(tela){
         carregarFila(tela).catch(falhar);
         return;
       }
-      exportar({ tipo: 'LISTA', formato: a === 'pdf' ? 'PDF' : 'XLSX',
+      /* O sintético é a folha que vai para a direção: contato e dinheiro,
+         agrupado por classificação e somado. A lista completa é a folha de
+         trabalho da gestora — outro documento, outro leitor. */
+      exportar({ tipo: a === 'sintetico' ? 'SINTETICA' : 'LISTA',
+                 formato: a === 'xlsx' ? 'XLSX' : 'PDF',
                  chaves: SEL[tela].join(';'), titulo: tituloExport(tela) });
     };
   });
@@ -1395,7 +1470,7 @@ function pintarBarraSel(tela){
 
 function tituloExport(tela){
   const f = FILTROS[tela];
-  const base = tela === 'recall' ? 'Recall' : 'Dormente';
+  const base = { recall: 'Recall', dormente: 'Dormente', highticket: 'Alto padrão' }[tela] || 'Recall';
   return f.faixa && f.faixa !== 'TODAS' ? base + ' ' + f.faixa.toLowerCase() : base;
 }
 
@@ -1533,6 +1608,7 @@ function montarFicha(d){
       <div><b>${brl(p.ticket)}</b><span>ticket médio</span></div>
     </div>
     <div class="acoes">${contatos.join('')}</div>
+    ${blocoClasse(p)}
     ${p.status === 'ENCERRADA' ? `<div class="aviso-box">Tentativas encerradas — motivo: ${esc(p.motivo_encerramento)}.
        Ela volta sozinha à fila se aparecer orçamento novo.</div>` : ''}
     ${avisoContatoRecente(p)}
@@ -1578,6 +1654,10 @@ function montarFicha(d){
       b.setAttribute('aria-pressed', 'true');
     };
   });
+  el('fc-corpo').querySelectorAll('[data-ht]').forEach(b => {
+    b.onclick = () => classificar(b.dataset.ht);
+  });
+
   el('fc-corpo').querySelectorAll('[data-acao]').forEach(b => {
     b.onclick = () => {
       const a = b.dataset.acao;
@@ -1588,6 +1668,61 @@ function montarFicha(d){
       if (a === 'pdf')      return exportar({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
     };
   });
+}
+
+/* ===================== ALTO PADRÃO =====================
+ *
+ * A classificação é decisão de gente, não conta de valor. O aplicativo não
+ * promove ninguém sozinho: quem marca é a gestora comercial, e fica gravado
+ * quem marcou e quando — mesma regra de todo o resto do sistema.
+ *
+ * O efeito é sério e está escrito na tela antes de alguém clicar: classificar
+ * TIRA a paciente das filas de Recall e Dormente. Ela deixa de aparecer no
+ * trabalho de lote e passa a viver só na aba High Ticket.
+ */
+const CLASSES_HT = ['OURO', 'PRATA', 'BRONZE'];
+
+function blocoClasse(p){
+  const atual = p.classe_ht || '';
+  const botoes = CLASSES_HT.map(c =>
+    `<button class="bt" data-ht="${c}" aria-pressed="${atual === c}">${c.charAt(0) + c.slice(1).toLowerCase()}</button>`
+  ).join('') +
+  (atual ? '<button class="bt" data-ht="REMOVER">Tirar do alto padrão</button>' : '');
+
+  const assinatura = atual && p.classe_ht_por
+    ? `Classificada por <b>${esc(p.classe_ht_por)}</b>${p.classe_ht_em ? ' em ' + esc(p.classe_ht_em) : ''}.`
+    : '';
+
+  return `<div class="card" style="margin-top:10px">
+    <div class="sec" style="margin:0 0 4px">Alto padrão</div>
+    <div class="nota">${atual
+      ? `Esta paciente está em <b>${esc(atual)}</b> e aparece só na aba High Ticket. ${assinatura}`
+      : 'Marcar uma classificação <b>tira a paciente das filas de Recall e Dormente</b> — ela passa a ser trabalhada só na aba High Ticket.'}</div>
+    <div class="ht-escolha">${botoes}</div>
+  </div>`;
+}
+
+async function classificar(classe){
+  if (!PAC || !PAC.paciente) return;
+  const alvo = String(classe || '').toUpperCase();
+  const nome = PAC.paciente.paciente || PAC.paciente.nome || 'esta paciente';
+
+  const pergunta = alvo === 'REMOVER'
+    ? `Tirar ${nome} do alto padrão? Ela volta às filas de Recall e Dormente.`
+    : `Classificar ${nome} como ${alvo}? Ela sai das filas de Recall e Dormente e passa a ser trabalhada só na aba High Ticket.`;
+  if (!confirm(pergunta)) return;
+
+  try {
+    const r = await api('classificar', { chave: PAC.paciente.chave, classe: alvo, autor: USUARIO ? USUARIO.nome : '' });
+    if (!r || r.erro) { alert((r && r.erro) || 'Não consegui gravar a classificação.'); return; }
+    /* a paciente mudou de aba: todo cache de lista está velho */
+    limparCache();
+    await abrirFicha(PAC.paciente.chave);
+    const atual = document.querySelector('nav.tabs button.on');
+    if (atual) irPara(atual.dataset.tela);
+  } catch (e) {
+    alert('Não consegui gravar a classificação: ' + (e.message || e));
+  }
 }
 
 /* Quantos dias desde o último contato, a partir do que a ficha já traz.
@@ -2584,7 +2719,8 @@ async function aquecerAbas(){
     const pedidos = [
       { chave: 'fila:recall:'   + assinatura(FILTROS.recall),   acao: 'fila',     params: FILTROS.recall },
       { chave: 'follow:'        + assinatura(FU),               acao: 'followup', params: FU },
-      { chave: 'fila:dormente:' + assinatura(FILTROS.dormente), acao: 'fila',     params: FILTROS.dormente }
+      { chave: 'fila:dormente:' + assinatura(FILTROS.dormente), acao: 'fila',     params: FILTROS.dormente },
+      { chave: 'fila:highticket:' + assinatura(FILTROS.highticket), acao: 'fila', params: FILTROS.highticket }
     ].filter(x => !CACHE[x.chave]);
 
     if (!pedidos.length || USUARIO_PEDIU) return;
