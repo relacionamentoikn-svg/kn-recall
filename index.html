@@ -1,0 +1,2435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão Recall e Follow-up</title>
+<script src="config.js"></script>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Recall KN">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Gestão Recall e Follow-up">
+<meta name="description" content="Recall e follow-up da carteira de pacientes — Instituto Kássila Nasser">
+<meta name="theme-color" content="#5C1A2B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   Mesmos tokens do painel KN Vendas. Nada aqui é escolha nova: cor, fonte,
+   raio e espaçamento vêm do app de vendas para os dois parecerem o mesmo
+   produto. As únicas cores próprias desta tela são as da régua de faixas e as
+   do farol do follow-up, e as duas estão documentadas onde são declaradas.
+   ========================================================================== */
+:root{
+  --vinho:#5C1A2B; --vinho-2:#8A3A4C; --papel:#F3EDE6; --papel-2:#FAF7F3;
+  --tinta:#241E1C; --latao:#B8894A; --salvia:#4F6B58; --roxo:#7A5C99;
+  --linha:rgba(36,30,28,.14); --linha-forte:rgba(36,30,28,.28);
+  /* o KN Vendas usa estes três sem declarar; aqui ficam explícitos */
+  --ouro:#B8894A; --creme:#FAF7F3; --tinta-2:rgba(36,30,28,.6);
+  /* Régua da carteira em leitura de semáforo, como a direção liberou: quente
+     é o melhor cenário, dormente o pior. O tom do frio é terroso de
+     propósito — vermelho puro fica reservado ao farol do follow-up, que é
+     decisão do dia, para as duas telas não competirem pela mesma urgência. */
+  --f-quente:#2E7D57; --f-morno:#C98A16; --f-frio:#C0623A; --f-dormente:#8C807A;
+  /* farol do follow-up — este SIM é semáforo de verdade, e só nesta tela */
+  --verde:#1F7A4D; --ambar:#C98A16; --vermelho:#C0392B; --decidir:#7A5C99;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;min-height:100%}
+body{background:var(--papel);color:var(--tinta);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- carregando: monograma girando, igual ao KN Vendas ---------- */
+#carregando{display:none;position:fixed;inset:0;z-index:70;
+  background:rgba(250,247,243,.94);
+  flex-direction:column;align-items:center;justify-content:center;gap:18px}
+#carregando.on{display:flex}
+/* O monograma é branco sobre transparente — é assim que ele vive no cabeçalho
+   vinho. Sobre o fundo claro do carregamento ele simplesmente sumia. O círculo
+   vinho atrás resolve e deixa o giro igual ao do painel de vendas. */
+#carregando img{width:62px;height:62px;border-radius:50%;background:var(--vinho);
+  padding:9px;object-fit:contain;
+  animation:girar 1.1s linear infinite;box-shadow:0 6px 20px rgba(92,26,43,.18)}
+#carregando span{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.16em;
+  text-transform:uppercase;color:#5C1A2B;font-weight:600;text-align:center;padding:0 20px}
+@keyframes girar{to{transform:rotate(360deg)}}
+.mod-carreg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;padding:34px 0}
+.mod-carreg .mod-mono{width:48px;height:48px;border-radius:50%;background:var(--vinho);padding:7px;
+  object-fit:contain;animation:girar 1.1s linear infinite}
+.mod-carreg span{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:#5C1A2B;font-weight:600;text-align:center}
+@media (prefers-reduced-motion:reduce){#carregando img,.mod-carreg .mod-mono{animation:none;opacity:.65}}
+
+/* ---------- configuração (só na versão hospedada fora do Google) ---------- */
+#config{max-width:520px;margin:60px auto;padding:28px;background:var(--papel-2);border-radius:12px;box-shadow:0 12px 32px -16px rgba(36,30,28,.4);display:none}
+#config h1{font-family:'Fraunces',Georgia,serif;font-size:22px;margin:0 0 6px;color:var(--vinho)}
+#config p{font-size:13.5px;color:rgba(36,30,28,.7);line-height:1.6;margin:0 0 16px}
+#config input{width:100%;padding:11px 12px;border:1px solid var(--linha-forte);border-radius:6px;font-size:13px;font-family:'IBM Plex Mono',monospace}
+#config button{margin-top:12px;width:100%;padding:12px;background:var(--vinho);color:#fff;border:0;border-radius:6px;font-size:14px;font-weight:600}
+#config .erro{color:var(--vinho-2);font-size:12.5px;margin-top:10px;display:none}
+
+/* ---------- estrutura ---------- */
+#app{display:none}
+header.topo{background:var(--vinho);color:#fff;padding:13px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:20}
+header.topo .marca{font-family:'Fraunces',Georgia,serif;font-size:17px;font-weight:500;line-height:1.1}
+header.topo .marca-bloco{display:flex;align-items:center;gap:11px}
+header.topo .marca-img{width:34px;height:34px;flex:none;display:block;border-radius:50%}
+header.topo .sub{font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7;letter-spacing:.08em;margin-top:3px}
+@media(max-width:620px){header.topo .sub .detalhe{display:none}}
+header.topo .hdr-dir{display:flex;align-items:center;gap:9px}
+header.topo .atz{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:rgba(250,247,243,.72);line-height:1.3;text-align:right}
+header.topo .atz .velho{color:#F0C36A}
+header.topo .btn-atz{background:rgba(250,247,243,.12);border:1px solid rgba(250,247,243,.28);color:var(--creme);width:32px;height:32px;border-radius:8px;font-size:15px;line-height:1;flex:none;transition:transform .5s,background .2s}
+header.topo .btn-atz:hover{background:rgba(250,247,243,.22)}
+header.topo .btn-atz.girando{transform:rotate(360deg)}
+header.topo .quem{background:rgba(250,247,243,.12);border:1px solid rgba(250,247,243,.28);color:var(--creme);border-radius:8px;padding:0 12px;height:32px;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap}
+@media(max-width:620px){
+  header.topo{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+  header.topo .marca-bloco{flex:1 1 100%}
+  header.topo .hdr-dir{flex:1 1 100%;justify-content:flex-end;gap:7px}
+  header.topo .atz{flex:1;text-align:left;align-items:flex-start;font-size:8.5px}
+}
+
+nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--linha);overflow-x:auto;position:sticky;top:54px;z-index:19;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:none;padding:12px 16px;background:none;border:0;border-bottom:2px solid transparent;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(36,30,28,.5);white-space:nowrap}
+nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weight:600}
+@media(max-width:620px){nav.tabs{top:auto}}
+
+.tela{display:none;max-width:1580px;margin:0 auto;padding:16px}
+.tela.on{display:block}
+.alerta-versao{background:#8A3A4C;color:#fff;padding:11px 16px;font-size:12.5px;line-height:1.5;display:none}
+
+/* ---------- blocos comuns ao KN Vendas ---------- */
+.hero{background:var(--vinho);color:#fff;border-radius:12px;padding:18px}
+.hero .rot{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;opacity:.72}
+.hero .grande{font-size:38px;font-weight:500;margin:5px 0 3px;line-height:1.02;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.hero .grande small{font-size:15px;opacity:.7;margin-right:4px}
+.hero .sub{font-size:10.5px;font-family:'IBM Plex Mono',monospace;opacity:.85}
+.card{background:var(--papel-2);border-radius:12px;padding:16px;border:1px solid var(--linha)}
+.card h3{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(36,30,28,.6);margin:0 0 13px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card h3 .aux{font-size:9.5px;letter-spacing:.04em;text-transform:none;color:rgba(36,30,28,.45);font-weight:400}
+.bloco{margin-bottom:14px}
+.sec{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(36,30,28,.6);margin:16px 0 8px;font-weight:600}
+.vazio{text-align:center;padding:28px 12px;color:rgba(36,30,28,.42);font-size:12.5px}
+.carregando{text-align:center;padding:28px;color:rgba(36,30,28,.45);font-size:12.5px}
+.nota{font-size:11.5px;line-height:1.55;color:rgba(36,30,28,.62);background:rgba(92,26,43,.05);border-left:3px solid var(--vinho);border-radius:0 6px 6px 0;padding:10px 12px;margin-top:12px}
+.aviso-box{background:#F7E9E4;border:1px solid #E8C4B6;border-left:3px solid var(--vinho-2);color:#7E2E17;border-radius:8px;padding:11px 13px;font-size:12.5px;line-height:1.55;margin-bottom:12px}
+
+/* ---------- cabeçalho da tela de recall ---------- */
+.cab-tela{display:grid;gap:14px;margin-bottom:14px}
+@media(min-width:1000px){.cab-tela{grid-template-columns:minmax(300px,.9fr) minmax(340px,1.4fr)}}
+.regua{display:flex;height:46px;border-radius:9px;overflow:hidden;border:1px solid var(--linha)}
+.regua button{border:0;padding:0;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:52px;transition:filter .15s}
+.regua button:hover{filter:brightness(1.08)}
+.regua button[aria-pressed="true"]{box-shadow:inset 0 0 0 3px rgba(255,255,255,.85)}
+.regua b{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;line-height:1}
+.regua span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.fx-QUENTE{background:var(--f-quente)}.fx-MORNO{background:var(--f-morno)}
+.fx-FRIO{background:var(--f-frio)}.fx-DORMENTE{background:var(--f-dormente)}
+.legenda{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+.legenda div{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(36,30,28,.6);letter-spacing:.03em}
+.legenda i{width:9px;height:9px;border-radius:2px;flex:none}
+.mini{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+@media(min-width:560px){.mini{grid-template-columns:repeat(4,1fr)}}
+.mini div{background:var(--papel-2);border:1px solid var(--linha);border-radius:10px;padding:11px 12px}
+.mini b{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:600;display:block;line-height:1.1;color:var(--vinho)}
+.mini span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:rgba(36,30,28,.5);display:block;margin-top:3px}
+.mini.alerta b{color:var(--vinho-2)}
+
+/* ---------- filtros ---------- */
+.filtros{display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:var(--papel-2);border:1px solid var(--linha);border-radius:12px;padding:11px 12px}
+.chip{background:#fff;border:1px solid var(--linha);border-radius:99px;padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:rgba(36,30,28,.65)}
+.chip[aria-pressed="true"]{background:var(--vinho);border-color:var(--vinho);color:#fff;font-weight:600}
+.sep{width:1px;height:20px;background:var(--linha);flex:none}
+.filtros .chips{display:contents}
+.bt-filtros{display:none;border:1px solid var(--linha);background:#fff;border-radius:99px;
+  padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--vinho);flex:none}
+/* No celular a fila é o que importa: dez chips empurrando a lista para baixo
+   obrigavam a gestora a rolar antes de ver a primeira paciente. Os filtros
+   ficam a um toque de distância, e a busca continua sempre visível. */
+@media(max-width:820px){
+  .filtros .chips{display:none}
+  .filtros.aberto .chips{display:flex;flex-wrap:wrap;gap:7px;width:100%;margin-top:9px}
+  .filtros .sep{display:none}
+  .bt-filtros{display:inline-flex}
+}
+.busca-cx{flex:1;min-width:190px;display:flex;align-items:center;background:#fff;
+  border:1px solid var(--linha);border-radius:99px;padding-right:4px}
+.busca-cx:focus-within{border-color:var(--vinho)}
+.busca-lin{flex:1;min-width:0;padding:8px 6px 8px 14px;border:0;border-radius:99px;
+  font-family:inherit;font-size:13px;background:transparent;color:var(--tinta)}
+.busca-lin:focus{outline:none}
+.bt-lupa{border:0;background:var(--vinho);color:#fff;width:28px;height:28px;border-radius:50%;
+  font-size:13px;line-height:1;flex:none;display:grid;place-items:center}
+.bt-lupa:hover{background:var(--vinho-2)}
+
+/* ---------- seleção e exportação ---------- */
+.sel-cx{display:flex;align-items:center;justify-content:center;width:34px;flex:none;
+  border-right:1px solid var(--linha);background:rgba(36,30,28,.02)}
+.sel-cx input{width:17px;height:17px;accent-color:var(--vinho);margin:0}
+.pac.escolhida{border-color:var(--vinho);box-shadow:0 0 0 2px rgba(92,26,43,.12)}
+.barra-sel{position:sticky;bottom:10px;z-index:18;display:none;gap:9px;align-items:center;flex-wrap:wrap;
+  background:var(--vinho);color:#fff;border-radius:11px;padding:11px 13px;margin:12px 0;
+  box-shadow:0 12px 30px -14px rgba(36,30,28,.6)}
+.barra-sel.on{display:flex}
+.barra-sel .qt{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.05em}
+.barra-sel .bt{background:rgba(250,247,243,.12);border-color:rgba(250,247,243,.32);color:#fff}
+.barra-sel .bt:hover{background:#fff;color:var(--vinho);border-color:#fff}
+.barra-sel .esq{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+
+/* ---------- cartão de paciente ---------- */
+/* ---------- lista + ficha lado a lado no PC ----------
+   No computador a coluna da direita ficava vazia e a ficha abria por cima,
+   desperdiçando meia tela. Agora a ficha é a coluna da direita; no celular,
+   onde não há espaço, ela continua sendo uma camada sobre a lista. */
+.split{display:grid;gap:14px;align-items:start}
+@media(min-width:1100px){.split{grid-template-columns:minmax(0,1fr) minmax(420px,.8fr)}}
+.ficha-slot{display:none}
+@media(min-width:1100px){.ficha-slot{display:block}}
+.ficha-vazia{background:var(--papel-2);border:1px dashed var(--linha-forte);border-radius:12px;
+  padding:40px 20px;text-align:center;color:rgba(36,30,28,.42);font-size:12.5px}
+.lista{display:grid;gap:9px}
+.pac{display:flex;width:100%;text-align:left;background:var(--papel-2);border:1px solid var(--linha);
+  border-radius:11px;overflow:hidden;padding:0;cursor:pointer;
+  transition:border-color .12s,box-shadow .12s,background .12s}
+.pac:hover{border-color:var(--vinho);background:#fff}
+.pac:focus-visible{outline:2px solid var(--vinho);outline-offset:2px}
+/* a caixa de seleção tem alvo próprio: clicar nela não abre a ficha */
+.pac .sel-cx{cursor:pointer}
+.pac[aria-current="true"]{border-color:var(--vinho);box-shadow:0 0 0 2px rgba(92,26,43,.12)}
+.tarja{width:4px;flex:none}
+.tj-QUENTE{background:var(--f-quente)}.tj-MORNO{background:var(--f-morno)}
+.tj-FRIO{background:var(--f-frio)}.tj-DORMENTE{background:var(--f-dormente)}
+.tj-VERDE{background:var(--verde)}.tj-AMBAR{background:var(--ambar)}
+.tj-VERMELHO{background:var(--vermelho)}.tj-DECIDIR{background:var(--decidir)}
+.pac-in{padding:12px 14px;flex:1;min-width:0}
+.pac-l1{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.pac-nome{font-family:'Fraunces',Georgia,serif;font-size:18px;font-weight:500;line-height:1.15}
+.pac-cid{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:rgba(36,30,28,.5)}
+.pac-dias{margin-left:auto;text-align:right;flex:none}
+.pac-dias b{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;line-height:1;display:block}
+.pac-dias span{font-family:'IBM Plex Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(36,30,28,.5)}
+.pac-l2{font-size:11.5px;color:rgba(36,30,28,.65);margin-top:5px;line-height:1.45}
+.pac-l3{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.04em;padding:3px 7px;border:1px solid var(--linha-forte);border-radius:3px;color:rgba(36,30,28,.65);white-space:nowrap}
+.tag.val{border-color:var(--latao);color:#8A6529}
+.tag.alerta{border-color:var(--vinho-2);color:var(--vinho-2);font-weight:600}
+.tag.ok{border-color:var(--salvia);color:var(--salvia)}
+.tag.roxo{border-color:var(--decidir);color:var(--decidir);font-weight:600}
+.tag.flag{background:var(--vinho);border-color:var(--vinho);color:#fff}
+.tag.FORTE{border-color:var(--salvia);color:var(--salvia);font-weight:600}
+.tag.MEDIO{border-color:var(--latao);color:#8A6529;font-weight:600}
+.tag.FRACO{border-color:var(--linha-forte);color:rgba(36,30,28,.45)}
+.bt-min{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.05em;border:1px solid var(--linha-forte);background:#fff;color:var(--vinho);border-radius:4px;padding:3px 9px}
+.bt-min:hover{background:var(--vinho);color:#fff}
+.farolinho{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.fl-VERDE{background:var(--verde)}.fl-AMBAR{background:var(--ambar)}
+.fl-VERMELHO{background:var(--vermelho)}.fl-DECIDIR{background:var(--decidir)}
+
+/* ---------- ficha: gaveta lateral no PC, tela cheia no celular ----------
+   Na V1 a ficha morava dentro da tela de recall. Aberta a partir do
+   follow-up, nada acontecia: o painel existia, mas em outra aba. Agora a
+   ficha é uma camada por cima, disponível em QUALQUER tela, e no celular ela
+   não faz a lista perder a posição de rolagem — ao fechar, a lista está
+   exatamente onde estava. */
+#ficha-fundo{display:none;position:fixed;inset:0;background:rgba(36,30,28,.45);z-index:45}
+#ficha-fundo.on{display:block}
+#ficha{position:fixed;top:0;right:0;bottom:0;width:100%;max-width:560px;background:var(--papel);
+  z-index:46;transform:translateX(102%);transition:transform .22s ease;display:flex;flex-direction:column;
+  box-shadow:-14px 0 40px -18px rgba(36,30,28,.5)}
+#ficha.on{transform:translateX(0)}
+/* modo coluna: a mesma ficha, encaixada na direita em vez de sobreposta */
+#ficha.lateral{position:sticky;top:112px;right:auto;bottom:auto;transform:none;width:auto;
+  max-width:none;border:1px solid var(--linha);border-radius:12px;overflow:hidden;
+  box-shadow:0 10px 30px -22px rgba(36,30,28,.5);max-height:calc(100vh - 132px);z-index:1}
+#ficha.lateral .fc-topo .volta:not(.acao-topo){display:none}
+@media (prefers-reduced-motion:reduce){#ficha{transition:none}}
+#ficha .fc-topo{background:var(--vinho);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:10px;flex:none}
+#ficha .fc-topo .volta{background:rgba(250,247,243,.14);border:1px solid rgba(250,247,243,.3);color:#fff;
+  border-radius:8px;height:32px;padding:0 12px;font-family:'IBM Plex Mono',monospace;font-size:11px;flex:none}
+#ficha .fc-topo .tit{font-family:'Fraunces',Georgia,serif;font-size:18px;line-height:1.15;flex:1;min-width:0}
+#ficha .fc-topo .sub{font-family:'IBM Plex Mono',monospace;font-size:9.5px;opacity:.75;letter-spacing:.06em;margin-top:2px}
+#ficha .fc-corpo{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.fc-resumo{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:14px}
+@media(min-width:460px){.fc-resumo{grid-template-columns:repeat(4,1fr)}}
+.fc-resumo div{background:var(--papel-2);border:1px solid var(--linha);border-radius:10px;padding:10px 11px}
+.fc-resumo b{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;display:block;color:var(--vinho);line-height:1.15}
+.fc-resumo span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(36,30,28,.5);display:block;margin-top:3px}
+.acoes{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.bt{border:1px solid var(--linha-forte);background:#fff;color:var(--tinta);border-radius:8px;
+  padding:9px 13px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:500;text-decoration:none;
+  display:inline-flex;align-items:center;gap:6px}
+.bt:hover{border-color:var(--vinho);color:var(--vinho)}
+.bt.prim{background:var(--vinho);border-color:var(--vinho);color:#fff;font-weight:600}
+.bt.prim:hover{background:var(--vinho-2);border-color:var(--vinho-2);color:#fff}
+.bt.zap{border-color:var(--salvia);color:var(--salvia);font-weight:600}
+.bt.zap:hover{background:var(--salvia);color:#fff}
+.bt[disabled]{opacity:.5;pointer-events:none}
+.bt.larga{width:100%;justify-content:center}
+.orc-l{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--linha)}
+.orc-l:last-child{border-bottom:0}
+.orc-l .dt{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:rgba(36,30,28,.5);width:66px;flex:none;padding-top:3px}
+.orc-l .ce{flex:1;min-width:0}
+.orc-l .tt{font-size:12.5px;font-weight:600;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.orc-l .pp{font-size:11px;color:rgba(36,30,28,.6);margin-top:3px;line-height:1.4}
+.orc-l .vv{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;text-align:right;flex:none;padding-top:2px}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:8.5px;padding:2px 6px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.pill.ap{background:rgba(79,107,88,.15);color:var(--salvia)}
+.pill.ab{background:rgba(184,137,74,.2);color:#8A6529}
+.pill.pe{background:rgba(36,30,28,.08);color:rgba(36,30,28,.5)}
+.tl{position:relative;padding-left:18px}
+.tl::before{content:"";position:absolute;left:4px;top:6px;bottom:6px;width:1px;background:var(--linha)}
+.ct{position:relative;padding:0 0 13px}.ct:last-child{padding-bottom:0}
+.ct::before{content:"";position:absolute;left:-18px;top:4px;width:9px;height:9px;border-radius:50%;background:var(--papel);border:2px solid var(--latao)}
+.ct-l1{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.ct-canal{font-size:12px;font-weight:600}
+.ct-meta{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:rgba(36,30,28,.5)}
+.ct-obs{font-size:12.5px;margin-top:3px;color:rgba(36,30,28,.78);line-height:1.5}
+
+/* ---------- campos ---------- */
+.grid-campo{display:grid;grid-template-columns:1fr;gap:11px}
+@media(min-width:520px){.grid-campo{grid-template-columns:1fr 1fr}}
+.campo{min-width:0}.campo.wide{grid-column:1/-1}
+.campo label{display:block;font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:rgba(36,30,28,.55);margin-bottom:5px}
+.campo input,.campo select,.campo textarea{width:100%;padding:10px 11px;border:1px solid var(--linha);
+  border-radius:8px;font:400 14px/1.3 Inter,sans-serif;background:#fff;color:var(--tinta)}
+.campo textarea{min-height:66px;resize:vertical}
+.campo input:focus,.campo select:focus,.campo textarea:focus{outline:none;border-color:var(--vinho)}
+.escala{display:flex;gap:6px}
+.escala button{flex:1;border:1px solid var(--linha);background:#fff;border-radius:8px;padding:9px 4px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:rgba(36,30,28,.55)}
+.escala button[aria-pressed="true"][data-v="FORTE"]{border-color:var(--salvia);color:var(--salvia);font-weight:600}
+.escala button[aria-pressed="true"][data-v="MEDIO"]{border-color:var(--latao);color:#8A6529;font-weight:600}
+.escala button[aria-pressed="true"][data-v="FRACO"]{border-color:var(--linha-forte);color:rgba(36,30,28,.5);font-weight:600}
+
+/* ---------- modal ---------- */
+#modal{display:none;position:fixed;inset:0;background:rgba(36,30,28,.55);z-index:65;align-items:flex-end;justify-content:center}
+@media(min-width:700px){#modal{align-items:center}}
+#modal.on{display:flex}
+#modal .painel{background:var(--papel-2);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:20px}
+@media(min-width:700px){#modal .painel{border-radius:14px}}
+#modal .fechar{float:right;background:none;border:0;font-size:20px;color:rgba(36,30,28,.5)}
+#modal h2{font-family:'Fraunces',Georgia,serif;font-size:20px;color:var(--vinho);margin:0 0 4px}
+.msg-previa{background:#fff;border:1px solid var(--linha);border-left:3px solid var(--salvia);border-radius:8px;
+  padding:12px 13px;font-size:13px;line-height:1.55;white-space:pre-wrap;margin:10px 0}
+.res-busca{display:grid;gap:8px;margin-top:12px}
+.onde{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 7px;border-radius:3px;font-weight:600}
+.onde-RECALL{background:rgba(184,137,74,.2);color:#8A6529}
+.onde-DORMENTE{background:rgba(140,128,122,.22);color:#5F5651}
+.onde-FOLLOWUP{background:rgba(79,107,88,.16);color:var(--salvia)}
+.onde-ENCERRADA{background:rgba(138,58,76,.14);color:var(--vinho-2)}
+.onde-SEM_DATA{background:rgba(36,30,28,.08);color:rgba(36,30,28,.5)}
+
+/* ---------- agenda ---------- */
+.navmes{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.navmes button{background:var(--papel-2);border:1px solid var(--linha-forte);border-radius:8px;width:34px;height:34px;font-size:15px;color:var(--vinho);line-height:1;flex:none}
+.navmes select{flex:1;max-width:220px;padding:8px 10px;border:1px solid var(--linha-forte);border-radius:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;background:var(--papel-2);color:var(--tinta)}
+.navmes .hoje{width:auto;padding:0 12px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em}
+.dia-h{display:flex;align-items:baseline;gap:9px;margin:16px 0 8px}
+.dia-h h3{font-family:'Fraunces',Georgia,serif;font-size:17px;color:var(--vinho);margin:0}
+.dia-h span{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(36,30,28,.5)}
+.ag{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;padding:12px 13px;border:1px solid var(--linha);
+  border-radius:11px;background:var(--papel-2);margin-bottom:8px;align-items:start}
+.ag .hora{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;grid-column:1;grid-row:1;white-space:nowrap;color:var(--vinho)}
+.ag-c{grid-column:2;grid-row:1;min-width:0}
+.ag-n{font-size:13.5px;font-weight:600}
+.ag-p{font-size:11.5px;color:rgba(36,30,28,.6);margin-top:2px}
+.ag-rod{grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.ag-acoes{display:flex;gap:5px;margin-left:auto}
+.ag-hist{grid-column:1/-1;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--vinho-2);
+  border-top:1px dashed var(--linha);padding-top:7px;margin-top:9px}
+.st{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:3px}
+.st-AGENDADA{background:rgba(36,30,28,.08);color:rgba(36,30,28,.55)}
+.st-CONFIRMADA,.st-COMPARECEU{background:rgba(79,107,88,.15);color:var(--salvia)}
+.st-REMARCADA{background:rgba(184,137,74,.2);color:#8A6529}
+.st-FALTOU{background:#F7E9E4;color:#A8442F}
+.st-CANCELADA{background:rgba(36,30,28,.08);color:rgba(36,30,28,.4)}
+
+/* ---------- indicadores ---------- */
+.ind-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.ind-card{background:var(--papel-2);border:1px solid var(--linha);border-radius:10px;padding:12px 13px}
+.ind-card .r{font:600 9.5px/1 'IBM Plex Mono',monospace;letter-spacing:.11em;text-transform:uppercase;color:rgba(36,30,28,.5)}
+.ind-card .v{font-family:'Fraunces',Georgia,serif;font-size:22px;color:var(--vinho);margin-top:5px;line-height:1.1}
+.ind-card .d{font-size:11px;color:rgba(36,30,28,.55);margin-top:3px}
+.meta-bar{height:9px;border-radius:99px;background:rgba(36,30,28,.09);overflow:hidden;margin-top:6px}
+.meta-f{height:100%;background:var(--latao)}
+.et{margin-bottom:11px}
+.et-l{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;gap:10px}
+.et-l span{font-family:'IBM Plex Mono',monospace;color:rgba(36,30,28,.55);font-size:10.5px}
+.et-b{height:22px;border-radius:5px;background:rgba(36,30,28,.07);overflow:hidden}
+.et-f{height:100%;background:var(--vinho)}
+.et-f.g{background:var(--salvia)}
+.ind-tab{width:100%;border-collapse:collapse;font-size:12px}
+.ind-tab th{text-align:right;font:600 9.5px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(36,30,28,.5);padding:6px 5px;border-bottom:1px solid var(--linha)}
+.ind-tab th:first-child,.ind-tab td:first-child{text-align:left}
+.ind-tab td{padding:7px 5px;border-bottom:1px solid #F0EAE4;text-align:right}
+.ind-tab td.num,.ind-tab th.num{font-family:'IBM Plex Mono',monospace}
+.ind-tab tr:last-child td{border-bottom:0}
+.tab-w{width:100%;overflow-x:auto}
+
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;background:var(--vinho);color:#fff;
+  padding:11px 18px;border-radius:99px;font-size:13px;z-index:80;display:none;box-shadow:0 10px 30px -12px rgba(36,30,28,.6)}
+#toast.on{display:block}
+
+/* ---------- portão de acesso ---------- */
+#portao{position:fixed;inset:0;background:var(--vinho);z-index:90;display:none;overflow:auto}
+#portao.on{display:block}
+.pt-in{max-width:680px;margin:0 auto;padding:22px 16px 40px}
+.pt-topo{text-align:center;padding:14px 0 4px}
+.pt-topo img{height:46px;width:46px;border-radius:50%;background:rgba(250,247,243,.12);padding:6px}
+.t-passos{display:flex;gap:6px;margin:16px 0 14px}
+.t-passos div{flex:1;padding:7px 4px;text-align:center;font:600 9px/1.3 'IBM Plex Mono',monospace;
+  letter-spacing:.07em;text-transform:uppercase;color:rgba(250,247,243,.5);border-bottom:2px solid rgba(250,247,243,.22)}
+.t-passos div[data-on="1"]{color:#fff;border-bottom-color:var(--ouro)}
+.pt-card{background:var(--papel-2);border-radius:14px;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+.pt-cab{padding:16px 18px 12px;border-bottom:1px solid var(--linha)}
+.pt-cab h2{font-family:'Fraunces',Georgia,serif;font-size:21px;color:var(--vinho);margin:0 0 4px}
+.pt-cab .sub2{font-size:12.5px;color:rgba(36,30,28,.6);line-height:1.5}
+.pt-corpo{padding:16px 18px}
+.t-doc{background:#fff;border:1px solid var(--linha);border-radius:12px;height:280px;overflow:auto;
+  padding:16px 16px 26px;font-size:12.5px;line-height:1.62}
+.t-doc h4{font:600 10.5px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--latao);margin:16px 0 6px}
+.t-doc h4:first-child{margin-top:0}
+.t-doc p{margin:0 0 9px}
+.t-doc b{color:var(--vinho)}
+.t-doc .fim{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(36,30,28,.4);padding-top:10px}
+.t-rol{font-size:11.5px;margin:8px 0 14px;color:#A8442F}
+.t-rol[data-ok="1"]{color:#3F6B52}
+.t-check{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--linha);
+  border-radius:8px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.t-check input{margin:2px 0 0;width:18px;height:18px;accent-color:var(--vinho);flex:0 0 auto}
+.t-check span{font-size:12.5px;line-height:1.5}
+.t-check[data-on="1"]{border-color:#BFD3C0;background:#F1F7F1}
+.t-ass{background:#fff;border:1px dashed var(--linha-forte);border-radius:12px;padding:10px;position:relative}
+.t-ass canvas{width:100%;height:160px;display:block;touch-action:none;border-radius:6px;background:#FEFDFB}
+.t-ass .ph{position:absolute;inset:0;display:grid;place-items:center;color:rgba(36,30,28,.4);font-size:13px;pointer-events:none}
+.t-ass.usada .ph{display:none}
+.t-erro{background:#F7E9E4;border:1px solid #E8C4B6;color:#7E2E17;border-radius:8px;padding:10px 12px;
+  font-size:12.5px;line-height:1.5;margin-top:12px;display:none}
+.t-erro.on{display:block}
+.pt-rod{text-align:center;color:rgba(250,247,243,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;
+  margin-top:16px;line-height:1.7;letter-spacing:.05em}
+</style>
+</head>
+<body>
+
+<div id="carregando"><img id="carregando-mono" alt=""><span id="carregando-txt">carregando</span></div>
+
+<div id="config">
+  <h1>Recall e Follow-up — Kássila Nasser</h1>
+  <p>Cole a URL do App da Web publicado no Apps Script (termina em <b>/exec</b>). Fica salva neste navegador
+     e não aparece de novo.</p>
+  <input id="inp-url" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+  <button onclick="salvarUrl()">Entrar</button>
+  <div class="erro" id="config-erro"></div>
+</div>
+
+<div id="app">
+  <header class="topo">
+    <div class="marca-bloco">
+      <img class="marca-img" id="marca-img" alt="" src="icon-192.png">
+      <div>
+        <div class="marca">Kássila Nasser</div>
+        <div class="sub" id="hdr-sub">—</div>
+      </div>
+    </div>
+    <div class="hdr-dir">
+      <div class="atz"><span id="atz-txt">—</span><span id="atz-base"></span></div>
+      <button class="quem" id="bt-quem" onclick="abrirPortao()">Identificar-se</button>
+      <button class="btn-atz" id="bt-busca" onclick="abrirBusca()" title="Buscar paciente em toda a carteira">⌕</button>
+      <button class="btn-atz" id="bt-atz" onclick="atualizarAgora()" title="Atualizar dados">↻</button>
+    </div>
+  </header>
+
+  <div class="alerta-versao" id="alerta-versao"></div>
+
+  <nav class="tabs">
+    <button data-tela="acompanhamento" class="on" onclick="irPara('acompanhamento')">Acompanhamento</button>
+    <button data-tela="recall" onclick="irPara('recall')">Recall</button>
+    <button data-tela="dormente" onclick="irPara('dormente')">Dormente</button>
+    <button data-tela="follow" onclick="irPara('follow')">Follow-up</button>
+    <button data-tela="agenda" onclick="irPara('agenda')">Agenda</button>
+    <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
+  </nav>
+
+  <!-- ===================== ACOMPANHAMENTO =====================
+       A fila do dia. Quem já foi contatada sai do Recall e vive aqui até
+       fechar, agendar ou ser encerrada pela gestora. -->
+  <section class="tela on" id="tela-acompanhamento">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Acompanhamento</div>
+        <div class="grande" id="ac-grande">—</div>
+        <div class="sub" id="ac-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Em que pé está cada paciente <span class="aux">toque num bloco para filtrar</span></h3>
+        <div class="regua" id="ac-regua"></div>
+        <div class="legenda" id="ac-legenda"></div>
+      </div>
+    </div>
+    <div id="ac-aviso"></div>
+    <div class="filtros bloco" id="ac-filtros"></div>
+    <div class="split">
+      <div>
+        <div class="sec" id="ac-rotulo">Fila do dia</div>
+        <div class="lista" id="ac-lista"><div class="carregando">Carregando…</div></div>
+      </div>
+      <div class="ficha-slot" id="slot-acompanhamento"></div>
+    </div>
+    <div class="nota">Ninguém fica sem próximo passo: se você não marcar a data de retorno ao salvar o
+      contato, o app marca sozinho para daqui a <b id="ac-lembrete">7</b> dias e a paciente reaparece em
+      <b>Vencidos</b>. Encerrar é decisão sua — o app nunca encerra ninguém.</div>
+  </section>
+
+  <!-- ===================== RECALL ===================== -->
+  <section class="tela" id="tela-recall">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Fila de recall</div>
+        <div class="grande" id="rc-grande">—</div>
+        <div class="sub" id="rc-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Régua da carteira <span class="aux">toque numa faixa para filtrar</span></h3>
+        <div class="regua" id="rc-regua"></div>
+        <div class="legenda" id="rc-legenda"></div>
+      </div>
+    </div>
+    <div class="mini bloco" id="rc-mini"></div>
+    <div class="split">
+      <div>
+        <div class="filtros bloco" id="rc-filtros"></div>
+        <div class="sec" id="rc-rotulo">Fila de trabalho</div>
+        <div class="lista" id="rc-lista"><div class="carregando">Carregando…</div></div>
+        <div class="barra-sel" id="rc-barra"></div>
+      </div>
+      <div class="ficha-slot" id="slot-recall"></div>
+    </div>
+  </section>
+
+  <!-- ===================== DORMENTE ===================== -->
+  <section class="tela" id="tela-dormente">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Carteira dormente</div>
+        <div class="grande" id="dm-grande">—</div>
+        <div class="sub" id="dm-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Régua da carteira <span class="aux">acima de 180 dias sem orçamento novo</span></h3>
+        <div class="regua" id="dm-regua"></div>
+        <div class="legenda" id="dm-legenda"></div>
+      </div>
+    </div>
+    <div class="mini bloco" id="dm-mini"></div>
+    <div class="split">
+      <div>
+        <div class="filtros bloco" id="dm-filtros"></div>
+        <div class="sec" id="dm-rotulo">Fila dormente</div>
+        <div class="lista" id="dm-lista"><div class="carregando">Carregando…</div></div>
+        <div class="barra-sel" id="dm-barra"></div>
+      </div>
+      <div class="ficha-slot" id="slot-dormente"></div>
+    </div>
+    <div class="nota">A carteira dormente é trabalho de campanha, não de fila diária: volume alto e conversão
+      baixa. Por isso ela tem tela própria e indicador próprio — misturada ao recall, escondia o desempenho
+      das faixas quente, morno e frio.</div>
+  </section>
+
+  <!-- ===================== FOLLOW-UP ===================== -->
+  <section class="tela" id="tela-follow">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Follow-up</div>
+        <div class="grande" id="fu-grande">—</div>
+        <div class="sub" id="fu-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Régua da decisão <span class="aux">toque numa faixa para filtrar</span></h3>
+        <div class="regua" id="fu-regua"></div>
+        <div class="legenda" id="fu-legenda"></div>
+      </div>
+    </div>
+    <div id="fu-aviso"></div>
+    <div class="split">
+      <div>
+        <div class="filtros bloco" id="fu-filtros"></div>
+        <div class="sec" id="fu-rotulo">Orçamentos em aberto</div>
+        <div class="lista" id="fu-lista"><div class="carregando">Carregando…</div></div>
+      </div>
+      <div class="ficha-slot" id="slot-follow"></div>
+    </div>
+    <div class="nota">O farol pega <b>o pior dos dois critérios</b>: a idade do orçamento e o atraso do retorno
+      prometido. Orçamento novo com retorno vencido fica vermelho do mesmo jeito. Passando de 30 dias, a
+      paciente sai desta tela e entra na fila de Recall, com a faixa dela.</div>
+  </section>
+
+  <!-- ===================== AGENDA ===================== -->
+  <section class="tela" id="tela-agenda">
+    <div class="filtros bloco" id="ag-filtros">
+      <button class="chip" data-per="14" aria-pressed="true">Próximos 14 dias</button>
+      <button class="chip" data-per="7" aria-pressed="false">7 dias</button>
+      <button class="chip" data-per="30" aria-pressed="false">30 dias</button>
+    </div>
+    <div class="ind-cards" id="ag-kpis"></div>
+    <div class="split">
+      <div id="ag-lista"><div class="carregando">Carregando…</div></div>
+      <div class="ficha-slot" id="slot-agenda"></div>
+    </div>
+  </section>
+
+  <!-- ===================== INDICADORES ===================== -->
+  <section class="tela" id="tela-indicadores">
+    <div class="filtros bloco">
+      <button class="chip" data-esc="RECALL" aria-pressed="true">Recall</button>
+      <button class="chip" data-esc="DORMENTE" aria-pressed="false">Dormente</button>
+      <button class="chip" data-esc="FOLLOWUP" aria-pressed="false">Follow-up</button>
+    </div>
+    <div class="navmes">
+      <button onclick="andarMes(-1)" title="mês anterior">‹</button>
+      <select id="sel-mes" onchange="trocarMes(this.value)"></select>
+      <button onclick="andarMes(1)" title="próximo mês">›</button>
+      <button class="hoje" onclick="mesAtual()">MÊS ATUAL</button>
+    </div>
+    <div id="ind-corpo"><div class="carregando">Carregando…</div></div>
+  </section>
+</div>
+
+<!-- ===================== FICHA (camada sobre qualquer tela) ===================== -->
+<div id="ficha-fundo" onclick="fecharFicha()"></div>
+<aside id="ficha" aria-hidden="true">
+  <div class="fc-topo">
+    <button class="volta" onclick="fecharFicha()">← Voltar</button>
+    <div style="flex:1;min-width:0">
+      <div class="tit" id="fc-nome">—</div>
+      <div class="sub" id="fc-sub">—</div>
+    </div>
+    <button class="volta acao-topo" id="fc-pdf" title="Imprimir a ficha em PDF">PDF</button>
+  </div>
+  <div class="fc-corpo" id="fc-corpo"><div class="carregando">Carregando…</div></div>
+</aside>
+
+<div id="modal"><div class="painel"><button class="fechar" onclick="fecharModal()">×</button>
+  <div id="modal-conteudo"></div></div></div>
+
+<div id="toast"></div>
+
+<!-- ===================== PORTÃO DE ACESSO ===================== -->
+<div id="portao"><div class="pt-in">
+  <div class="pt-topo"><img id="pt-logo" alt=""></div>
+  <div class="t-passos">
+    <div data-p="1">1 · Identificação</div><div data-p="2">2 · Aviso</div>
+    <div data-p="3">3 · Termo</div><div data-p="4">4 · Assinatura</div>
+  </div>
+  <div class="pt-card">
+    <div class="pt-cab"><h2 id="pt-titulo">Identificação</h2><div class="sub2" id="pt-sub"></div></div>
+    <div class="pt-corpo" id="pt-corpo"></div>
+    <div style="padding:0 18px 18px">
+      <div class="t-erro" id="pt-erro"></div>
+      <div class="acoes">
+        <button class="bt prim" id="pt-ok">Continuar</button>
+        <button class="bt" id="pt-voltar" style="display:none">Voltar</button>
+      </div>
+    </div>
+  </div>
+  <div class="pt-rod" id="pt-rodape"></div>
+</div></div>
+<script>
+/* ==========================================================================
+   Recall e Follow-up — Instituto Kássila Nasser
+   Desenvolvido por Decisão Consultoria · uso exclusivo da clínica
+   Front-end único, sem framework, gêmeo do painel KN Vendas.
+   ========================================================================== */
+
+/* A URL do /exec vem do config.js quando o link já sai configurado; senão,
+   do que ficou salvo neste navegador. Mesmo comportamento do painel de vendas:
+   na primeira abertura o app pergunta e guarda. */
+let API_URL = '';
+try { API_URL = (window.KN_RECALL_API || '').trim(); } catch (e) {}
+if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''; } catch (e) {} }
+
+let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
+let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
+let LEMBRETE_DIAS = 7, TRAVA_DIAS = 3;
+/* Nomes da tela de entrada, vindos da ação aberta "autorizados". */
+let USUARIOS_ABERTOS = [];
+const FILTROS = {
+  recall:   { aba: 'RECALL',   faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'PRIORIDADE', busca: '', so_novas: 'SIM' },
+  dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' }
+};
+const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '' };
+const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
+
+/* Cache de tela. Cada aba guarda a última resposta boa; ao voltar nela o app
+   pinta na hora com o que já tem e busca a versão nova por baixo. Sem isto
+   cada troca de aba era uma ida completa à planilha — 2.133 pacientes lidos
+   de novo só para mostrar a mesma coisa. */
+const CACHE = {};
+const SEL = { recall: [], dormente: [] };
+function assinatura(o){ return JSON.stringify(o); }
+function limparCache(){ Object.keys(CACHE).forEach(k => delete CACHE[k]); }
+function blocoCarregando(txt){
+  return `<div class="mod-carreg"><img class="mod-mono" alt="" src="${monogramaSrc()}">
+    <span>${esc(txt || 'carregando')}</span></div>`;
+}
+function marcarAtualizando(alvo, ligado){
+  const e = el(alvo); if (!e) return;
+  e.style.opacity = ligado ? '.55' : '';
+}
+/* Campo de busca com lupa clicável — o Enter continua valendo. */
+function campoBusca(id, placeholder, valor){
+  return `<div class="busca-cx">
+    <input class="busca-lin" id="${id}" placeholder="${esc(placeholder)}" value="${esc(valor || '')}">
+    <button class="bt-lupa" data-lupa="${id}" title="Buscar">⌕</button></div>`;
+}
+function ligarBusca(cx, id, aplicar){
+  const inp = cx.querySelector('#' + id);
+  const bt  = cx.querySelector('[data-lupa="' + id + '"]');
+  const vai = () => aplicar(inp.value.trim());
+  bt.onclick = vai;
+  inp.onkeydown = ev => { if (ev.key === 'Enter'){ ev.preventDefault(); vai(); } };
+  inp.onsearch = vai;
+}
+
+const NOMES_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const rotuloMes = m => NOMES_MES[Number(String(m).split('-')[1]) - 1] + '/' + String(m).split('-')[0];
+const brl  = v => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+const brl2 = v => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const pct  = v => (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 1}) + '%';
+const el   = id => document.getElementById(id);
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function soDigitos(t){ return String(t || '').replace(/\D/g, ''); }
+
+/* ---------- ponte com a planilha ----------
+   Dentro do Apps Script a página roda num quadro isolado e o fetch não alcança
+   o /exec: a ponte oficial é google.script.run. Hospedada fora do Google, a
+   chamada vai por POST com corpo text/plain — com application/json o
+   navegador dispara uma verificação prévia que o Apps Script não responde. */
+async function api(acao, params){
+  if (typeof google !== 'undefined' && google.script && google.script.run){
+    return new Promise((ok, falha) => {
+      google.script.run
+        .withSuccessHandler(d => {
+          // O google.script.run devolve NULO quando a resposta carrega Date,
+          // NaN, Infinity ou undefined em qualquer profundidade. O servidor já
+          // sanitiza tudo em serializavel_(), mas a rede de segurança fica:
+          // sem ela o sintoma é "Cannot read properties of null".
+          if (d === null || d === undefined){
+            falha(new Error('A planilha devolveu resposta vazia em "' + acao +
+              '". Rode testarTelas() no editor do Apps Script.'));
+            return;
+          }
+          if (d && d.erro) { falha(new Error(d.erro)); return; }
+          ok(d);
+        })
+        .withFailureHandler(e => falha(new Error(e && e.message ? e.message : String(e))))
+        .apiWeb(acao, params || {});
+    });
+  }
+  if (!API_URL) throw new Error('URL da API não configurada.');
+  /* Fora do Google o /exec precisa estar aberto a "qualquer pessoa com o link"
+     para o navegador alcançá-lo. Por isso o servidor exige identificação em
+     toda ação que devolve dado de paciente, e ela viaja aqui. */
+  const corpo = Object.assign({acao: acao}, params || {});
+  try {
+    const sess = JSON.parse(localStorage.getItem('recall_sessao') || 'null');
+    if (sess && sess.nome && sess.codigo){
+      corpo.sessao_nome = sess.nome;
+      corpo.sessao_codigo = sess.codigo;
+    }
+  } catch (e) {}
+  let j;
+  try {
+    const r = await fetch(API_URL, {
+      method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(corpo), redirect: 'follow'
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    j = await r.json();
+  } catch (err) {
+    const r2 = await fetch(API_URL + '?' + new URLSearchParams(corpo).toString());
+    if (!r2.ok) throw new Error('HTTP ' + r2.status);
+    j = await r2.json();
+  }
+  const d = j && j.dados !== undefined ? j.dados : j;
+  if (d && d.reautenticar){
+    try { localStorage.removeItem('recall_sessao'); } catch (e) {}
+    USUARIO = null;
+    abrirPortao();
+    throw new Error(d.erro || 'Entre de novo no aplicativo.');
+  }
+  if (d && d.erro) throw new Error(d.erro);
+  return d;
+}
+
+function salvarUrl(){
+  const v = el('inp-url').value.trim();
+  if (!v) return;
+  try { localStorage.setItem('kassila_recall_url', v); } catch (e) {}
+  API_URL = v; iniciar();
+}
+
+/* ---------- avisos ---------- */
+function toast(msg){
+  const t = el('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(window.__t); window.__t = setTimeout(() => t.classList.remove('on'), 3400);
+}
+function falhar(e){ toast('Não deu certo: ' + (e && e.message ? e.message : e)); }
+function monogramaSrc(){
+  const ico = document.querySelector('link[rel="icon"]') || document.querySelector('link[rel="apple-touch-icon"]');
+  if (ico) return ico.href;
+  const alt = el('marca-img');
+  return alt ? alt.src : '';
+}
+function mostrarCarregando(texto){
+  const c = el('carregando'); if (!c) return;
+  const img = el('carregando-mono'); if (img && !img.src) img.src = monogramaSrc();
+  const t = el('carregando-txt'); if (t) t.textContent = texto || 'carregando';
+  c.classList.add('on');
+}
+function esconderCarregando(){ const c = el('carregando'); if (c) c.classList.remove('on'); }
+function abrirModal(html){
+  el('modal-conteudo').innerHTML = html;
+  el('modal').classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModal(){ el('modal').classList.remove('on'); document.body.style.overflow = ''; }
+function abrirModalCarregando(titulo){
+  abrirModal(`<div class="mod-carreg"><img class="mod-mono" alt="" src="${monogramaSrc()}">
+    <span>${esc(titulo || 'carregando')}</span></div>`);
+}
+
+function rotuloLista(tipo, valor){
+  const l = (CTX && CTX.listas && CTX.listas[tipo]) || [];
+  for (let i = 0; i < l.length; i++) if (l[i].valor === valor) return l[i].rotulo;
+  return valor || '';
+}
+function opcoes(tipo, sel){
+  const l = (CTX && CTX.listas && CTX.listas[tipo]) || [];
+  return l.map(o => `<option value="${esc(o.valor)}"${o.valor === sel ? ' selected' : ''}>${esc(o.rotulo)}</option>`).join('');
+}
+const ROTULO_PERFIL = {
+  NUNCA_APROVOU: 'Nunca aprovou nada', SO_CONSULTA: 'Só consulta',
+  PROC_SEM_CONSULTA: 'Proc. sem consulta', CONSULTA_1_PROC: 'Consulta + 1 proc.',
+  CONSULTA_N_PROC: 'Consulta + vários', SEM_CLASSIFICACAO: 'Sem classificação'
+};
+const ROTULO_TEMP = { FORTE: 'Forte', MEDIO: 'Médio', FRACO: 'Fraco' };
+const ROTULO_ONDE = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up',
+                      ENCERRADA: 'Encerrada', SEM_DATA: 'Sem data' };
+const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
+                    FRIO: 'var(--f-frio)', DORMENTE: 'var(--f-dormente)' };
+
+/* ---------- navegação ---------- */
+function irPara(t){
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tela === t));
+  document.querySelectorAll('.tela').forEach(s => s.classList.toggle('on', s.id === 'tela-' + t));
+  window.scrollTo(0, 0);
+  /* A ficha pertence à aba onde foi aberta. Sem isto ela viajava junto na
+     troca de aba e chegava a ficar por cima dos Indicadores, que nem coluna
+     de ficha tem. Trocou de aba, fecha a ficha. */
+  resetarFicha();
+  posicionarFicha();
+  if (t === 'acompanhamento') carregarAcompanhamento().catch(falhar);
+  if (t === 'recall')      carregarFila('recall').catch(falhar);
+  if (t === 'dormente')    carregarFila('dormente').catch(falhar);
+  if (t === 'follow')      carregarFollow().catch(falhar);
+  if (t === 'agenda')      carregarAgenda().catch(falhar);
+  if (t === 'indicadores') carregarIndicadores().catch(falhar);
+}
+
+/** Fecha a ficha e esquece a paciente aberta, sem mexer na posição dela. */
+function resetarFicha(){
+  PAC = null;
+  const f = el('ficha');
+  f.classList.remove('on');
+  f.setAttribute('aria-hidden', 'true');
+  el('ficha-fundo').classList.remove('on');
+  document.body.style.overflow = '';
+  document.querySelectorAll('.pac[aria-current]').forEach(x => x.removeAttribute('aria-current'));
+}
+
+/* No PC a ficha é a coluna da direita da tela ativa; no celular ela volta a
+   ser uma camada sobre a lista. A troca acontece aqui, e não em dois códigos
+   diferentes, para a ficha ser sempre a mesma. */
+function posicionarFicha(){
+  const f = el('ficha');
+  const desktop = window.innerWidth >= 1100;
+  const slot = document.querySelector('.tela.on .ficha-slot');
+  if (desktop && slot){
+    if (f.parentElement !== slot) slot.appendChild(f);
+    f.classList.add('lateral', 'on');
+    f.setAttribute('aria-hidden', 'false');
+    el('ficha-fundo').classList.remove('on');
+    document.body.style.overflow = '';
+    if (!PAC) fichaVazia();
+  } else {
+    if (f.parentElement !== document.body) document.body.appendChild(f);
+    f.classList.remove('lateral');
+    if (!PAC) { f.classList.remove('on'); f.setAttribute('aria-hidden', 'true'); }
+  }
+}
+let __redim = null;
+window.addEventListener('resize', () => {
+  clearTimeout(__redim);
+  __redim = setTimeout(posicionarFicha, 150);
+});
+
+function fichaVazia(){
+  el('fc-nome').textContent = 'Ficha da paciente';
+  el('fc-sub').textContent = 'nenhuma escolhida';
+  el('fc-corpo').innerHTML = '<div class="ficha-vazia">Toque numa paciente da lista para abrir a ficha aqui.</div>';
+  el('fc-pdf').style.display = 'none';
+}
+
+async function atualizarAgora(){
+  const b = el('bt-atz'); b.classList.add('girando');
+  mostrarCarregando('atualizando');
+  try { limparCache(); await carregarContexto(true); await recarregarTelaAtiva(); }
+  catch (e) { falhar(e); }
+  finally { esconderCarregando(); setTimeout(() => b.classList.remove('girando'), 500); }
+}
+function telaAtiva(){
+  const b = document.querySelector('nav.tabs button.on');
+  return b ? b.dataset.tela : 'acompanhamento';
+}
+function recarregarTelaAtiva(){
+  const t = telaAtiva();
+  if (t === 'acompanhamento') return carregarAcompanhamento();
+  if (t === 'recall')      return carregarFila('recall');
+  if (t === 'dormente')    return carregarFila('dormente');
+  if (t === 'follow')      return carregarFollow();
+  if (t === 'agenda')      return carregarAgenda();
+  if (t === 'indicadores') return carregarIndicadores();
+  return Promise.resolve();
+}
+
+/* ---------- contexto ---------- */
+async function carregarContexto(forcar){
+  CTX = await api('contexto', forcar ? { semCache: '1' } : {});
+  ULTIMA = new Date();
+  const R = CTX.regras || {};
+  el('hdr-sub').innerHTML = esc(CTX.hoje) + '  ·  follow-up até ' + R.followup + 'd' +
+    '<span class="detalhe"> · quente ' + (R.followup + 1) + '–' + R.quente +
+    ' · morno ' + (R.quente + 1) + '–' + R.morno +
+    ' · frio ' + (R.morno + 1) + '–' + R.frio +
+    ' · dormente +' + R.frio + '</span>';
+  pintarAtualizacao();
+  if (!MES && CTX.meses && CTX.meses.length){
+    MES = CTX.meses[CTX.meses.length - 1];
+    const sel = el('sel-mes');
+    sel.innerHTML = CTX.meses.map(m => `<option value="${m}">${rotuloMes(m)}</option>`).join('');
+    sel.value = MES;
+  }
+  if (!USUARIO){
+    try {
+      const u = JSON.parse(localStorage.getItem('recall_usuario') || 'null');
+      if (u && u.nome){ USUARIO = u; el('bt-quem').textContent = u.nome; }
+    } catch (e) {}
+  }
+}
+function pintarAtualizacao(){
+  const b = (CTX && CTX.base) || {};
+  el('atz-txt').textContent = 'atualizado ' + String((CTX && CTX.carimbo) || '').split(' ')[1];
+  const velho = b.farol !== 'VERDE';
+  el('atz-base').innerHTML = b.apurado_em
+    ? `<span class="${velho ? 'velho' : ''}">base de ${esc(b.apurado_em)}${b.dias != null ? ' · há ' + b.dias + 'd' : ''}</span>`
+    : '<span class="velho">base nunca carregada</span>';
+}
+
+/* ==========================================================================
+   FILA — usada pela tela de Recall e pela de Dormente, com os mesmos formatos
+   ========================================================================== */
+async function carregarFila(tela){
+  const f = FILTROS[tela];
+  const pre = tela === 'recall' ? 'rc' : 'dm';
+  montarFiltrosFila(tela);
+  const ch = 'fila:' + tela + ':' + assinatura(f);
+  if (CACHE[ch]) pintarFila(tela, CACHE[ch]);
+  else el(pre + '-lista').innerHTML = blocoCarregando('carregando a fila');
+  marcarAtualizando(pre + '-lista', !!CACHE[ch]);
+  try {
+    const d = await api('fila', f);
+    CACHE[ch] = d;
+    pintarFila(tela, d);
+  } finally {
+    marcarAtualizando(pre + '-lista', false);
+  }
+}
+
+function pintarFila(tela, d){
+  const f = FILTROS[tela];
+  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const faixas = Object.keys(d.faixas);
+  const totalAba = faixas.reduce((s, k) => s + d.faixas[k], 0) || 1;
+  const R = d.regras;
+  const legendaTxt = {
+    QUENTE:   `${R.followup + 1} a ${R.quente} dias`,
+    MORNO:    `${R.quente + 1} a ${R.morno} dias`,
+    FRIO:     `${R.morno + 1} a ${R.frio} dias`,
+    DORMENTE: `mais de ${R.frio} dias`
+  };
+
+  el(pre + '-grande').innerHTML = `${d.na_aba.toLocaleString('pt-BR')}<small style="margin-left:8px">pacientes</small>`;
+  el(pre + '-sub').textContent = brl(d.valor) + ' em histórico · ' + d.total.toLocaleString('pt-BR') +
+    ' na carteira · ' + d.encerradas + ' encerradas';
+
+  el(pre + '-regua').innerHTML = faixas.map(k => {
+    const largura = Math.max(14, Math.round(d.faixas[k] / totalAba * 100));
+    return `<button class="fx-${k}" style="flex:0 0 ${largura}%" data-f="${k}"
+      aria-pressed="${f.faixa === k}"><b>${d.faixas[k]}</b><span>${k.toLowerCase()}</span></button>`;
+  }).join('');
+  el(pre + '-regua').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { f.faixa = (f.faixa === b.dataset.f) ? 'TODAS' : b.dataset.f; carregarFila(tela).catch(falhar); };
+  });
+  el(pre + '-legenda').innerHTML = faixas.map(k =>
+    `<div><i style="background:${COR_FAIXA[k]}"></i><b>${k.charAt(0) + k.slice(1).toLowerCase()}</b> ${legendaTxt[k]}</div>`
+  ).join('');
+
+  const r = d.resumo || {};
+  el(pre + '-mini').innerHTML =
+    `<div><b>${r.na_fila || 0}</b><span>na fila, sem contato</span></div>` +
+    `<div><b>${r.em_contato || 0}</b><span>em contato</span></div>` +
+    `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
+    `<div><b>${(r.sem_aprovado || 0).toLocaleString('pt-BR')}</b><span>nunca aprovaram nada</span></div>`;
+
+  el(pre + '-rotulo').textContent = `Fila de trabalho — ${d.exibidos.toLocaleString('pt-BR')} paciente(s)` +
+    (f.faixa !== 'TODAS' ? ` · ${f.faixa.toLowerCase()} (${legendaTxt[f.faixa]})` : '') +
+    ` · ${rotuloOrdem(f.ordem)}`;
+
+  el(pre + '-lista').innerHTML = d.itens.length
+    ? d.itens.map(p => cartaoPaciente(p, tela)).join('')
+    : '<div class="card vazio">Nenhuma paciente com esses filtros.</div>';
+  ligarCartoes(el(pre + '-lista'), tela);
+  el(pre + '-lista').dataset.exibidos = d.itens.map(x => x.chave).join(';');
+  pintarBarraSel(tela);
+}
+
+/** Quantos filtros estão fora do padrão — vira o contador do botão no celular. */
+function contarFiltros(f){
+  let n = 0;
+  if (f.perfil && f.perfil !== 'TODOS') n++;
+  if (f.temperatura && f.temperatura !== 'TODAS') n++;
+  if (f.faixa && f.faixa !== 'TODAS') n++;
+  return n ? '(' + n + ')' : '';
+}
+
+function rotuloOrdem(o){
+  return { PRIORIDADE: 'ordenada por retorno vencido, temperatura e valor',
+           VALOR: 'ordenada por valor histórico', RECENTE: 'da mais recente para a mais antiga',
+           ANTIGO: 'da mais antiga para a mais recente' }[o] || '';
+}
+
+function montarFiltrosFila(tela){
+  const f = FILTROS[tela];
+  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const perfis = [['TODOS','Todos os perfis'],['NUNCA_APROVOU','Nunca aprovou'],['SO_CONSULTA','Só consulta'],
+    ['CONSULTA_1_PROC','Consulta + 1 proc.'],['CONSULTA_N_PROC','Consulta + vários'],['PROC_SEM_CONSULTA','Proc. sem consulta']];
+  const temps = [['TODAS','Qualquer temperatura'],['FORTE','Forte'],['MEDIO','Médio'],['FRACO','Fraco'],['NUNCA','Nunca contatada']];
+  const ordens = [['PRIORIDADE','Prioridade'],['RECENTE','Mais recentes'],['ANTIGO','Mais antigas'],['VALOR','Maior valor']];
+  const escopos = [['SIM','Só nunca contatadas'],['NAO','Mostrar todas']];
+  const chip = (tipo, v, rot) => `<button class="chip" data-tipo="${tipo}" data-v="${v}" aria-pressed="${f[tipo] === v}">${rot}</button>`;
+
+  const cx = el(pre + '-filtros');
+  const aberto = cx.classList.contains('aberto');
+  cx.innerHTML =
+    campoBusca(pre + '-busca', 'Filtrar esta fila por nome ou telefone', f.busca) +
+    `<button class="bt-filtros" data-toggle="1">Filtros ${contarFiltros(f)}</button>` +
+    '<div class="chips">' +
+      '<span class="sep"></span>' + perfis.map(p => chip('perfil', p[0], p[1])).join('') +
+      '<span class="sep"></span>' + temps.map(p => chip('temperatura', p[0], p[1])).join('') +
+      '<span class="sep"></span>' + ordens.map(p => chip('ordem', p[0], p[1])).join('') +
+      '<span class="sep"></span>' + escopos.map(p => chip('so_novas', p[0], p[1])).join('') +
+    '</div>';
+  if (aberto) cx.classList.add('aberto');
+  cx.querySelector('[data-toggle]').onclick = () => cx.classList.toggle('aberto');
+  cx.querySelectorAll('.chip').forEach(b => {
+    b.onclick = () => { f[b.dataset.tipo] = b.dataset.v; carregarFila(tela).catch(falhar); };
+  });
+  ligarBusca(cx, pre + '-busca', v => { f.busca = v; carregarFila(tela).catch(falhar); });
+}
+
+function cartaoPaciente(p, tela){
+  const tags = [];
+  if (p.perfil) tags.push(`<span class="tag${p.perfil === 'NUNCA_APROVOU' ? ' roxo' : ''}">${esc(ROTULO_PERFIL[p.perfil] || p.perfil)}</span>`);
+  if (p.valor)  tags.push(`<span class="tag val">${brl(p.valor)} no histórico</span>`);
+  if (p.temperatura) tags.push(`<span class="tag ${esc(p.temperatura)}">${esc(ROTULO_TEMP[p.temperatura] || p.temperatura)}</span>`);
+  tags.push(`<span class="tag">${p.tentativas
+    ? p.tentativas + 'ª tentativa' + (p.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', p.ultimo_canal)) : '')
+    : 'Nunca contatada'}</span>`);
+  if (p.abertos) tags.push(`<span class="tag">${p.abertos} orçamento(s) aberto(s) · ${brl(p.valor_aberto)}</span>`);
+  if (p.proximo) tags.push(`<span class="tag alerta">Retornar ${esc(p.proximo)}</span>`);
+
+  const origem = p.ultimo_orcamento
+    ? `Último orçamento ${esc(p.ultimo_orcamento)}${p.ultimo_orcamento_num ? ' · ORÇ ' + esc(p.ultimo_orcamento_num) : ''}${p.ultimo_orcamento_situacao ? ' · ' + esc(p.ultimo_orcamento_situacao) : ''}`
+    : 'Sem orçamento datado';
+  const marcada = tela && SEL[tela] && SEL[tela].indexOf(p.chave) > -1;
+
+  return `<div class="pac${marcada ? ' escolhida' : ''}" data-chave="${esc(p.chave)}" role="button" tabindex="0">
+    <div class="tarja tj-${esc(p.faixa)}"></div>
+    ${tela ? `<label class="sel-cx" title="Selecionar para imprimir">
+      <input type="checkbox" data-sel="${esc(p.chave)}"${marcada ? ' checked' : ''}></label>` : ''}
+    <div class="pac-in">
+      <div class="pac-l1">
+        <span class="pac-nome">${esc(p.paciente)}</span>
+        <span class="pac-cid">${esc(p.cidade)}${p.uf ? ' · ' + esc(p.uf) : ''}</span>
+        <span class="pac-dias"><b>${p.dias == null ? '—' : p.dias}</b><span>dias</span></span>
+      </div>
+      <div class="pac-l2">${origem}${p.ultima_compra ? ' · última compra ' + esc(p.ultima_compra) : ''} · ${p.aprovados} aprovado(s)${p.primeiro ? ' · paciente desde ' + esc(p.primeiro) : ''}</div>
+      <div class="pac-l3">${tags.join('')}</div>
+    </div></div>`;
+}
+
+function ligarCartoes(container, tela){
+  container.querySelectorAll('.pac').forEach(c => {
+    const cx = c.querySelector('[data-sel]');
+    if (cx) cx.onchange = ev => {
+      ev.stopPropagation();
+      alternarSel(tela, cx.dataset.sel, cx.checked);
+      c.classList.toggle('escolhida', cx.checked);
+    };
+    const abrir = ev => {
+      if (ev.target.closest('.sel-cx') || ev.target.closest('[data-acao]')) return;
+      container.querySelectorAll('.pac').forEach(x => x.removeAttribute('aria-current'));
+      c.setAttribute('aria-current', 'true');
+      abrirFicha(c.dataset.chave);
+    };
+    c.onclick = abrir;
+    c.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); abrir(ev); } };
+  });
+}
+
+/* ==========================================================================
+   ACOMPANHAMENTO — a fila do dia
+   ========================================================================== */
+const BLOCOS_AC = [
+  ['VENCIDOS',   'Vencidos',   'retorno prometido chegou ou passou', 'var(--vermelho)'],
+  ['SEM_DATA',   'Sem data',   'contatada e sem próximo passo',      'var(--decidir)'],
+  ['AGUARDANDO', 'Aguardando', 'retorno marcado para frente',        'var(--latao)'],
+  ['AGENDADAS',  'Agendadas',  'já tem horário marcado',             'var(--salvia)']
+];
+const ROTULO_ORIGEM = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up' };
+
+async function carregarAcompanhamento(){
+  montarFiltrosAc();
+  const ch = 'ac:' + assinatura(AC);
+  if (CACHE[ch]) pintarAcompanhamento(CACHE[ch]);
+  else el('ac-lista').innerHTML = blocoCarregando('montando a fila do dia');
+  marcarAtualizando('ac-lista', !!CACHE[ch]);
+  try {
+    const d = await api('acompanhamento', AC);
+    CACHE[ch] = d;
+    pintarAcompanhamento(d);
+  } finally {
+    marcarAtualizando('ac-lista', false);
+  }
+}
+
+function montarFiltrosAc(){
+  const origens = [['TODAS','Todas as origens'],['RECALL','Recall'],['DORMENTE','Dormente'],['FOLLOWUP','Follow-up']];
+  const cx = el('ac-filtros');
+  const aberto = cx.classList.contains('aberto');
+  cx.innerHTML =
+    campoBusca('ac-busca', 'Buscar nesta fila por nome ou telefone', AC.busca) +
+    '<button class="bt-filtros" data-toggle="1">Origem</button>' +
+    '<div class="chips"><span class="sep"></span>' +
+    origens.map(o => `<button class="chip" data-v="${o[0]}" aria-pressed="${AC.origem === o[0]}">${o[1]}</button>`).join('') +
+    '</div>';
+  if (aberto) cx.classList.add('aberto');
+  cx.querySelector('[data-toggle]').onclick = () => cx.classList.toggle('aberto');
+  cx.querySelectorAll('.chip').forEach(b => {
+    b.onclick = () => { AC.origem = b.dataset.v; carregarAcompanhamento().catch(falhar); };
+  });
+  ligarBusca(cx, 'ac-busca', v => { AC.busca = v; carregarAcompanhamento().catch(falhar); });
+}
+
+function pintarAcompanhamento(d){
+  const r = d.resumo || {};
+  LEMBRETE_DIAS = d.lembrete_dias || 7;
+  TRAVA_DIAS = d.trava_dias || 3;
+  const total = BLOCOS_AC.reduce((s2, x) => s2 + (r[x[0]] || 0), 0) || 1;
+  el('ac-lembrete').textContent = d.lembrete_dias;
+
+  el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
+  el('ac-sub').textContent = `${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
+    `${d.encerradas} encerradas`;
+
+  el('ac-regua').innerHTML = BLOCOS_AC.map(x => {
+    const largura = Math.max(14, Math.round((r[x[0]] || 0) / total * 100));
+    return `<button style="flex:0 0 ${largura}%;background:${x[3]}" data-b="${x[0]}"
+      aria-pressed="${AC.bloco === x[0]}"><b>${r[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
+  }).join('');
+  el('ac-regua').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { AC.bloco = (AC.bloco === b.dataset.b) ? 'TODOS' : b.dataset.b; pintarAcompanhamento(d); };
+  });
+  el('ac-legenda').innerHTML = BLOCOS_AC.map(x =>
+    `<div><i style="background:${x[3]}"></i><b>${x[1]}</b> ${x[2]}</div>`).join('');
+
+  el('ac-aviso').innerHTML = (r.SEM_DATA || 0)
+    ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
+       São as que caem no esquecimento: marque a data do retorno ou encerre.</div>` : '';
+
+  const mostrar = AC.bloco === 'TODOS' ? BLOCOS_AC.map(x => x[0]) : [AC.bloco];
+  let html = '';
+  mostrar.forEach(k => {
+    const b = d.blocos[k];
+    if (!b || !b.qtd) return;
+    const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
+    html += `<div class="sec" style="display:flex;align-items:center;gap:8px">
+      <i style="width:9px;height:9px;border-radius:2px;background:${meta[3]};display:inline-block"></i>
+      ${meta[1]} — ${b.qtd}${b.valor_aberto ? ' · ' + brl(b.valor_aberto) + ' em aberto' : ''}</div>` +
+      b.itens.map(x => cartaoAc(x, k)).join('');
+  });
+  el('ac-rotulo').textContent = AC.bloco === 'TODOS'
+    ? `Fila do dia — ${d.total.toLocaleString('pt-BR')} paciente(s)`
+    : `${BLOCOS_AC.filter(x => x[0] === AC.bloco)[0][1]} — ${(d.blocos[AC.bloco] || {}).qtd || 0} paciente(s)`;
+  el('ac-lista').innerHTML = html || '<div class="card vazio">Nada nesta fila. Comece pelo Recall ou pelo Follow-up.</div>';
+  ligarCartoesAc();
+}
+
+function cartaoAc(x, bloco){
+  const tags = [];
+  tags.push(`<span class="tag">${esc(ROTULO_ORIGEM[x.origem] || x.origem)}</span>`);
+  tags.push(`<span class="tag">${x.tentativas}ª tentativa${x.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', x.ultimo_canal)) : ''}</span>`);
+  if (x.temperatura) tags.push(`<span class="tag ${esc(x.temperatura)}">${esc(ROTULO_TEMP[x.temperatura] || x.temperatura)}</span>`);
+  if (x.valor_aberto) tags.push(`<span class="tag val">${brl(x.valor_aberto)} em aberto</span>`);
+  if (bloco === 'AGENDADAS' && x.agenda)
+    tags.push(`<span class="tag ok">${esc(x.agenda.data)}${x.agenda.hora ? ' às ' + esc(x.agenda.hora) : ''} · ${esc(x.agenda.status)}</span>`);
+  else if (bloco === 'VENCIDOS')
+    tags.push(`<span class="tag alerta">${x.atraso === 0 ? 'Retornar hoje' : 'Vencido há ' + x.atraso + ' dia(s)'}</span>`);
+  else if (bloco === 'AGUARDANDO')
+    tags.push(`<span class="tag">Retornar ${esc(x.proximo)}</span>`);
+  else
+    tags.push('<span class="tag roxo">Sem próximo passo</span>');
+
+  const cor = BLOCOS_AC.filter(b => b[0] === bloco)[0][3];
+  return `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
+    <div class="tarja" style="background:${cor}"></div>
+    <div class="pac-in">
+      <div class="pac-l1">
+        <span class="pac-nome">${esc(x.paciente)}</span>
+        <span class="pac-cid">${esc(x.cidade || '')}</span>
+        <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span>
+      </div>
+      <div class="pac-l2">Último contato ${esc(x.ultimo_contato || '—')}${x.ultimo_autor ? ' · ' + esc(x.ultimo_autor) : ''}${x.ultima_obs ? ' — “' + esc(String(x.ultima_obs).substring(0, 120)) + '”' : ''}</div>
+      <div class="pac-l3">${tags.join('')}
+        <button class="bt-min" data-acao="ficha">Registrar contato</button>
+        <button class="bt-min" data-acao="whats">Mensagem</button></div>
+    </div></div>`;
+}
+
+function ligarCartoesAc(){
+  el('ac-lista').querySelectorAll('.pac').forEach(c => {
+    c.querySelectorAll('[data-acao]').forEach(b => {
+      b.onclick = ev => {
+        ev.stopPropagation();
+        if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave); return; }
+        api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
+          if (m.erro) { toast(m.erro); return; }
+          abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
+            <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
+        }).catch(falhar);
+      };
+    });
+    c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
+  });
+}
+
+/* ==========================================================================
+   SELEÇÃO E EXPORTAÇÃO
+   A gestora marca as pacientes que vai trabalhar, imprime e leva a lista para
+   a mesa — com uma coluna em branco para anotar à mão. O arquivo é gerado no
+   servidor, com o cabeçalho da clínica: a impressão do navegador sairia com a
+   barra do Apps Script e mudaria de aparência entre o PC e o celular.
+   ========================================================================== */
+function alternarSel(tela, chave, ligado){
+  const lista = SEL[tela];
+  const i = lista.indexOf(chave);
+  if (ligado && i === -1) lista.push(chave);
+  if (!ligado && i > -1) lista.splice(i, 1);
+  pintarBarraSel(tela);
+}
+
+function pintarBarraSel(tela){
+  const pre = tela === 'recall' ? 'rc' : 'dm';
+  const barra = el(pre + '-barra');
+  if (!barra) return;
+  const n = SEL[tela].length;
+  barra.classList.toggle('on', n > 0);
+  if (!n) return;
+  barra.innerHTML =
+    `<span class="qt">${n} paciente(s) selecionada(s)</span>
+     <div class="esq">
+       <button class="bt" data-a="todas">Selecionar as exibidas</button>
+       <button class="bt" data-a="limpar">Limpar</button>
+       <button class="bt" data-a="xlsx">Baixar Excel</button>
+       <button class="bt prim" data-a="pdf">Imprimir PDF</button>
+     </div>`;
+  barra.querySelectorAll('[data-a]').forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.a;
+      if (a === 'limpar'){ SEL[tela] = []; carregarFila(tela).catch(falhar); return; }
+      if (a === 'todas'){
+        const exib = (el(pre + '-lista').dataset.exibidos || '').split(';').filter(Boolean);
+        exib.forEach(k => { if (SEL[tela].indexOf(k) === -1) SEL[tela].push(k); });
+        carregarFila(tela).catch(falhar);
+        return;
+      }
+      exportar({ tipo: 'LISTA', formato: a === 'pdf' ? 'PDF' : 'XLSX',
+                 chaves: SEL[tela].join(';'), titulo: tituloExport(tela) });
+    };
+  });
+}
+
+function tituloExport(tela){
+  const f = FILTROS[tela];
+  const base = tela === 'recall' ? 'Recall' : 'Dormente';
+  return f.faixa && f.faixa !== 'TODAS' ? base + ' ' + f.faixa.toLowerCase() : base;
+}
+
+async function exportar(params){
+  abrirModalCarregando(params.formato === 'PDF' ? 'gerando o PDF' : 'gerando o Excel');
+  try {
+    const r = await api('exportar', params);
+    if (r.erro){ fecharModal(); toast(r.erro); return; }
+    entregarArquivo(r);
+  } catch (e) { fecharModal(); falhar(e); }
+}
+
+/* O download vem em base64 e vira arquivo aqui. O clique automático é
+   tentado, mas o quadro do Apps Script às vezes bloqueia download disparado
+   por script — por isso o link fica visível na tela, para o toque da pessoa
+   valer como gesto e o arquivo descer de qualquer jeito. */
+function entregarArquivo(r){
+  const bin = atob(r.base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([arr], { type: r.mime }));
+  const kb = Math.max(1, Math.round((r.tamanho || arr.length) / 1024));
+  abrirModal(`<h2>Arquivo pronto</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">
+      ${esc(r.nome)} · ${kb} KB</div>
+    <a class="bt prim larga" id="bx-link" href="${url}" download="${esc(r.nome)}" target="_blank" rel="noopener">
+      Baixar ${/\.pdf$/i.test(r.nome) ? 'PDF' : 'Excel'}</a>
+    <div class="nota">O arquivo traz uma coluna <b>Anotações</b> em branco e o aviso de dado sensível da
+      LGPD no rodapé. Depois de usar, destrua a via impressa.</div>`);
+  try { el('bx-link').click(); } catch (e) {}
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+/* ==========================================================================
+   FICHA — camada por cima, disponível em QUALQUER tela
+   ========================================================================== */
+let POSICAO_ROLAGEM = 0;
+
+function abrirFicha(chave){
+  if (!chave) return;
+  const lateral = el('ficha').classList.contains('lateral');
+  if (!lateral) POSICAO_ROLAGEM = window.scrollY || 0;
+  el('fc-nome').textContent = 'Abrindo ficha…';
+  el('fc-sub').textContent = '';
+  el('fc-pdf').style.display = 'none';
+  el('fc-corpo').innerHTML = blocoCarregando('carregando ficha');
+  el('ficha').classList.add('on');
+  el('ficha').setAttribute('aria-hidden', 'false');
+  if (!lateral){
+    el('ficha-fundo').classList.add('on');
+    document.body.style.overflow = 'hidden';
+  }
+
+  const cacheChave = 'ficha:' + chave;
+  if (CACHE[cacheChave]) { PAC = CACHE[cacheChave]; montarFicha(PAC); }
+
+  api('ficha', { chave: chave }).then(d => {
+    if (!d || d.erro){ toast((d && d.erro) || 'Ficha não encontrada.'); fecharFicha(); return; }
+    CACHE[cacheChave] = d;
+    PAC = d;
+    montarFicha(d);
+  }).catch(e => { falhar(e); if (!CACHE[cacheChave]) fecharFicha(); });
+}
+
+function fecharFicha(){
+  const lateral = el('ficha').classList.contains('lateral');
+  PAC = null;
+  if (lateral){ fichaVazia(); return; }
+  el('ficha').classList.remove('on');
+  el('ficha').setAttribute('aria-hidden', 'true');
+  el('ficha-fundo').classList.remove('on');
+  document.body.style.overflow = '';
+  // a lista continua exatamente onde estava: no celular a ficha é uma camada,
+  // não uma aba. Antes o app pulava para o fim da lista ao voltar.
+  window.scrollTo(0, POSICAO_ROLAGEM);
+}
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if (el('modal').classList.contains('on')) { fecharModal(); return; }
+  if (el('ficha').classList.contains('on')) fecharFicha();
+});
+
+function montarFicha(d){
+  const p = d.paciente;
+  el('fc-nome').textContent = p.nome;
+  el('fc-pdf').style.display = '';
+  el('fc-pdf').onclick = () => exportar({ tipo: 'FICHA', formato: 'PDF', chave: p.chave });
+  el('fc-sub').textContent = [
+    p.faixa ? p.faixa.charAt(0) + p.faixa.slice(1).toLowerCase() : '',
+    p.dias == null ? '' : p.dias + ' dias desde o último orçamento',
+    p.cidade ? p.cidade + (p.uf ? '/' + p.uf : '') : '',
+    ROTULO_PERFIL[p.perfil] || ''
+  ].filter(Boolean).join(' · ');
+
+  const contatos = [];
+  const numero = soDigitos(p.telefone);
+  if (numero) contatos.push(`<a class="bt zap" target="_blank" rel="noopener"
+      href="https://wa.me/${numero.length <= 11 ? '55' + numero : numero}">WhatsApp ${esc(p.telefone)}</a>`);
+  if (numero) contatos.push(`<a class="bt" href="tel:${numero}">Ligar</a>`);
+  if (p.email) contatos.push(`<a class="bt" href="mailto:${esc(p.email)}">E-mail</a>`);
+  contatos.push('<button class="bt" data-acao="mensagem">Mensagem padrão</button>');
+  contatos.push('<button class="bt" data-acao="pdf">Imprimir ficha em PDF</button>');
+
+  const orcs = d.orcamentos.map(o => {
+    const cls = /aprovad/i.test(o.situacao) ? 'ap' : /aberto/i.test(o.situacao) ? 'ab' : 'pe';
+    return `<div class="orc-l"><div class="dt">${esc(o.data)}</div><div class="ce">
+      <div class="tt">ORÇ ${esc(o.num)} <span class="pill ${cls}">${esc(o.situacao)}</span>
+      ${o.dias_aberto ? `<span class="tag">${o.dias_aberto} dias em aberto</span>` : ''}</div>
+      <div class="pp">${esc(String(o.procedimentos).substring(0, 140))}</div></div>
+      <div class="vv">${brl(o.valor)}</div></div>`;
+  }).join('') || '<div class="vazio">Nenhum orçamento na base.</div>';
+
+  const cts = d.contatos.map(c => `<div class="ct">
+      <div class="ct-l1"><span class="ct-canal">${esc(rotuloLista('CANAL', c.canal))}</span>
+      <span class="ct-meta">${esc(c.data)} · ${esc(c.autor)}${c.temperatura ? ' · ' + esc(ROTULO_TEMP[c.temperatura] || c.temperatura) : ''}</span></div>
+      <div class="ct-obs">${esc(c.obs || rotuloLista('RESULTADO', c.resultado))}</div></div>`).join('')
+    || '<div class="vazio">Nenhuma tentativa registrada ainda.</div>';
+
+  const ags = d.agendamentos.length
+    ? d.agendamentos.map(a => `<div class="orc-l"><div class="dt">${esc(a.data)}</div><div class="ce">
+        <div class="tt">${esc(a.hora || '—')} · ${esc(rotuloLista('TIPO_AGENDAMENTO', a.tipo))}
+        <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>
+        <div class="pp">${esc(a.profissional || '')}${a.obs ? ' · ' + esc(a.obs) : ''}</div></div></div>`).join('')
+    : '<div class="vazio">Nenhum agendamento.</div>';
+
+  const abertos = d.orcamentos.filter(o => /aberto/i.test(o.situacao));
+  const refOpts = '<option value="">Recall (sem orçamento)</option>' +
+    abertos.map(o => `<option value="${esc(o.num)}">ORÇ ${esc(o.num)} · ${brl(o.valor)}</option>`).join('');
+
+  el('fc-corpo').innerHTML = `
+    <div class="fc-resumo">
+      <div><b>${p.dias == null ? '—' : p.dias}</b><span>dias sem orçamento</span></div>
+      <div><b>${p.aprovados}</b><span>aprovados</span></div>
+      <div><b>${brl(p.valor)}</b><span>histórico</span></div>
+      <div><b>${brl(p.ticket)}</b><span>ticket médio</span></div>
+    </div>
+    <div class="acoes">${contatos.join('')}</div>
+    ${p.status === 'ENCERRADA' ? `<div class="aviso-box">Tentativas encerradas — motivo: ${esc(p.motivo_encerramento)}.
+       Ela volta sozinha à fila se aparecer orçamento novo.</div>` : ''}
+    ${avisoContatoRecente(p)}
+
+    <div class="sec">Histórico de orçamentos — ${d.orcamentos.length}</div>
+    <div class="card" style="padding:4px 14px">${orcs}</div>
+
+    <div class="sec">Tentativas de contato — ${d.contatos.length}</div>
+    <div class="card"><div class="tl">${cts}</div></div>
+
+    <div class="sec">Agendamentos — ${d.agendamentos.length}</div>
+    <div class="card" style="padding:4px 14px">${ags}</div>
+
+    <div class="sec">Registrar novo contato</div>
+    <div class="card">
+      <div class="grid-campo">
+        <div class="campo"><label>Canal</label><select id="f-canal">${opcoes('CANAL')}</select></div>
+        <div class="campo"><label>Resultado</label><select id="f-res">${opcoes('RESULTADO')}</select></div>
+        <div class="campo wide"><label>Sobre qual orçamento</label><select id="f-ref">${refOpts}</select></div>
+        <div class="campo wide"><label>Temperatura depois deste contato</label>
+          <div class="escala" id="f-temp">${['FORTE','MEDIO','FRACO'].map(t =>
+            `<button data-v="${t}" aria-pressed="${p.temperatura === t}">${ROTULO_TEMP[t]}</button>`).join('')}</div></div>
+        <div class="campo wide"><label>O que aconteceu</label>
+          <textarea id="f-obs" placeholder="Escreva com as palavras dela — é isso que o próximo contato vai ler."></textarea></div>
+        <div class="campo"><label>Próximo contato em</label><input id="f-prox" placeholder="dd/mm/aaaa — em branco = ${LEMBRETE_DIAS} dias"></div>
+        <div class="campo"><label>Lembrete</label><select id="f-lemb">
+          <option value="PADRAO">Lembrar em ${LEMBRETE_DIAS} dias se eu não marcar data</option>
+          <option value="SEM_LEMBRETE">Sem lembrete — vou encerrar</option></select></div>
+      </div>
+      <div class="acoes">
+        <button class="bt prim" data-acao="salvar">Salvar contato</button>
+        <button class="bt" data-acao="agendar">Agendar</button>
+        <button class="bt" data-acao="encerrar">Encerrar tentativas</button>
+      </div>
+      <div class="nota">Se você não marcar a data, o app marca sozinho para daqui a <b>${LEMBRETE_DIAS} dias</b> e
+        ela reaparece em <b>Vencidos</b>, na aba Acompanhamento — ninguém cai no esquecimento. Ao salvar, a
+        mensagem de cortesia já sai montada com o nome dela; quem aperta enviar é você.</div>
+    </div>`;
+
+  el('fc-corpo').querySelectorAll('#f-temp button').forEach(b => {
+    b.onclick = () => {
+      el('fc-corpo').querySelectorAll('#f-temp button').forEach(x => x.setAttribute('aria-pressed', 'false'));
+      b.setAttribute('aria-pressed', 'true');
+    };
+  });
+  el('fc-corpo').querySelectorAll('[data-acao]').forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.acao;
+      if (a === 'salvar')   return salvarContato(false);
+      if (a === 'agendar')  return formAgendamento(PAC.paciente);
+      if (a === 'encerrar') return formEncerrar();
+      if (a === 'mensagem') return escolherMensagem(PAC.paciente);
+      if (a === 'pdf')      return exportar({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
+    };
+  });
+}
+
+/* Quantos dias desde o último contato, a partir do que a ficha já traz.
+   Serve para a gestora ver ANTES de ligar, sem depender do aviso do servidor. */
+function diasDesde(dataBr){
+  const a = String(dataBr || '').split('/'), b = String((CTX && CTX.hoje) || '').split('/');
+  if (a.length !== 3 || b.length !== 3) return null;
+  const d1 = new Date(+a[2], +a[1] - 1, +a[0]), d2 = new Date(+b[2], +b[1] - 1, +b[0]);
+  return Math.round((d2 - d1) / 86400000);
+}
+function avisoContatoRecente(p){
+  const n = diasDesde(p.ultimo_contato);
+  if (n === null || n > TRAVA_DIAS) return '';
+  return `<div class="aviso-box">${n === 0 ? 'Esta paciente já foi contatada <b>hoje</b>.'
+    : 'Esta paciente foi contatada há <b>' + n + ' dia(s)</b>.'}
+    Confira o histórico antes de registrar outro contato.</div>`;
+}
+
+function tempEscolhida(){
+  const b = el('fc-corpo').querySelector('#f-temp button[aria-pressed="true"]');
+  return b ? b.dataset.v : '';
+}
+
+function salvarContato(confirmado){
+  if (!USUARIO) { abrirPortao(); return; }
+  const p = PAC.paciente;
+  const obs = el('f-obs').value.trim();
+  if (!obs) { toast('Escreva o que aconteceu no contato.'); return; }
+  const bt = el('fc-corpo').querySelector('[data-acao="salvar"]');
+  const dados = {
+    chave: p.chave, paciente: p.nome, telefone: p.telefone, autor: USUARIO.nome,
+    canal: el('f-canal').value, resultado: el('f-res').value, temperatura: tempEscolhida(),
+    observacao: obs, proximo: el('f-prox').value, lembrete: el('f-lemb').value,
+    ref: el('f-ref').value, origem: el('f-ref').value ? 'FOLLOWUP' : 'RECALL',
+    confirmado: confirmado ? 'SIM' : ''
+  };
+  if (bt) { bt.disabled = true; bt.textContent = 'Salvando…'; }
+  api('salvarContato', dados).then(r => {
+    if (bt) { bt.disabled = false; bt.textContent = 'Salvar contato'; }
+    if (r.erro) { toast(r.erro); return; }
+
+    // trava de contato duplo: avisa e deixa a decisão com a gestora
+    if (r.confirmar){
+      abrirModal(`<h2>Contato recente</h2>
+        <div class="aviso-box">${esc(r.aviso)}</div>
+        <div class="msg-previa">${esc(r.quando)}${r.canal ? ' · ' + esc(rotuloLista('CANAL', r.canal)) : ''}</div>
+        <div class="acoes">
+          <button class="bt prim" id="tv-sim">Registrar mesmo assim</button>
+          <button class="bt" onclick="fecharModal()">Deixar como está</button></div>
+        <div class="nota">O aviso aparece quando o último contato foi há ${TRAVA_DIAS} dias ou menos. Ele não
+          impede nada — só evita ligar duas vezes seguidas sem saber.</div>`);
+      el('tv-sim').onclick = () => { fecharModal(); salvarContato(true); };
+      return;
+    }
+
+    toast(r.lembrete_automatico
+      ? 'Contato registrado. Retorno marcado sozinho para ' + r.proximo + '.'
+      : 'Contato registrado.');
+    if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p);
+    limparCache();
+    abrirFicha(p.chave);
+    recarregarTelaAtiva().catch(() => {});
+  }).catch(e => { if (bt) { bt.disabled = false; bt.textContent = 'Salvar contato'; } falhar(e); });
+}
+
+/* ==========================================================================
+   MENSAGEM PADRÃO — link wa.me com o texto pronto
+   O envio automático de verdade exigiria API oficial da Meta (templates
+   aprovados, cobrança por conversa) ou gateway não oficial, com risco de
+   bloqueio do número da clínica. A rota escolhida abre a conversa já escrita:
+   um toque para enviar, nenhum disparo sem alguém ver.
+   ========================================================================== */
+function escolherMensagem(p){
+  const modelos = (CTX && CTX.mensagens) || [];
+  if (!modelos.length) { toast('Nenhum modelo ativo na aba Mensagens.'); return; }
+  abrirModal(`<h2>Mensagem para ${esc(p.nome)}</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">
+      Escolha o modelo. O texto é montado com o nome dela e abre o WhatsApp pronto para enviar.</div>
+    <div class="grid-campo">
+      <div class="campo wide"><label>Modelo</label><select id="ms-evento">
+        ${modelos.map(m => `<option value="${esc(m.evento)}">${esc(m.rotulo)}</option>`).join('')}</select></div>
+      <div class="campo"><label>Data (se o modelo usar)</label><input id="ms-data" placeholder="dd/mm/aaaa"></div>
+      <div class="campo"><label>Hora (se o modelo usar)</label><input id="ms-hora" placeholder="hh:mm"></div>
+      <div class="campo wide"><label>Procedimento (se o modelo usar)</label><input id="ms-proc" placeholder="opcional"></div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="ms-ver">Montar mensagem</button></div>
+    <div id="ms-saida"></div>`);
+  el('ms-ver').onclick = () => {
+    const bt = el('ms-ver'); bt.disabled = true; bt.textContent = 'Montando…';
+    api('mensagem', {
+      evento: el('ms-evento').value, chave: p.chave, nome: p.nome, telefone: p.telefone,
+      data: el('ms-data').value, hora: el('ms-hora').value, procedimento: el('ms-proc').value
+    }).then(m => {
+      bt.disabled = false; bt.textContent = 'Montar mensagem';
+      if (m.erro) { toast(m.erro); return; }
+      el('ms-saida').innerHTML = blocoMensagem(m);
+    }).catch(e => { bt.disabled = false; bt.textContent = 'Montar mensagem'; falhar(e); });
+  };
+}
+
+function blocoMensagem(m){
+  return `<div class="sec">Texto que vai ser enviado</div>
+    <div class="msg-previa">${esc(m.texto)}</div>
+    ${m.link
+      ? `<a class="bt prim larga" target="_blank" rel="noopener" href="${esc(m.link)}">Abrir WhatsApp com o texto pronto</a>`
+      : '<div class="aviso-box">Esta paciente não tem telefone na base. Copie o texto e envie pelo canal que você usa com ela.</div>'}
+    <div class="nota">Os textos ficam na aba <b>Mensagens</b> da planilha, na coluna <b>texto</b>. Editar lá muda
+      o app na hora seguinte, sem mexer no código.</div>`;
+}
+
+function mostrarMensagem(m, p){
+  abrirModal(`<h2>Contato registrado</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6)">Mensagem de cortesia para ${esc(p.nome)}.</div>
+    ${blocoMensagem(m)}
+    <div class="acoes"><button class="bt larga" onclick="fecharModal()">Agora não</button></div>`);
+}
+
+/* ---------- agendar / encerrar / remarcar ---------- */
+function formAgendamento(p, ref, valor){
+  if (!USUARIO) { abrirPortao(); return; }
+  abrirModal(`<h2>Agendar — ${esc(p.nome)}</h2>
+    <div class="grid-campo">
+      <div class="campo"><label>Data</label><input id="ag-data" placeholder="dd/mm/aaaa"></div>
+      <div class="campo"><label>Hora</label><input id="ag-hora" placeholder="hh:mm"></div>
+      <div class="campo"><label>Tipo</label><select id="ag-tipo">${opcoes('TIPO_AGENDAMENTO')}</select></div>
+      <div class="campo"><label>Profissional</label><input id="ag-prof" value="${esc(p.profissional || '')}"></div>
+      <div class="campo wide"><label>Observação</label><textarea id="ag-obs"></textarea></div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="ag-ok">Salvar agendamento</button></div>`);
+  el('ag-ok').onclick = () => {
+    if (!el('ag-data').value) { toast('Informe a data.'); return; }
+    const bt = el('ag-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
+    api('salvarAgendamento', {
+      chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('ag-data').value,
+      hora: el('ag-hora').value, tipo: el('ag-tipo').value, profissional: el('ag-prof').value,
+      observacao: el('ag-obs').value, autor: USUARIO.nome, ref: ref || '', valor: valor || 0,
+      origem: ref ? 'FOLLOWUP' : 'RECALL'
+    }).then(r => {
+      bt.disabled = false; bt.textContent = 'Salvar agendamento';
+      if (r.erro) { toast(r.erro); return; }
+      toast('Agendamento criado.');
+      if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p); else fecharModal();
+      limparCache();
+      recarregarTelaAtiva().catch(() => {});
+    }).catch(e => { bt.disabled = false; bt.textContent = 'Salvar agendamento'; falhar(e); });
+  };
+}
+
+function formEncerrar(){
+  if (!USUARIO) { abrirPortao(); return; }
+  const p = PAC.paciente;
+  abrirModal(`<h2>Encerrar tentativas</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">${esc(p.nome)}</div>
+    <div class="grid-campo">
+      <div class="campo wide"><label>Motivo</label><select id="ec-motivo">${opcoes('ENCERRAMENTO')}</select></div>
+      <div class="campo wide"><label>Observação</label><textarea id="ec-obs"></textarea></div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="ec-ok">Encerrar</button></div>
+    <div class="nota">Nada é apagado. Ela sai da fila e volta sozinha se aparecer orçamento novo.</div>`);
+  el('ec-ok').onclick = () => {
+    api('encerrar', { chave: p.chave, paciente: p.nome, motivo: el('ec-motivo').value,
+      observacao: el('ec-obs').value, autor: USUARIO.nome })
+      .then(r => {
+        if (r.erro) { toast(r.erro); return; }
+        fecharModal(); toast('Tentativas encerradas.');
+        limparCache(); abrirFicha(p.chave); recarregarTelaAtiva().catch(() => {});
+      }).catch(falhar);
+  };
+}
+
+/* ==========================================================================
+   BUSCA GLOBAL — varre a carteira inteira, não só a fila da tela
+   ========================================================================== */
+function abrirBusca(){
+  abrirModal(`<h2>Buscar paciente</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">
+      Procura em toda a carteira — recall, dormente, follow-up e encerradas — por nome, telefone
+      ou número de orçamento.</div>
+    <div class="filtros" style="padding:0;border:0;background:none">
+      ${campoBusca('bg-termo', 'Nome, telefone ou nº do orçamento', '')}</div>
+    <div class="acoes"><button class="bt prim larga" id="bg-ok">Buscar</button></div>
+    <div id="bg-saida"></div>`);
+  const inp = el('bg-termo');
+  setTimeout(() => inp.focus(), 60);
+  el('modal-conteudo').querySelector('[data-lupa="bg-termo"]').onclick = () => el('bg-ok').click();
+  inp.onkeydown = ev => { if (ev.key === 'Enter'){ ev.preventDefault(); el('bg-ok').click(); } };
+  el('bg-ok').onclick = () => {
+    const t = inp.value.trim();
+    if (t.length < 2) { toast('Digite ao menos 2 letras.'); return; }
+    el('bg-saida').innerHTML = blocoCarregando('procurando');
+    api('buscar', { termo: t }).then(d => {
+      if (!d.itens.length) {
+        el('bg-saida').innerHTML = '<div class="vazio">Ninguém encontrado com esse termo.</div>';
+        return;
+      }
+      el('bg-saida').innerHTML = `<div class="sec">${d.total} resultado(s)</div>
+        <div class="res-busca">${d.itens.map(x => cartaoBusca(x)).join('')}</div>` +
+        (d.total > d.itens.length ? `<div class="nota">Mostrando os ${d.itens.length} primeiros. Refine o termo para ver o resto.</div>` : '');
+      el('bg-saida').querySelectorAll('.pac').forEach(c => {
+        c.onclick = () => { fecharModal(); abrirFicha(c.dataset.chave); };
+      });
+    }).catch(falhar);
+  };
+}
+
+function cartaoBusca(p){
+  return `<button class="pac" data-chave="${esc(p.chave)}">
+    <div class="tarja tj-${esc(p.faixa || 'DORMENTE')}"></div>
+    <div class="pac-in">
+      <div class="pac-l1"><span class="pac-nome">${esc(p.paciente)}</span>
+        <span class="onde onde-${esc(p.onde)}">${esc(ROTULO_ONDE[p.onde] || p.onde)}</span>
+        <span class="pac-dias"><b>${p.dias == null ? '—' : p.dias}</b><span>dias</span></span></div>
+      <div class="pac-l2">${p.telefone ? esc(p.telefone) + ' · ' : ''}${p.ultimo_orcamento
+        ? 'último orçamento ' + esc(p.ultimo_orcamento) + (p.ultimo_orcamento_situacao ? ' (' + esc(p.ultimo_orcamento_situacao) + ')' : '')
+        : 'sem orçamento datado'} · ${p.aprovados} aprovado(s) · ${brl(p.valor)}</div>
+    </div></button>`;
+}
+
+/* ==========================================================================
+   FOLLOW-UP
+   ========================================================================== */
+async function carregarFollow(){
+  const ordens = [['PRIORIDADE','Prioridade'],['DATA','Data da clínica'],['VALOR','Maior valor']];
+
+  const cxf = el('fu-filtros');
+  const abertoF = cxf.classList.contains('aberto');
+  cxf.innerHTML =
+    campoBusca('fu-busca', 'Filtrar por nome, telefone ou nº do orçamento', FU.busca) +
+    '<button class="bt-filtros" data-toggle="1">Ordem</button>' +
+    '<div class="chips"><span class="sep"></span>' +
+    ordens.map(o => `<button class="chip" data-o="${o[0]}" aria-pressed="${FU.ordem === o[0]}">${o[1]}</button>`).join('') +
+    '</div>';
+  if (abertoF) cxf.classList.add('aberto');
+  cxf.querySelector('[data-toggle]').onclick = () => cxf.classList.toggle('aberto');
+  cxf.querySelectorAll('.chip').forEach(b => {
+    b.onclick = () => { FU.ordem = b.dataset.o; carregarFollow().catch(falhar); };
+  });
+  ligarBusca(cxf, 'fu-busca', v => { FU.busca = v; carregarFollow().catch(falhar); });
+
+  const ch = 'follow:' + assinatura(FU);
+  if (CACHE[ch]) pintarFollow(CACHE[ch]);
+  else el('fu-lista').innerHTML = blocoCarregando('carregando os orçamentos');
+  marcarAtualizando('fu-lista', !!CACHE[ch]);
+  try {
+    const d = await api('followup', FU);
+    CACHE[ch] = d;
+    pintarFollow(d);
+  } finally {
+    marcarAtualizando('fu-lista', false);
+  }
+}
+
+/* A régua do follow-up é a mesma peça da régua do recall, só que a faixa aqui
+   é a decisão do dia, e não o tempo de ausência. Mesma leitura, mesmo toque
+   para filtrar — a gestora não precisa aprender dois controles. */
+const FAROIS_FU = [
+  ['VERDE',    'Verde',    'até 7 dias',    'var(--verde)'],
+  ['AMBAR',    'Âmbar',    '8 a 15 dias',   'var(--ambar)'],
+  ['VERMELHO', 'Vermelho', '16 a 22 dias',  'var(--vermelho)'],
+  ['DECIDIR',  'Decidir',  '23 a 30 dias',  'var(--decidir)']
+];
+
+function pintarFollow(d){
+  const pf = d.por_farol || {};
+  const total = FAROIS_FU.reduce((s, x) => s + (pf[x[0]] || 0), 0) || 1;
+
+  el('fu-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">orçamentos</small>`;
+  el('fu-sub').textContent = brl(d.valor) + ' em aberto · janela de ' + d.janela + ' dias · ' +
+    d.todos + ' no total (' + brl(d.valor_todos) + ')';
+
+  el('fu-regua').innerHTML = FAROIS_FU.map(x => {
+    const largura = Math.max(14, Math.round((pf[x[0]] || 0) / total * 100));
+    return `<button style="flex:0 0 ${largura}%;background:${x[3]}" data-f="${x[0]}"
+      aria-pressed="${FU.farol === x[0]}"><b>${pf[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
+  }).join('');
+  el('fu-regua').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { FU.farol = (FU.farol === b.dataset.f) ? 'TODOS' : b.dataset.f; carregarFollow().catch(falhar); };
+  });
+  el('fu-legenda').innerHTML = FAROIS_FU.map(x =>
+    `<div><i style="background:${x[3]}"></i><b>${x[1]}</b> ${x[2]}</div>`).join('');
+
+  el('fu-aviso').innerHTML = d.criticos
+    ? `<div class="aviso-box"><b>${d.criticos} orçamento(s) em vermelho ou acima de 22 dias.</b>
+       São os que precisam de decisão hoje: refazer a proposta, agendar ou encerrar.</div>` : '';
+
+  el('fu-rotulo').textContent = `Orçamentos em aberto — ${d.total.toLocaleString('pt-BR')} · ${brl(d.valor)}` +
+    ` · ${ {PRIORIDADE:'do mais urgente para o menos', DATA:'da data mais recente na clínica', VALOR:'do maior valor para o menor'}[FU.ordem] }`;
+
+  el('fu-lista').innerHTML = d.itens.length
+    ? d.itens.map(cartaoFollow).join('')
+    : '<div class="card vazio">Nenhum orçamento em aberto com esses filtros.</div>';
+  ligarFollow();
+}
+
+function cartaoFollow(i){
+  const tags = [];
+  if (i.retorno) tags.push(i.atraso > 0
+    ? `<span class="tag alerta">Retorno vencido há ${i.atraso} dias</span>`
+    : `<span class="tag ok">Retorno marcado ${esc(i.retorno)}</span>`);
+  else tags.push('<span class="tag">Sem retorno marcado</span>');
+  if (i.farol === 'DECIDIR')  tags.push(`<span class="tag roxo">${i.dias} dias · refazer ou encerrar</span>`);
+  if (i.farol === 'VERMELHO') tags.push(`<span class="tag alerta">${i.dias} dias · decidir</span>`);
+
+  return `<div class="pac" data-chave="${esc(i.chave)}" data-num="${esc(i.num)}" role="button" tabindex="0">
+    <div class="tarja tj-${esc(i.farol)}"></div>
+    <div class="pac-in">
+      <div class="pac-l1"><span class="farolinho fl-${esc(i.farol)}"></span>
+        <span class="pac-nome">${esc(i.paciente)}</span>
+        <span class="pac-cid">passou na clínica em ${esc(i.data || '—')}</span>
+        <span class="pac-dias"><b>${i.dias}</b><span>dias em aberto</span></span></div>
+      <div class="pac-l2">ORÇ ${esc(i.num)} · ${esc(String(i.proc).substring(0, 110))} · <b>${brl(i.valor)}</b></div>
+      <div class="pac-l3">${tags.join('')}
+        <button class="bt-min" data-acao="abrir">Abrir ficha</button>
+        <button class="bt-min" data-acao="whats">Mensagem</button>
+        <button class="bt-min" data-acao="resolvido">Já resolvi</button></div>
+    </div></div>`;
+}
+
+function ligarFollow(){
+  el('fu-lista').querySelectorAll('.pac').forEach(c => {
+    c.querySelectorAll('[data-acao]').forEach(b => {
+      b.onclick = ev => {
+        ev.stopPropagation();
+        const a = b.dataset.acao;
+        if (a === 'abrir') { abrirFicha(c.dataset.chave); return; }
+        if (a === 'whats') { mensagemDoFollow(c.dataset.chave, c.dataset.num); return; }
+        if (!USUARIO) { abrirPortao(); return; }
+        b.disabled = true;
+        api('resolvido', { num: c.dataset.num, autor: USUARIO.nome }).then(() => {
+          toast('Tirado da fila. A próxima carga confirma.');
+          limparCache();
+          carregarFollow().catch(falhar);
+        }).catch(e => { b.disabled = false; falhar(e); });
+      };
+    });
+    c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
+  });
+}
+
+function mensagemDoFollow(chave, num){
+  abrirModalCarregando('montando mensagem');
+  api('mensagem', { evento: 'ORCAMENTO_ABERTO', chave: chave, orcamento: num }).then(m => {
+    if (m.erro) { fecharModal(); toast(m.erro); return; }
+    abrirModal(`<h2>Mensagem de follow-up</h2>${blocoMensagem(m)}
+      <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
+  }).catch(e => { fecharModal(); falhar(e); });
+}
+
+/* ==========================================================================
+   AGENDA
+   ========================================================================== */
+document.querySelectorAll('#ag-filtros .chip[data-per]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#ag-filtros .chip[data-per]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    PERIODO_AGENDA = Number(b.dataset.per);
+    carregarAgenda().catch(falhar);
+  };
+});
+
+async function carregarAgenda(){
+  const hoje = new Date();
+  const ate = new Date(hoje.getTime() + PERIODO_AGENDA * 86400000);
+  const f = d2 => ('0' + d2.getDate()).slice(-2) + '/' + ('0' + (d2.getMonth() + 1)).slice(-2) + '/' + d2.getFullYear();
+  const ch = 'agenda:' + PERIODO_AGENDA;
+  if (CACHE[ch]) pintarAgenda(CACHE[ch]);
+  else el('ag-lista').innerHTML = blocoCarregando('carregando a agenda');
+  marcarAtualizando('ag-lista', !!CACHE[ch]);
+  try {
+    const d = await api('agenda', { de: f(hoje), ate: f(ate) });
+    CACHE[ch] = d;
+    pintarAgenda(d);
+  } finally {
+    marcarAtualizando('ag-lista', false);
+  }
+}
+
+function pintarAgenda(d){
+  const k = d.kpis || {};
+  d.dias = d.dias || [];
+
+  el('ag-kpis').innerHTML =
+    cardInd(k.total, 'agendamentos no período', (k.doRecall || 0) + ' vieram do recall') +
+    cardInd(k.confirmadas, 'confirmadas', '') +
+    cardInd(k.remarcadas, 'remarcadas', '') +
+    cardInd(brl(k.valor), 'em orçamento previsto', '');
+
+  el('ag-lista').innerHTML = d.dias.length
+    ? d.dias.map(dia => `<div class="dia-h"><h3>${esc(dia.data)}</h3><span>${dia.itens.length} agendamento(s)</span></div>` +
+        dia.itens.map(a => cartaoAgenda(a, d.alerta_remarcacoes)).join('')).join('')
+    : '<div class="card vazio">Nenhum agendamento no período.</div>';
+  ligarAgenda();
+}
+
+function cardInd(valor, rot, extra){
+  return `<div class="ind-card"><div class="r">${rot}</div><div class="v">${valor}</div>` +
+    (extra ? `<div class="d">${extra}</div>` : '') + '</div>';
+}
+
+function cartaoAgenda(a, alertaRem){
+  const hist = a.remarcacoes > 0
+    ? `<div class="ag-hist">${esc(a.trilha)} · <b>${a.remarcacoes}ª remarcação</b>` +
+      (a.motivo ? ' · motivo: ' + esc(rotuloLista('MOTIVO_REMARCACAO', a.motivo)) : '') +
+      (a.remarcacoes >= alertaRem ? ' — avaliar se insiste' : '') + '</div>' : '';
+  return `<div class="ag" data-id="${esc(a.id)}" data-chave="${esc(a.chave)}">
+    <div class="hora">${esc(a.hora || '—')}</div>
+    <div class="ag-c"><div class="ag-n">${esc(a.paciente)}
+      <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>
+      <div class="ag-p">${esc(rotuloLista('TIPO_AGENDAMENTO', a.tipo))}${a.profissional ? ' · ' + esc(a.profissional) : ''}${a.obs ? ' · ' + esc(a.obs) : ''}</div></div>
+    <div class="ag-rod"><span class="tag">${esc(a.origem)}</span>
+      <div class="ag-acoes">
+        <button class="bt-min" data-acao="ficha">Ficha</button>
+        <button class="bt-min" data-acao="remarcar">Remarcar</button>
+        <button class="bt-min" data-acao="faltou">Faltou</button>
+        <button class="bt-min" data-acao="veio">Veio</button></div></div>${hist}</div>`;
+}
+
+function ligarAgenda(){
+  el('ag-lista').querySelectorAll('.ag').forEach(c => {
+    c.querySelectorAll('[data-acao]').forEach(b => {
+      b.onclick = () => {
+        const a = b.dataset.acao;
+        if (a === 'ficha') { abrirFicha(c.dataset.chave); return; }
+        if (!USUARIO) { abrirPortao(); return; }
+        if (a === 'remarcar') { formRemarcar(c.dataset.id); return; }
+        const st = a === 'faltou' ? 'FALTOU' : 'COMPARECEU';
+        api('statusAgendamento', { id: c.dataset.id, status: st, autor: USUARIO.nome })
+          .then(() => { toast('Atualizado.'); limparCache(); carregarAgenda().catch(falhar); })
+          .catch(falhar);
+      };
+    });
+  });
+}
+
+function formRemarcar(id){
+  abrirModal(`<h2>Remarcar agendamento</h2>
+    <div class="grid-campo">
+      <div class="campo"><label>Nova data</label><input id="rm-data" placeholder="dd/mm/aaaa"></div>
+      <div class="campo"><label>Novo horário</label><input id="rm-hora" placeholder="hh:mm"></div>
+      <div class="campo"><label>Quem pediu</label><select id="rm-quem">
+        <option value="PACIENTE">A paciente</option><option value="CLINICA">A clínica</option>
+        <option value="PROFISSIONAL">Profissional indisponível</option></select></div>
+      <div class="campo"><label>Motivo</label><select id="rm-motivo">${opcoes('MOTIVO_REMARCACAO')}</select></div>
+      <div class="campo wide"><label>Observação</label><textarea id="rm-obs"></textarea></div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="rm-ok">Salvar nova data</button></div>
+    <div class="nota">A data anterior fica guardada na trilha do agendamento. Remarcação não conta como falta.</div>`);
+  el('rm-ok').onclick = () => {
+    if (!el('rm-data').value) { toast('Informe a nova data.'); return; }
+    api('remarcar', { id: id, nova_data: el('rm-data').value, nova_hora: el('rm-hora').value,
+      quem_pediu: el('rm-quem').value, motivo: el('rm-motivo').value, observacao: el('rm-obs').value })
+      .then(r => {
+        if (r.erro) { toast(r.erro); return; }
+        toast('Remarcado — ' + r.remarcacoes + 'ª vez.');
+        if (r.mensagem && r.mensagem.texto) {
+          abrirModal(`<h2>Remarcado</h2>${blocoMensagem(r.mensagem)}
+            <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
+        } else fecharModal();
+        limparCache();
+        carregarAgenda().catch(falhar);
+      }).catch(falhar);
+  };
+}
+
+/* ==========================================================================
+   INDICADORES — um funil por frente: recall, dormente e follow-up
+   ========================================================================== */
+document.querySelectorAll('#tela-indicadores .chip[data-esc]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#tela-indicadores .chip[data-esc]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+    b.setAttribute('aria-pressed', 'true');
+    ESCOPO = b.dataset.esc;
+    carregarIndicadores().catch(falhar);
+  };
+});
+function andarMes(passo){
+  const sel = el('sel-mes');
+  const ops = [...sel.options].map(o => o.value);
+  const i = ops.indexOf(MES);
+  const j = Math.min(ops.length - 1, Math.max(0, i + passo));
+  if (j === i) return;
+  MES = ops[j]; sel.value = MES;
+  carregarIndicadores().catch(falhar);
+}
+function mesAtual(){
+  const sel = el('sel-mes');
+  if (!sel.options.length) return;
+  MES = sel.options[sel.options.length - 1].value;
+  sel.value = MES;
+  carregarIndicadores().catch(falhar);
+}
+function trocarMes(m){ MES = m; carregarIndicadores().catch(falhar); }
+
+async function carregarIndicadores(){
+  const mesRotulo = MES || (CTX && CTX.meses && CTX.meses.length ? CTX.meses[CTX.meses.length - 1] : '');
+  const ch = 'ind:' + ESCOPO + ':' + (MES || '');
+  if (CACHE[ch]) pintarIndicadores(CACHE[ch]);
+  else el('ind-corpo').innerHTML = blocoCarregando('carregando ' + (mesRotulo ? rotuloMes(mesRotulo) : 'indicadores'));
+  marcarAtualizando('ind-corpo', !!CACHE[ch]);
+  try {
+    const d = await api('indicadores', { mes: MES || '', escopo: ESCOPO });
+    CACHE[ch] = d;
+    CACHE['ind:' + ESCOPO + ':' + d.mes] = d;
+    pintarIndicadores(d);
+  } finally {
+    marcarAtualizando('ind-corpo', false);
+  }
+}
+
+function pintarIndicadores(d){
+  MES = d.mes;
+  const sel = el('sel-mes');
+  if (sel.value !== MES && [...sel.options].some(o => o.value === MES)) sel.value = MES;
+
+  const f = d.funil, m = d.meta;
+  const base = Math.max(1, f.selecionadas);
+  const p = n => Math.round(n / base * 1000) / 10;
+  const etapa = (rot, n, extra, verde) =>
+    `<div class="et"><div class="et-l"><b>${rot}</b><span>${n.toLocaleString('pt-BR')}${extra ? ' · ' + extra : ''}</span></div>
+     <div class="et-b"><div class="et-f${verde ? ' g' : ''}" style="width:${Math.min(100, p(n))}%"></div></div></div>`;
+  const metaBar = (n, meta) => {
+    if (!meta) return '';
+    const q = Math.round(n / meta * 100);
+    return `<div class="d">meta ${meta.toLocaleString('pt-BR')} · ${q}%</div>
+      <div class="meta-bar"><div class="meta-f" style="width:${Math.min(100, q)}%"></div></div>`;
+  };
+
+  const topo = d.escopo === 'FOLLOWUP' && d.abertos
+    ? cardInd(d.abertos.qtd, 'orçamentos em aberto', brl(d.abertos.valor) + ' · ' + d.abertos.criticos + ' críticos')
+    : `<div class="ind-card"><div class="r">na fila desta frente</div>
+       <div class="v">${f.selecionadas.toLocaleString('pt-BR')}</div>${metaBar(f.selecionadas, m.selecionadas)}</div>`;
+
+  const faixas = Object.keys(d.por_faixa).map(k => {
+    const v = d.por_faixa[k] || {};
+    const conv = v.contatadas ? Math.round(v.fechou / v.contatadas * 1000) / 10 : 0;
+    return `<tr><td>${k.charAt(0) + k.slice(1).toLowerCase()}</td>
+      <td class="num">${(v.selecionadas || 0).toLocaleString('pt-BR')}</td>
+      <td class="num">${v.contatadas || 0}</td><td class="num">${v.fechou || 0}</td>
+      <td class="num"><b>${pct(conv)}</b></td><td class="num">${brl(v.valor || 0)}</td></tr>`;
+  }).join('');
+
+  const canais = Object.keys(d.por_canal).map(k => {
+    const v = d.por_canal[k];
+    const taxa = v.contatos ? Math.round(v.agendou / v.contatos * 1000) / 10 : 0;
+    return `<tr><td>${esc(rotuloLista('CANAL', k))}</td><td class="num">${v.contatos}</td>
+      <td class="num">${v.respostas}</td><td class="num">${v.agendou}</td><td class="num"><b>${pct(taxa)}</b></td></tr>`;
+  }).join('') || '<tr><td colspan="5">Nenhum contato registrado no mês.</td></tr>';
+
+  const procs = d.procedimentos.map(x =>
+    `<tr><td>${esc(x.procedimento)}</td><td class="num">${x.n}</td></tr>`).join('')
+    || '<tr><td colspan="2">Nenhum fechamento vindo desta frente no mês.</td></tr>';
+
+  const nomeEscopo = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up' }[d.escopo];
+  const g = d.gestao || {};
+  const blocoGestao = `
+    <div class="card bloco">
+      <h3>Gestão da carteira <span class="aux">independe do mês escolhido</span></h3>
+      <div class="ind-cards" style="margin:0">
+        <div class="ind-card"><div class="r">cobertura</div><div class="v">${pct(g.cobertura || 0)}</div>
+          <div class="meta-bar"><div class="meta-f" style="width:${Math.min(100, g.cobertura || 0)}%"></div></div>
+          <div class="d">${(g.ja_tocadas || 0).toLocaleString('pt-BR')} de ${(g.na_carteira || 0).toLocaleString('pt-BR')} já contatadas</div></div>
+        <div class="ind-card"><div class="r">nunca tocadas</div><div class="v">${(g.nunca_tocadas || 0).toLocaleString('pt-BR')}</div>
+          <div class="d">é este número que tem que cair</div></div>
+        <div class="ind-card"><div class="r">encerradas</div><div class="v">${(g.encerradas || 0).toLocaleString('pt-BR')}</div>
+          <div class="d">${g.encerradas_mes || 0} no mês escolhido</div></div>
+        <div class="ind-card"><div class="r">até a decisão</div>
+          <div class="v">${g.dias_ate_decisao == null ? '—' : g.dias_ate_decisao + ' d'}</div>
+          <div class="d">${g.decisoes_medidas ? 'média de ' + g.decisoes_medidas + ' encerramento(s)' : 'sem encerramento no mês'}</div></div>
+      </div>
+      <div class="nota">A quantidade de pacientes na fila não cai: quem fez orçamento há 30 dias entra amanhã.
+        O que mede o trabalho é a <b>cobertura</b> subindo e o <b>nunca tocadas</b> indo a zero.</div>
+    </div>`;
+
+  el('ind-corpo').innerHTML = `
+    <div class="ind-cards">
+      ${topo}
+      ${cardInd(f.contatadas.toLocaleString('pt-BR'), 'contatadas', '') }
+      ${cardInd(f.agendadas.toLocaleString('pt-BR'), 'agendadas', '')}
+      ${cardInd(brl(f.valor), 'resgatado', f.fecharam + ' fechamento(s)')}
+    </div>
+    ${blocoGestao}
+    <div class="card bloco">
+      <h3>Funil de ${nomeEscopo} — ${rotuloMes(d.mes)}</h3>
+      ${etapa(d.escopo === 'FOLLOWUP' ? 'Orçamentos em aberto' : 'Na fila', f.selecionadas, '')}
+      ${etapa('Contatadas', f.contatadas, pct(p(f.contatadas)))}
+      ${etapa('Responderam', f.responderam, pct(p(f.responderam)))}
+      ${etapa('Agendadas', f.agendadas, pct(p(f.agendadas)))}
+      ${etapa('Compareceram', f.compareceram, pct(p(f.compareceram)))}
+      ${etapa('Fecharam orçamento', f.fecharam, pct(p(f.fecharam)) + ' · ' + brl(f.valor), true)}
+      ${(f.faltaram || f.remarcadas) ? `<div class="d" style="font-size:11.5px;color:rgba(36,30,28,.55)">${f.faltaram} falta(s) e ${f.remarcadas} remarcação(ões) no período.</div>` : ''}
+    </div>
+    <div class="card bloco"><h3>Conversão por faixa</h3>
+      <div class="tab-w"><table class="ind-tab"><thead><tr><th>Faixa</th><th class="num">Na fila</th>
+        <th class="num">Contatadas</th><th class="num">Fecharam</th><th class="num">Conversão</th>
+        <th class="num">Valor</th></tr></thead><tbody>${faixas}</tbody></table></div></div>
+    <div class="card bloco"><h3>Canais</h3>
+      <div class="tab-w"><table class="ind-tab"><thead><tr><th>Canal</th><th class="num">Contatos</th>
+        <th class="num">Respostas</th><th class="num">Agendou</th><th class="num">Taxa</th></tr></thead>
+        <tbody>${canais}</tbody></table></div></div>
+    <div class="card bloco"><h3>Procedimentos que mais voltam</h3>
+      <div class="tab-w"><table class="ind-tab"><thead><tr><th>Procedimento</th>
+        <th class="num">Fechamentos</th></tr></thead><tbody>${procs}</tbody></table></div></div>
+    <div class="nota">Só entra no funil o fechamento de quem esta frente tocou no mês — paciente que voltou
+      sozinha não infla o indicador do comercial. Recall, Dormente e Follow-up têm números separados
+      justamente para uma frente não esconder o desempenho da outra.</div>`;
+}
+
+/* ==========================================================================
+   PORTÃO DE ACESSO — identificação, aviso de propriedade, termo LGPD e
+   assinatura eletrônica. Mesmo fluxo da V1; só a casca mudou.
+   ========================================================================== */
+const PT = { passo: 1, usuario: null, codigo: '', ciA: [false,false,false],
+             ciT: [false,false,false,false], assinou: false };
+
+const TXT_AVISO = [
+ ['p','Este aplicativo foi desenvolvido de forma dedicada e exclusiva para o <b>Instituto Kássila Nasser</b>, a partir de requisitos, regras de negócio e base de dados próprios da empresa.'],
+ ['p','Os direitos autorais e de propriedade intelectual sobre o código-fonte, a estrutura de dados, a lógica de cálculo e o desenho das telas são reservados a <b>Decisão Consultoria</b>. São proibidas a reprodução, a cópia, a distribuição, a cessão a terceiros, a comercialização e a engenharia reversa, totais ou parciais, sem autorização escrita.'],
+ ['p','O sistema não realiza integração, envio ou processamento de dados por serviços de inteligência artificial. A base é tratada exclusivamente por programação e scripts próprios, desenvolvidos para esta empresa e executados na infraestrutura da própria conta da clínica.'],
+ ['h','O que isso significa na prática'],
+ ['p','O aplicativo, seus arquivos e seu funcionamento não podem ser repassados a outra clínica, empresa ou profissional. O uso é restrito às atividades do Instituto Kássila Nasser.']
+];
+const CI_AVISO = [
+ 'Li e compreendi que este aplicativo é dedicado e exclusivo do Instituto Kássila Nasser.',
+ 'Estou ciente de que reproduzir, copiar, distribuir ou ceder o aplicativo a terceiros é proibido, e que os direitos são reservados a Decisão Consultoria.',
+ 'Estou ciente de que o sistema não integra nem envia dados a serviços de inteligência artificial, sendo a base tratada por programação própria desta empresa.'
+];
+const TXT_TERMO = [
+ ['p','Este termo tem fundamento na <b>Lei nº 13.709/2018</b> (Lei Geral de Proteção de Dados Pessoais).'],
+ ['p','O aplicativo trata dados pessoais de pacientes — nome, contato, cidade, histórico de orçamentos e procedimentos — com a finalidade específica de retomada de contato comercial (recall) e acompanhamento de propostas em aberto (follow-up).'],
+ ['h','Dado sensível'],
+ ['p','Informação sobre procedimento de saúde vinculada a pessoa identificada é <b>dado pessoal sensível</b> na forma do art. 11 da referida Lei, e recebe proteção reforçada.'],
+ ['h','Acesso identificado'],
+ ['p','O acesso é pessoal e intransferível, identificado por código individual. Todo registro de contato fica vinculado ao nome de quem o lançou, com data e hora.'],
+ ['h','Encerramento'],
+ ['p','Ao encerrar suas atividades, a pessoa se compromete a devolver ou eliminar qualquer dado em seu poder e perde o acesso ao aplicativo.']
+];
+const CI_TERMO = [
+ 'Comprometo-me a tratar os dados apenas para as finalidades de recall e follow-up comercial da clínica, não os utilizando para finalidade diversa nem em proveito próprio ou de terceiros.',
+ 'Comprometo-me a manter sigilo sobre tudo que acessar, não divulgando, copiando, fotografando, imprimindo ou compartilhando dados de pacientes fora do aplicativo.',
+ 'Estou ciente de que meu acesso é pessoal e intransferível, que meus lançamentos ficam registrados com meu nome, data e hora, e que o uso indevido sujeita a medidas disciplinares e legais.',
+ 'Comprometo-me a comunicar imediatamente à direção qualquer incidente de segurança, perda, acesso indevido ou suspeita de vazamento.'
+];
+
+function ptErro(msg){
+  const e = el('pt-erro');
+  if (!msg) { e.classList.remove('on'); return; }
+  e.textContent = msg; e.classList.add('on');
+}
+function ptPassos(){
+  document.querySelectorAll('.t-passos div').forEach(d =>
+    d.setAttribute('data-on', Number(d.dataset.p) <= PT.passo ? '1' : '0'));
+}
+function abrirPortao(){
+  el('portao').classList.add('on');
+  el('pt-logo').src = monogramaSrc();
+  el('pt-rodape').innerHTML = 'Recall e Follow-up · desenvolvido por Decisão Consultoria<br>' +
+    'Uso exclusivo do Instituto Kássila Nasser · direitos reservados';
+  irPasso(1);
+}
+function fecharPortao(){ el('portao').classList.remove('on'); }
+
+function irPasso(n){
+  PT.passo = n; ptErro(''); ptPassos();
+  el('pt-voltar').style.display = n > 1 ? '' : 'none';
+  if (n === 1) passoIdentificacao();
+  if (n === 2) passoDocumento('aviso');
+  if (n === 3) passoDocumento('termo');
+  if (n === 4) passoAssinatura();
+}
+
+function passoIdentificacao(){
+  el('pt-titulo').textContent = 'Identificação';
+  el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
+  const nomes = ((CTX && CTX.usuarios) || []).length ? CTX.usuarios : USUARIOS_ABERTOS;
+  el('pt-corpo').innerHTML = nomes.length
+    ? `<div class="grid-campo">
+        <div class="campo"><label>Nome</label><select id="pt-nome">
+          ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
+        <div class="campo"><label>Código de acesso</label>
+          <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
+       <div class="nota">Não compartilhe seu código. Tudo que você registrar fica gravado com o seu nome.</div>`
+    : '<div class="vazio">Nenhum usuário cadastrado ainda.<br>Preencha a aba <b>Usuarios</b> da planilha com nome e código de acesso.</div>';
+  el('pt-ok').textContent = 'Entrar';
+  el('pt-ok').style.display = nomes.length ? '' : 'none';
+}
+
+function passoDocumento(qual){
+  const aviso = qual === 'aviso';
+  el('pt-titulo').textContent = aviso ? 'Aviso de propriedade' : 'Termo de confidencialidade';
+  el('pt-sub').textContent = aviso
+    ? 'Leia até o fim e dê ciência nas três declarações.'
+    : 'Leia até o fim e dê ciência nas quatro declarações.';
+  const txt = aviso ? TXT_AVISO : TXT_TERMO;
+  const cis = aviso ? CI_AVISO : CI_TERMO;
+  const marc = aviso ? PT.ciA : PT.ciT;
+
+  el('pt-corpo').innerHTML =
+    `<div class="t-doc" id="pt-doc">
+      ${txt.map(t => t[0] === 'h' ? `<h4>${t[1]}</h4>` : `<p>${t[1]}</p>`).join('')}
+      <div class="fim">— fim do documento —</div></div>
+     <div class="t-rol" id="pt-rol">Role o documento até o fim para liberar as declarações.</div>
+     <div id="pt-ci">${cis.map((c, i) =>
+       `<label class="t-check" data-on="${marc[i] ? 1 : 0}"><input type="checkbox" data-i="${i}"${marc[i] ? ' checked' : ''}>
+        <span>${c}</span></label>`).join('')}</div>`;
+  el('pt-ok').textContent = 'Continuar';
+  el('pt-ok').style.display = '';
+
+  const doc = el('pt-doc'), rol = el('pt-rol');
+  const fim = () => {
+    if (doc.scrollTop + doc.clientHeight >= doc.scrollHeight - 6){
+      rol.textContent = 'Documento lido. Agora dê ciência nas declarações.';
+      rol.setAttribute('data-ok', '1'); doc.dataset.lido = '1';
+    }
+  };
+  doc.onscroll = fim;
+  setTimeout(() => { if (doc.scrollHeight <= doc.clientHeight + 6) fim(); }, 60);
+
+  el('pt-ci').querySelectorAll('input').forEach(c => {
+    c.onchange = () => {
+      (aviso ? PT.ciA : PT.ciT)[Number(c.dataset.i)] = c.checked;
+      c.parentElement.setAttribute('data-on', c.checked ? '1' : '0');
+    };
+  });
+}
+
+function passoAssinatura(){
+  el('pt-titulo').textContent = 'Assinatura';
+  el('pt-sub').textContent = 'Confirme seus dados e assine com o dedo ou com o mouse.';
+  el('pt-corpo').innerHTML =
+    `<div class="grid-campo">
+      <div class="campo"><label>Nome</label><input value="${esc(PT.usuario.nome)}" disabled></div>
+      <div class="campo"><label>Função</label><input id="pt-funcao" value="${esc(PT.usuario.funcao || '')}" placeholder="Ex.: Gestora Comercial"></div>
+      <div class="campo wide"><label>CPF</label><input id="pt-cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" value="${esc(PT.usuario.cpf || '')}"></div>
+    </div>
+    <div class="sec">Assinatura</div>
+    <div class="t-ass" id="pt-ass"><canvas id="pt-canvas"></canvas><div class="ph">Assine aqui</div></div>
+    <div class="acoes"><button class="bt" id="pt-limpar">Limpar assinatura</button></div>
+    <div class="nota">Ao concluir, o documento assinado é gerado em PDF e guardado na pasta restrita da clínica.
+      Você não verá esta tela de novo.</div>`;
+  el('pt-ok').textContent = 'Concluir e entrar';
+  el('pt-ok').style.display = '';
+  mascaraCpf(el('pt-cpf'));
+  iniciarCanvas();
+}
+
+function mascaraCpf(inp){
+  inp.oninput = () => {
+    const v = inp.value.replace(/\D/g, '').substring(0, 11);
+    let o = v;
+    if (v.length > 9) o = v.substring(0,3) + '.' + v.substring(3,6) + '.' + v.substring(6,9) + '-' + v.substring(9);
+    else if (v.length > 6) o = v.substring(0,3) + '.' + v.substring(3,6) + '.' + v.substring(6);
+    else if (v.length > 3) o = v.substring(0,3) + '.' + v.substring(3);
+    inp.value = o;
+  };
+}
+
+/* mod-11 real, o mesmo do servidor: o servidor não confia no navegador */
+function cpfValido(cpf){
+  const s = String(cpf || '').replace(/\D/g, '');
+  if (s.length !== 11 || /^(\d)\1{10}$/.test(s)) return false;
+  let soma = 0, r;
+  for (let i = 1; i <= 9; i++) soma += parseInt(s.substring(i-1, i), 10) * (11 - i);
+  r = (soma * 10) % 11; if (r === 10 || r === 11) r = 0;
+  if (r !== parseInt(s.substring(9, 10), 10)) return false;
+  soma = 0;
+  for (let j = 1; j <= 10; j++) soma += parseInt(s.substring(j-1, j), 10) * (12 - j);
+  r = (soma * 10) % 11; if (r === 10 || r === 11) r = 0;
+  return r === parseInt(s.substring(10, 11), 10);
+}
+
+let CANVAS = null, CTXC = null;
+function iniciarCanvas(){
+  CANVAS = el('pt-canvas');
+  const rect = CANVAS.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  CANVAS.width = Math.max(300, Math.round(rect.width * dpr));
+  CANVAS.height = Math.round(160 * dpr);
+  CTXC = CANVAS.getContext('2d');
+  CTXC.scale(dpr, dpr);
+  CTXC.lineWidth = 2.2; CTXC.lineCap = 'round'; CTXC.lineJoin = 'round'; CTXC.strokeStyle = '#241E1C';
+  PT.assinou = false;
+  let desenhando = false;
+  const pos = ev => {
+    const r = CANVAS.getBoundingClientRect();
+    const t = ev.touches ? ev.touches[0] : ev;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  };
+  const ini = ev => { ev.preventDefault(); desenhando = true; const p = pos(ev);
+    CTXC.beginPath(); CTXC.moveTo(p.x, p.y); PT.assinou = true; el('pt-ass').classList.add('usada'); };
+  const mov = ev => { if (!desenhando) return; ev.preventDefault(); const p = pos(ev);
+    CTXC.lineTo(p.x, p.y); CTXC.stroke(); };
+  const fim = () => { desenhando = false; };
+  CANVAS.addEventListener('mousedown', ini); CANVAS.addEventListener('mousemove', mov);
+  window.addEventListener('mouseup', fim);
+  CANVAS.addEventListener('touchstart', ini, {passive:false});
+  CANVAS.addEventListener('touchmove', mov, {passive:false});
+  CANVAS.addEventListener('touchend', fim);
+  el('pt-limpar').onclick = () => {
+    CTXC.clearRect(0, 0, CANVAS.width, CANVAS.height);
+    PT.assinou = false; el('pt-ass').classList.remove('usada');
+  };
+}
+
+el('pt-voltar').onclick = () => { if (PT.passo > 1) irPasso(PT.passo - 1); };
+
+el('pt-ok').onclick = () => {
+  ptErro('');
+  if (PT.passo === 1){
+    const nome = el('pt-nome') ? el('pt-nome').value : '';
+    const cod  = el('pt-codigo') ? el('pt-codigo').value : '';
+    if (!cod) { ptErro('Informe o código de acesso.'); return; }
+    el('pt-ok').disabled = true;
+    api('entrar', { nome: nome, codigo: cod }).then(r => {
+      el('pt-ok').disabled = false;
+      if (!r || !r.ok) { ptErro((r && r.erro) || 'Não consegui validar.'); return; }
+      PT.usuario = r.usuario; PT.codigo = cod;
+      USUARIO = r.usuario; el('bt-quem').textContent = r.usuario.nome;
+      try {
+        localStorage.setItem('recall_sessao', JSON.stringify({nome: r.usuario.nome, codigo: cod}));
+        localStorage.setItem('recall_usuario', JSON.stringify(r.usuario));
+      } catch (e) {}
+      if (!r.precisa_termo) {
+        fecharPortao(); limparCache();
+        entrarNoApp().catch(falhar);
+        return;
+      }
+      irPasso(2);
+    }).catch(e => { el('pt-ok').disabled = false; ptErro('Falha ao falar com a planilha: ' + (e.message || e)); });
+    return;
+  }
+  if (PT.passo === 2){
+    if (el('pt-doc').dataset.lido !== '1') { ptErro('Role o aviso até o fim antes de continuar.'); return; }
+    if (PT.ciA.filter(Boolean).length < 3) { ptErro('Dê ciência nas três declarações.'); return; }
+    irPasso(3); return;
+  }
+  if (PT.passo === 3){
+    if (el('pt-doc').dataset.lido !== '1') { ptErro('Role o termo até o fim antes de continuar.'); return; }
+    if (PT.ciT.filter(Boolean).length < 4) { ptErro('Dê ciência nas quatro declarações.'); return; }
+    irPasso(4); return;
+  }
+  if (PT.passo === 4){
+    const cpf = el('pt-cpf').value;
+    if (!cpfValido(cpf)) { ptErro('CPF inválido. Confira os números.'); return; }
+    if (!PT.assinou) { ptErro('Assine no quadro antes de concluir.'); return; }
+    el('pt-ok').disabled = true; el('pt-ok').textContent = 'Registrando…';
+    api('aceitar', {
+      nome: PT.usuario.nome, codigo: PT.codigo, funcao: el('pt-funcao').value, cpf: cpf,
+      assinatura: CANVAS.toDataURL('image/png'),
+      ciencias_aviso: PT.ciA.filter(Boolean).length,
+      ciencias_termo: PT.ciT.filter(Boolean).length,
+      dispositivo: navigator.userAgent
+    }).then(r => {
+      el('pt-ok').disabled = false; el('pt-ok').textContent = 'Concluir e entrar';
+      if (!r || r.erro) { ptErro((r && r.erro) || 'Não consegui registrar.'); return; }
+      fecharPortao(); toast('Termo registrado. Bem-vinda, ' + PT.usuario.nome + '.');
+      USUARIO = PT.usuario; el('bt-quem').textContent = PT.usuario.nome;
+      limparCache();
+      entrarNoApp().catch(falhar);
+    }).catch(e => {
+      el('pt-ok').disabled = false; el('pt-ok').textContent = 'Concluir e entrar';
+      ptErro('Falha ao registrar: ' + (e.message || e));
+    });
+  }
+};
+
+/* ==========================================================================
+   INÍCIO
+   ========================================================================== */
+async function iniciar(){
+  mostrarCarregando('carregando');
+  el('marca-img').src = monogramaSrc();
+  const dentroDoGoogle = typeof google !== 'undefined' && google.script && google.script.run;
+  if (!dentroDoGoogle && !API_URL){
+    esconderCarregando();
+    el('config').style.display = 'block';
+    return;
+  }
+  el('config').style.display = 'none';
+  el('app').style.display = 'block';
+  try {
+    /* Ordem importa: a identificação vem ANTES do contexto. Hospedado fora do
+       Google, o servidor exige sessão em toda ação que devolve dado de
+       paciente, e "contexto" é uma delas — pedir contexto antes de entrar
+       derrubava o app na tela de configuração. A lista de nomes da tela de
+       entrada vem de "autorizados", que é aberta de propósito e não devolve
+       nada de paciente. */
+    let sess = null;
+    try { sess = JSON.parse(localStorage.getItem('recall_sessao') || 'null'); } catch (e) {}
+    if (sess && sess.nome && sess.codigo){
+      try {
+        const r = await api('entrar', sess);
+        if (r && r.ok){
+          PT.usuario = r.usuario; PT.codigo = sess.codigo;
+          if (r.precisa_termo){ abrirPortao(); irPasso(2); }
+          else { USUARIO = r.usuario; el('bt-quem').textContent = r.usuario.nome; }
+        }
+      } catch (e) { USUARIO = null; }
+    }
+    if (!USUARIO){
+      if (!el('portao').classList.contains('on')){
+        try {
+          const a = await api('autorizados', {});
+          USUARIOS_ABERTOS = (a && a.usuarios) || [];
+        } catch (e) {}
+        abrirPortao();
+      }
+      esconderCarregando();
+      return;
+    }
+    await entrarNoApp();
+  } catch (e) {
+    el('config').style.display = 'block';
+    el('app').style.display = 'none';
+    const c = el('config-erro'); c.style.display = 'block';
+    c.innerHTML = '<b>A planilha não respondeu.</b><br>' + esc(e.message || e) +
+      '<br><br>Rode <b>testarTelas()</b> no editor do Apps Script para ver qual tela falhou.';
+  } finally {
+    esconderCarregando();
+  }
+}
+
+/** Depois da identificação: carrega o contexto e abre a fila do dia. */
+async function entrarNoApp(){
+  await carregarContexto();
+  posicionarFicha();
+  await carregarAcompanhamento();
+}
+
+iniciar();
+
+/* Service worker: existe para o navegador oferecer "Instalar aplicativo" e
+   para guardar ícones e manifest. Ele NÃO guarda a página nem os dados —
+   um app que abre na frente da direção mostrando a carteira de ontem é pior
+   que um app que não abre, porque o erro é silencioso. */
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
