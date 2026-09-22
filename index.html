@@ -93,6 +93,9 @@ header.topo .btn-atz{background:rgba(250,247,243,.12);border:1px solid rgba(250,
 header.topo .btn-atz:hover{background:rgba(250,247,243,.22)}
 header.topo .btn-atz.girando{transform:rotate(360deg)}
 header.topo .quem{background:rgba(250,247,243,.12);border:1px solid rgba(250,247,243,.28);color:var(--creme);border-radius:8px;padding:0 12px;height:32px;font-family:'IBM Plex Mono',monospace;font-size:11px;white-space:nowrap}
+/* Sessão técnica fica à vista: ninguém deve achar que está vendo a tela da
+   gestora quando quem está dentro é o suporte. */
+header.topo .quem.suporte{background:var(--ouro);border-color:var(--ouro);color:#3B2A12;font-weight:600}
 @media(max-width:620px){
   header.topo{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
   header.topo .marca-bloco{flex:1 1 100%}
@@ -678,6 +681,9 @@ let USUARIOS_ABERTOS = [];
    assinatura não valeria o papel em que está. Sem este pacote o app não deixa
    assinar. */
 let TERMOS = null;
+/* Entrada técnica: cinco toques no monograma da tela de acesso liberam o campo
+   de nome digitado, para as contas marcadas como ocultas na aba Usuarios. */
+let MODO_TECNICO = false;
 const FILTROS = {
   recall:   { aba: 'RECALL',   faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'PRIORIDADE', busca: '', so_novas: 'SIM' },
   dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' }
@@ -957,10 +963,22 @@ async function carregarContexto(forcar){
   if (!USUARIO){
     try {
       const u = JSON.parse(localStorage.getItem('recall_usuario') || 'null');
-      if (u && u.nome){ USUARIO = u; el('bt-quem').textContent = u.nome; }
+      if (u && u.nome){ USUARIO = u; pintarUsuario(); }
     } catch (e) {}
   }
 }
+/** Nome de quem está dentro, com marca clara quando a sessão é técnica. */
+function pintarUsuario(){
+  const b = el('bt-quem');
+  if (!USUARIO){ b.textContent = 'Identificar-se'; b.classList.remove('suporte'); return; }
+  const tecnico = !!USUARIO.oculto;
+  // o nome da conta já pode ser "SUPORTE"; o marcador não repete a palavra,
+  // usa um sinal próprio e um aviso ao passar o mouse
+  b.textContent = (tecnico ? '⚙ ' : '') + USUARIO.nome;
+  b.title = tecnico ? 'Sessão técnica — esta entrada está registrada na aba Alertas' : '';
+  b.classList.toggle('suporte', tecnico);
+}
+
 function pintarAtualizacao(){
   const b = (CTX && CTX.base) || {};
   el('atz-txt').textContent = 'atualizado ' + String((CTX && CTX.carimbo) || '').split(' ')[1];
@@ -2134,6 +2152,7 @@ function ptPassos(){
 function abrirPortao(){
   el('portao').classList.add('on');
   el('pt-logo').src = monogramaSrc();
+  ligarEntradaTecnica();
   el('pt-rodape').innerHTML = 'Recall e Follow-up · desenvolvido por Decisão Consultoria<br>' +
     'Uso exclusivo do Instituto Kássila Nasser · direitos reservados';
   irPasso(1);
@@ -2151,8 +2170,26 @@ function irPasso(n){
 
 function passoIdentificacao(){
   el('pt-titulo').textContent = 'Identificação';
-  el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
   const nomes = ((CTX && CTX.usuarios) || []).length ? CTX.usuarios : USUARIOS_ABERTOS;
+
+  if (MODO_TECNICO){
+    el('pt-sub').textContent = 'Acesso técnico. Digite o nome exatamente como está na aba Usuarios.';
+    el('pt-corpo').innerHTML =
+      `<div class="grid-campo">
+        <div class="campo"><label>Nome</label>
+          <input id="pt-nome-livre" autocomplete="off" placeholder="Nome cadastrado"></div>
+        <div class="campo"><label>Código de acesso</label>
+          <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
+       <div class="nota">Esta entrada fica registrada na aba <b>Alertas</b>, com data, hora e dispositivo.
+         <a href="#" id="pt-voltar-lista">Voltar para a lista</a>.</div>`;
+    el('pt-voltar-lista').onclick = ev => { ev.preventDefault(); MODO_TECNICO = false; passoIdentificacao(); };
+    el('pt-ok').textContent = 'Entrar';
+    el('pt-ok').style.display = '';
+    setTimeout(() => el('pt-nome-livre').focus(), 60);
+    return;
+  }
+
+  el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
   el('pt-corpo').innerHTML = nomes.length
     ? `<div class="grid-campo">
         <div class="campo"><label>Nome</label><select id="pt-nome">
@@ -2163,6 +2200,25 @@ function passoIdentificacao(){
     : '<div class="vazio">Nenhum usuário cadastrado ainda.<br>Preencha a aba <b>Usuarios</b> da planilha com nome e código de acesso.</div>';
   el('pt-ok').textContent = 'Entrar';
   el('pt-ok').style.display = nomes.length ? '' : 'none';
+}
+
+/* Cinco toques no monograma, dentro de três segundos. Não é senha — é só para
+   o campo não ficar à mostra para a equipe da clínica. Quem entra continua
+   precisando do nome e do código corretos. */
+let __toques = 0, __toqueRelogio = null;
+function ligarEntradaTecnica(){
+  const logo = el('pt-logo');
+  if (!logo) return;
+  logo.style.cursor = 'default';
+  logo.onclick = () => {
+    __toques++;
+    clearTimeout(__toqueRelogio);
+    __toqueRelogio = setTimeout(() => { __toques = 0; }, 3000);
+    if (__toques < 5) return;
+    __toques = 0;
+    MODO_TECNICO = true;
+    if (PT.passo === 1) passoIdentificacao();
+  };
 }
 
 function passoDocumento(qual){
@@ -2307,15 +2363,17 @@ el('pt-voltar').onclick = () => { if (PT.passo > 1) irPasso(PT.passo - 1); };
 el('pt-ok').onclick = () => {
   ptErro('');
   if (PT.passo === 1){
-    const nome = el('pt-nome') ? el('pt-nome').value : '';
+    const campoNome = el('pt-nome-livre') || el('pt-nome');
+    const nome = campoNome ? String(campoNome.value || '').trim() : '';
     const cod  = el('pt-codigo') ? el('pt-codigo').value : '';
+    if (!nome) { ptErro('Informe o nome.'); return; }
     if (!cod) { ptErro('Informe o código de acesso.'); return; }
     el('pt-ok').disabled = true;
-    api('entrar', { nome: nome, codigo: cod }).then(r => {
+    api('entrar', { nome: nome, codigo: cod, dispositivo: navigator.userAgent }).then(r => {
       el('pt-ok').disabled = false;
       if (!r || !r.ok) { ptErro((r && r.erro) || 'Não consegui validar.'); return; }
       PT.usuario = r.usuario; PT.codigo = cod;
-      USUARIO = r.usuario; el('bt-quem').textContent = r.usuario.nome;
+      USUARIO = r.usuario; pintarUsuario();
       try {
         localStorage.setItem('recall_sessao', JSON.stringify({nome: r.usuario.nome, codigo: cod}));
         localStorage.setItem('recall_usuario', JSON.stringify(r.usuario));
@@ -2360,7 +2418,7 @@ el('pt-ok').onclick = () => {
       el('pt-ok').disabled = false; el('pt-ok').textContent = 'Concluir e entrar';
       if (!r || r.erro) { ptErro((r && r.erro) || 'Não consegui registrar.'); return; }
       fecharPortao(); toast('Termo registrado. Bem-vinda, ' + PT.usuario.nome + '.');
-      USUARIO = PT.usuario; el('bt-quem').textContent = PT.usuario.nome;
+      USUARIO = PT.usuario; pintarUsuario();
       limparCache();
       entrarNoApp().catch(falhar);
     }).catch(e => {
@@ -2399,7 +2457,7 @@ async function iniciar(){
         if (r && r.ok){
           PT.usuario = r.usuario; PT.codigo = sess.codigo;
           if (r.precisa_termo){ abrirPortao(); irPasso(2); }
-          else { USUARIO = r.usuario; el('bt-quem').textContent = r.usuario.nome; }
+          else { USUARIO = r.usuario; pintarUsuario(); }
         }
       } catch (e) { USUARIO = null; }
     }
