@@ -745,6 +745,33 @@ function soDigitos(t){ return String(t || '').replace(/\D/g, ''); }
    o /exec: a ponte oficial é google.script.run. Hospedada fora do Google, a
    chamada vai por POST com corpo text/plain — com application/json o
    navegador dispara uma verificação prévia que o Apps Script não responde. */
+/* Toda chamada tem prazo. Sem isto, uma requisição enfileirada no Apps
+   Script deixa a tela girando indefinidamente — foi exatamente o sintoma de
+   "mais de dois minutos e não abriu". */
+const PRAZO_MS = 20000;
+async function comPrazo(url, opcoes, ms){
+  if (typeof AbortController === 'undefined') return fetch(url, opcoes || {});
+  const ctrl = new AbortController();
+  const relogio = setTimeout(() => ctrl.abort(), ms || PRAZO_MS);
+  try { return await fetch(url, Object.assign({}, opcoes || {}, {signal: ctrl.signal})); }
+  finally { clearTimeout(relogio); }
+}
+
+/* A tela de entrada não pode depender da rede para aparecer. A lista de nomes
+   e o texto do termo ficam guardados no aparelho e são repintados quando a
+   resposta nova chega. */
+const PORTA_CACHE = 'recall_porta_v1';
+function portaGuardada(){
+  try { return JSON.parse(localStorage.getItem(PORTA_CACHE) || 'null'); } catch (e) { return null; }
+}
+function guardarPorta(a){
+  try {
+    localStorage.setItem(PORTA_CACHE, JSON.stringify({
+      usuarios: (a && a.usuarios) || [], textos: (a && a.textos) || null, em: Date.now()
+    }));
+  } catch (e) {}
+}
+
 async function api(acao, params){
   if (typeof google !== 'undefined' && google.script && google.script.run){
     return new Promise((ok, falha) => {
@@ -780,16 +807,26 @@ async function api(acao, params){
   } catch (e) {}
   let j;
   try {
-    const r = await fetch(API_URL, {
+    const r = await comPrazo(API_URL, {
       method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify(corpo), redirect: 'follow'
-    });
+    }, PRAZO_MS);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     j = await r.json();
   } catch (err) {
-    const r2 = await fetch(API_URL + '?' + new URLSearchParams(corpo).toString());
-    if (!r2.ok) throw new Error('HTTP ' + r2.status);
-    j = await r2.json();
+    /* O POST não voltou a tempo — normalmente porque o Apps Script está
+       ocupado com outra execução da mesma conta e enfileirou esta. O GET usa
+       outro caminho e costuma passar; se também estourar, o erro sobe com
+       texto que a pessoa entende, em vez de um cata-vento eterno. */
+    try {
+      const r2 = await comPrazo(API_URL + '?' + new URLSearchParams(corpo).toString(), {}, PRAZO_MS);
+      if (!r2.ok) throw new Error('HTTP ' + r2.status);
+      j = await r2.json();
+    } catch (err2) {
+      throw new Error(String(err2 && err2.name) === 'AbortError'
+        ? 'A planilha não respondeu em ' + Math.round(PRAZO_MS / 1000) + ' segundos.'
+        : (err2.message || String(err2)));
+    }
   }
   const d = j && j.dados !== undefined ? j.dados : j;
   if (d && d.reautenticar){
@@ -2190,16 +2227,24 @@ function passoIdentificacao(){
   }
 
   el('pt-sub').textContent = 'Escolha seu nome e informe o código de acesso entregue pela direção.';
-  el('pt-corpo').innerHTML = nomes.length
-    ? `<div class="grid-campo">
-        <div class="campo"><label>Nome</label><select id="pt-nome">
-          ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
-        <div class="campo"><label>Código de acesso</label>
-          <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
-       <div class="nota">Não compartilhe seu código. Tudo que você registrar fica gravado com o seu nome.</div>`
-    : '<div class="vazio">Nenhum usuário cadastrado ainda.<br>Preencha a aba <b>Usuarios</b> da planilha com nome e código de acesso.</div>';
+  /* A opção em branco no começo é de propósito: deixando o nome como está e
+     digitando só o código, entram as contas ocultas — é assim no app de
+     vendas, e quem usa os dois não deveria ter de lembrar de dois jeitos.
+     Para as contas da clínica o nome continua obrigatório, conferido no
+     servidor. Os campos aparecem mesmo com a lista vazia, para que uma falha
+     de rede não tranque quem já sabe o próprio código. */
+  el('pt-corpo').innerHTML =
+    `<div class="grid-campo">
+      <div class="campo"><label>Nome</label><select id="pt-nome">
+        <option value="">— selecione —</option>
+        ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
+      <div class="campo"><label>Código de acesso</label>
+        <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
+     <div class="nota">Não compartilhe seu código. Tudo que você registrar fica gravado com o seu nome.</div>` +
+    (nomes.length ? '' :
+      '<div class="nota">A lista de nomes ainda não chegou. Ela aparece sozinha assim que a planilha responder.</div>');
   el('pt-ok').textContent = 'Entrar';
-  el('pt-ok').style.display = nomes.length ? '' : 'none';
+  el('pt-ok').style.display = '';
 }
 
 /* Cinco toques no monograma, dentro de três segundos. Não é senha — é só para
@@ -2366,7 +2411,6 @@ el('pt-ok').onclick = () => {
     const campoNome = el('pt-nome-livre') || el('pt-nome');
     const nome = campoNome ? String(campoNome.value || '').trim() : '';
     const cod  = el('pt-codigo') ? el('pt-codigo').value : '';
-    if (!nome) { ptErro('Informe o nome.'); return; }
     if (!cod) { ptErro('Informe o código de acesso.'); return; }
     el('pt-ok').disabled = true;
     api('entrar', { nome: nome, codigo: cod, dispositivo: navigator.userAgent }).then(r => {
@@ -2432,7 +2476,6 @@ el('pt-ok').onclick = () => {
    INÍCIO
    ========================================================================== */
 async function iniciar(){
-  mostrarCarregando('carregando');
   el('marca-img').src = monogramaSrc();
   const dentroDoGoogle = typeof google !== 'undefined' && google.script && google.script.run;
   if (!dentroDoGoogle && !API_URL){
@@ -2442,47 +2485,48 @@ async function iniciar(){
   }
   el('config').style.display = 'none';
   el('app').style.display = 'block';
-  try {
-    /* Ordem importa: a identificação vem ANTES do contexto. Hospedado fora do
-       Google, o servidor exige sessão em toda ação que devolve dado de
-       paciente, e "contexto" é uma delas — pedir contexto antes de entrar
-       derrubava o app na tela de configuração. A lista de nomes da tela de
-       entrada vem de "autorizados", que é aberta de propósito e não devolve
-       nada de paciente. */
-    let sess = null;
-    try { sess = JSON.parse(localStorage.getItem('recall_sessao') || 'null'); } catch (e) {}
-    if (sess && sess.nome && sess.codigo){
-      try {
-        const r = await api('entrar', sess);
-        if (r && r.ok){
-          PT.usuario = r.usuario; PT.codigo = sess.codigo;
-          if (r.precisa_termo){ abrirPortao(); irPasso(2); }
-          else { USUARIO = r.usuario; pintarUsuario(); }
-        }
-      } catch (e) { USUARIO = null; }
-    }
-    if (!USUARIO){
-      if (!el('portao').classList.contains('on')){
-        try {
-          const a = await api('autorizados', {});
-          USUARIOS_ABERTOS = (a && a.usuarios) || [];
-          if (a && a.textos) TERMOS = a.textos;
-        } catch (e) {}
-        abrirPortao();
-      }
-      esconderCarregando();
-      return;
-    }
-    await entrarNoApp();
-  } catch (e) {
-    el('config').style.display = 'block';
-    el('app').style.display = 'none';
-    const c = el('config-erro'); c.style.display = 'block';
-    c.innerHTML = '<b>A planilha não respondeu.</b><br>' + esc(e.message || e) +
-      '<br><br>Rode <b>testarTelas()</b> no editor do Apps Script para ver qual tela falhou.';
-  } finally {
+
+  let sess = null;
+  try { sess = JSON.parse(localStorage.getItem('recall_sessao') || 'null'); } catch (e) {}
+
+  /* JÁ IDENTIFICADO — entra direto.
+     A versão anterior perguntava "entrar" ao servidor antes de mostrar
+     qualquer coisa, e só então desenhava a tela. Eram duas idas à planilha
+     antes do primeiro pixel. Não é preciso: toda chamada que devolve dado de
+     paciente já carrega nome e código e é conferida no servidor. Se a sessão
+     não valer mais, a primeira dessas chamadas devolve "reautenticar" e o
+     app volta para a porta sozinho. */
+  if (sess && sess.nome && sess.codigo){
+    let guardadoU = null;
+    try { guardadoU = JSON.parse(localStorage.getItem('recall_usuario') || 'null'); } catch (e) {}
+    USUARIO = guardadoU && guardadoU.nome ? guardadoU : { nome: sess.nome, papel: '' };
+    PT.usuario = USUARIO; PT.codigo = sess.codigo;
+    pintarUsuario();
     esconderCarregando();
+    entrarNoApp().catch(falhar);
+    return;
   }
+
+  /* SEM SESSÃO — a porta aparece agora, com o que já está no aparelho. */
+  const guardado = portaGuardada();
+  if (guardado){
+    USUARIOS_ABERTOS = guardado.usuarios || [];
+    if (guardado.textos) TERMOS = guardado.textos;
+  }
+  abrirPortao();
+  esconderCarregando();
+
+  /* e a lista se atualiza em segundo plano, sem segurar a tela */
+  api('autorizados', {}).then(a => {
+    if (!a) return;
+    USUARIOS_ABERTOS = a.usuarios || [];
+    if (a.textos) TERMOS = a.textos;
+    guardarPorta(a);
+    if (el('portao').classList.contains('on') && PT.passo === 1) passoIdentificacao();
+  }).catch(() => {
+    if (!USUARIOS_ABERTOS.length && PT.passo === 1) ptErro(
+      'Não consegui buscar a lista de nomes agora. Se você tem código de acesso, pode entrar assim mesmo.');
+  });
 }
 
 /** Depois da identificação: carrega o contexto e abre a fila do dia. */
