@@ -48,8 +48,10 @@ body{background:var(--papel);color:var(--tinta);font-family:'Inter',system-ui,sa
 button{font-family:inherit;cursor:pointer}
 
 /* ---------- carregando: monograma girando, igual ao KN Vendas ---------- */
+/* Fundo SÓLIDO. Com transparência dava para ler a tela por baixo enquanto
+   carregava, o que parecia defeito de renderização. */
 #carregando{display:none;position:fixed;inset:0;z-index:70;
-  background:rgba(250,247,243,.94);
+  background:var(--papel);
   flex-direction:column;align-items:center;justify-content:center;gap:18px}
 #carregando.on{display:flex}
 /* O monograma é branco sobre transparente — é assim que ele vive no cabeçalho
@@ -150,6 +152,17 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .chip{background:#fff;border:1px solid var(--linha);border-radius:99px;padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;color:rgba(36,30,28,.65)}
 .chip[aria-pressed="true"]{background:var(--vinho);border-color:var(--vinho);color:#fff;font-weight:600}
 .sep{width:1px;height:20px;background:var(--linha);flex:none}
+/* Filtros em campo de seleção. A fileira de etiquetas crescia a cada regra
+   nova e virava um paredão de botões; o seletor ocupa uma linha, diz o que
+   está filtrando e não muda de tamanho conforme as opções. */
+.filtro-campo{display:flex;flex-direction:column;gap:4px;min-width:132px;flex:1 1 132px}
+.filtro-campo span{font:600 9px/1 'IBM Plex Mono',monospace;letter-spacing:.11em;
+  text-transform:uppercase;color:rgba(36,30,28,.5)}
+.filtro-campo select{padding:8px 10px;border:1px solid var(--linha);border-radius:8px;background:#fff;
+  font:400 12.5px/1.2 Inter,sans-serif;color:var(--tinta);cursor:pointer;min-width:0}
+.filtro-campo select:focus{outline:none;border-color:var(--vinho)}
+.filtro-campo select:hover{border-color:var(--linha-forte)}
+@media(max-width:700px){.filtro-campo{flex:1 1 45%;min-width:0}.busca-cx{flex:1 1 100%}}
 .filtros .chips{display:contents}
 .bt-filtros{display:none;border:1px solid var(--linha);background:#fff;border-radius:99px;
   padding:6px 13px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--vinho);flex:none}
@@ -162,7 +175,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
   .filtros .sep{display:none}
   .bt-filtros{display:inline-flex}
 }
-.busca-cx{flex:1;min-width:190px;display:flex;align-items:center;background:#fff;
+.busca-cx{flex:2 1 170px;min-width:170px;display:flex;align-items:center;background:#fff;
   border:1px solid var(--linha);border-radius:99px;padding-right:4px}
 .busca-cx:focus-within{border-color:var(--vinho)}
 .busca-lin{flex:1;min-width:0;padding:8px 6px 8px 14px;border:0;border-radius:99px;
@@ -581,11 +594,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 
   <!-- ===================== AGENDA ===================== -->
   <section class="tela" id="tela-agenda">
-    <div class="filtros bloco" id="ag-filtros">
-      <button class="chip" data-per="14" aria-pressed="true">Próximos 14 dias</button>
-      <button class="chip" data-per="7" aria-pressed="false">7 dias</button>
-      <button class="chip" data-per="30" aria-pressed="false">30 dias</button>
-    </div>
+    <div class="filtros bloco" id="ag-filtros"></div>
     <div class="ind-cards" id="ag-kpis"></div>
     <div class="split">
       <div id="ag-lista"><div class="carregando">Carregando…</div></div>
@@ -595,11 +604,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 
   <!-- ===================== INDICADORES ===================== -->
   <section class="tela" id="tela-indicadores">
-    <div class="filtros bloco">
-      <button class="chip" data-esc="RECALL" aria-pressed="true">Recall</button>
-      <button class="chip" data-esc="DORMENTE" aria-pressed="false">Dormente</button>
-      <button class="chip" data-esc="FOLLOWUP" aria-pressed="false">Follow-up</button>
-    </div>
+    <div class="filtros bloco" id="ind-filtros"></div>
     <div class="navmes">
       <button onclick="andarMes(-1)" title="mês anterior">‹</button>
       <select id="sel-mes" onchange="trocarMes(this.value)"></select>
@@ -668,6 +673,11 @@ let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
 let LEMBRETE_DIAS = 7, TRAVA_DIAS = 3;
 /* Nomes da tela de entrada, vindos da ação aberta "autorizados". */
 let USUARIOS_ABERTOS = [];
+/* Texto do aviso e do termo, vindo do servidor. É a MESMA fonte que gera o PDF
+   assinado — se a tela mostrasse um texto e o PDF registrasse outro, a
+   assinatura não valeria o papel em que está. Sem este pacote o app não deixa
+   assinar. */
+let TERMOS = null;
 const FILTROS = {
   recall:   { aba: 'RECALL',   faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'PRIORIDADE', busca: '', so_novas: 'SIM' },
   dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' }
@@ -691,6 +701,14 @@ function marcarAtualizando(alvo, ligado){
   const e = el(alvo); if (!e) return;
   e.style.opacity = ligado ? '.55' : '';
 }
+/* Um campo de seleção pronto, com rótulo em cima. */
+function campoSelecao(id, rotulo, opcoes, atual){
+  return `<label class="filtro-campo"><span>${esc(rotulo)}</span>
+    <select id="${id}">${opcoes.map(o =>
+      `<option value="${esc(o[0])}"${o[0] === atual ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}
+    </select></label>`;
+}
+
 /* Campo de busca com lupa clicável — o Enter continua valendo. */
 function campoBusca(id, placeholder, valor){
   return `<div class="busca-cx">
@@ -1042,25 +1060,23 @@ function montarFiltrosFila(tela){
     ['CONSULTA_1_PROC','Consulta + 1 proc.'],['CONSULTA_N_PROC','Consulta + vários'],['PROC_SEM_CONSULTA','Proc. sem consulta']];
   const temps = [['TODAS','Qualquer temperatura'],['FORTE','Forte'],['MEDIO','Médio'],['FRACO','Fraco'],['NUNCA','Nunca contatada']];
   const ordens = [['PRIORIDADE','Prioridade'],['RECENTE','Mais recentes'],['ANTIGO','Mais antigas'],['VALOR','Maior valor']];
-  const escopos = [['SIM','Só nunca contatadas'],['NAO','Mostrar todas']];
-  const chip = (tipo, v, rot) => `<button class="chip" data-tipo="${tipo}" data-v="${v}" aria-pressed="${f[tipo] === v}">${rot}</button>`;
+  const escopos = [['SIM','Só nunca contatadas'],['NAO','Todas, inclusive em acompanhamento']];
 
   const cx = el(pre + '-filtros');
-  const aberto = cx.classList.contains('aberto');
   cx.innerHTML =
-    campoBusca(pre + '-busca', 'Filtrar esta fila por nome ou telefone', f.busca) +
-    `<button class="bt-filtros" data-toggle="1">Filtros ${contarFiltros(f)}</button>` +
-    '<div class="chips">' +
-      '<span class="sep"></span>' + perfis.map(p => chip('perfil', p[0], p[1])).join('') +
-      '<span class="sep"></span>' + temps.map(p => chip('temperatura', p[0], p[1])).join('') +
-      '<span class="sep"></span>' + ordens.map(p => chip('ordem', p[0], p[1])).join('') +
-      '<span class="sep"></span>' + escopos.map(p => chip('so_novas', p[0], p[1])).join('') +
-    '</div>';
-  if (aberto) cx.classList.add('aberto');
-  cx.querySelector('[data-toggle]').onclick = () => cx.classList.toggle('aberto');
-  cx.querySelectorAll('.chip').forEach(b => {
-    b.onclick = () => { f[b.dataset.tipo] = b.dataset.v; carregarFila(tela).catch(falhar); };
-  });
+    campoBusca(pre + '-busca', 'Buscar nesta fila por nome ou telefone', f.busca) +
+    campoSelecao(pre + '-perfil', 'Perfil', perfis, f.perfil) +
+    campoSelecao(pre + '-temp', 'Temperatura', temps, f.temperatura) +
+    campoSelecao(pre + '-ordem', 'Ordem', ordens, f.ordem) +
+    campoSelecao(pre + '-escopo', 'Mostrar', escopos, f.so_novas);
+
+  const liga = (id, campo) => {
+    el(id).onchange = () => { f[campo] = el(id).value; carregarFila(tela).catch(falhar); };
+  };
+  liga(pre + '-perfil', 'perfil');
+  liga(pre + '-temp', 'temperatura');
+  liga(pre + '-ordem', 'ordem');
+  liga(pre + '-escopo', 'so_novas');
   ligarBusca(cx, pre + '-busca', v => { f.busca = v; carregarFila(tela).catch(falhar); });
 }
 
@@ -1143,18 +1159,10 @@ async function carregarAcompanhamento(){
 function montarFiltrosAc(){
   const origens = [['TODAS','Todas as origens'],['RECALL','Recall'],['DORMENTE','Dormente'],['FOLLOWUP','Follow-up']];
   const cx = el('ac-filtros');
-  const aberto = cx.classList.contains('aberto');
   cx.innerHTML =
     campoBusca('ac-busca', 'Buscar nesta fila por nome ou telefone', AC.busca) +
-    '<button class="bt-filtros" data-toggle="1">Origem</button>' +
-    '<div class="chips"><span class="sep"></span>' +
-    origens.map(o => `<button class="chip" data-v="${o[0]}" aria-pressed="${AC.origem === o[0]}">${o[1]}</button>`).join('') +
-    '</div>';
-  if (aberto) cx.classList.add('aberto');
-  cx.querySelector('[data-toggle]').onclick = () => cx.classList.toggle('aberto');
-  cx.querySelectorAll('.chip').forEach(b => {
-    b.onclick = () => { AC.origem = b.dataset.v; carregarAcompanhamento().catch(falhar); };
-  });
+    campoSelecao('ac-origem', 'Origem', origens, AC.origem);
+  el('ac-origem').onchange = () => { AC.origem = el('ac-origem').value; carregarAcompanhamento().catch(falhar); };
   ligarBusca(cx, 'ac-busca', v => { AC.busca = v; carregarAcompanhamento().catch(falhar); });
 }
 
@@ -1716,18 +1724,10 @@ async function carregarFollow(){
   const ordens = [['PRIORIDADE','Prioridade'],['DATA','Data da clínica'],['VALOR','Maior valor']];
 
   const cxf = el('fu-filtros');
-  const abertoF = cxf.classList.contains('aberto');
   cxf.innerHTML =
-    campoBusca('fu-busca', 'Filtrar por nome, telefone ou nº do orçamento', FU.busca) +
-    '<button class="bt-filtros" data-toggle="1">Ordem</button>' +
-    '<div class="chips"><span class="sep"></span>' +
-    ordens.map(o => `<button class="chip" data-o="${o[0]}" aria-pressed="${FU.ordem === o[0]}">${o[1]}</button>`).join('') +
-    '</div>';
-  if (abertoF) cxf.classList.add('aberto');
-  cxf.querySelector('[data-toggle]').onclick = () => cxf.classList.toggle('aberto');
-  cxf.querySelectorAll('.chip').forEach(b => {
-    b.onclick = () => { FU.ordem = b.dataset.o; carregarFollow().catch(falhar); };
-  });
+    campoBusca('fu-busca', 'Buscar por nome, telefone ou nº do orçamento', FU.busca) +
+    campoSelecao('fu-ordem', 'Ordem', ordens, FU.ordem);
+  el('fu-ordem').onchange = () => { FU.ordem = el('fu-ordem').value; carregarFollow().catch(falhar); };
   ligarBusca(cxf, 'fu-busca', v => { FU.busca = v; carregarFollow().catch(falhar); });
 
   const ch = 'follow:' + assinatura(FU);
@@ -1842,16 +1842,18 @@ function mensagemDoFollow(chave, num){
 /* ==========================================================================
    AGENDA
    ========================================================================== */
-document.querySelectorAll('#ag-filtros .chip[data-per]').forEach(b => {
-  b.onclick = () => {
-    document.querySelectorAll('#ag-filtros .chip[data-per]').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    b.setAttribute('aria-pressed', 'true');
-    PERIODO_AGENDA = Number(b.dataset.per);
+function montarFiltrosAgenda(){
+  const periodos = [['7','Próximos 7 dias'],['14','Próximos 14 dias'],['30','Próximos 30 dias']];
+  const cx = el('ag-filtros');
+  cx.innerHTML = campoSelecao('ag-periodo', 'Período', periodos, String(PERIODO_AGENDA));
+  el('ag-periodo').onchange = () => {
+    PERIODO_AGENDA = Number(el('ag-periodo').value);
     carregarAgenda().catch(falhar);
   };
-});
+}
 
 async function carregarAgenda(){
+  montarFiltrosAgenda();
   const hoje = new Date();
   const ate = new Date(hoje.getTime() + PERIODO_AGENDA * 86400000);
   const f = d2 => ('0' + d2.getDate()).slice(-2) + '/' + ('0' + (d2.getMonth() + 1)).slice(-2) + '/' + d2.getFullYear();
@@ -1958,14 +1960,12 @@ function formRemarcar(id){
 /* ==========================================================================
    INDICADORES — um funil por frente: recall, dormente e follow-up
    ========================================================================== */
-document.querySelectorAll('#tela-indicadores .chip[data-esc]').forEach(b => {
-  b.onclick = () => {
-    document.querySelectorAll('#tela-indicadores .chip[data-esc]').forEach(x => x.setAttribute('aria-pressed', 'false'));
-    b.setAttribute('aria-pressed', 'true');
-    ESCOPO = b.dataset.esc;
-    carregarIndicadores().catch(falhar);
-  };
-});
+function montarFiltrosInd(){
+  const escopos = [['RECALL','Recall'],['DORMENTE','Dormente'],['FOLLOWUP','Follow-up']];
+  const cx = el('ind-filtros');
+  cx.innerHTML = campoSelecao('ind-escopo', 'Frente', escopos, ESCOPO);
+  el('ind-escopo').onchange = () => { ESCOPO = el('ind-escopo').value; carregarIndicadores().catch(falhar); };
+}
 function andarMes(passo){
   const sel = el('sel-mes');
   const ops = [...sel.options].map(o => o.value);
@@ -1985,6 +1985,7 @@ function mesAtual(){
 function trocarMes(m){ MES = m; carregarIndicadores().catch(falhar); }
 
 async function carregarIndicadores(){
+  montarFiltrosInd();
   const mesRotulo = MES || (CTX && CTX.meses && CTX.meses.length ? CTX.meses[CTX.meses.length - 1] : '');
   const ch = 'ind:' + ESCOPO + ':' + (MES || '');
   if (CACHE[ch]) pintarIndicadores(CACHE[ch]);
@@ -2102,37 +2103,24 @@ function pintarIndicadores(d){
    PORTÃO DE ACESSO — identificação, aviso de propriedade, termo LGPD e
    assinatura eletrônica. Mesmo fluxo da V1; só a casca mudou.
    ========================================================================== */
-const PT = { passo: 1, usuario: null, codigo: '', ciA: [false,false,false],
-             ciT: [false,false,false,false], assinou: false };
+const PT = { passo: 1, usuario: null, codigo: '', ciA: [], ciT: [], assinou: false };
 
-const TXT_AVISO = [
- ['p','Este aplicativo foi desenvolvido de forma dedicada e exclusiva para o <b>Instituto Kássila Nasser</b>, a partir de requisitos, regras de negócio e base de dados próprios da empresa.'],
- ['p','Os direitos autorais e de propriedade intelectual sobre o código-fonte, a estrutura de dados, a lógica de cálculo e o desenho das telas são reservados a <b>Decisão Consultoria</b>. São proibidas a reprodução, a cópia, a distribuição, a cessão a terceiros, a comercialização e a engenharia reversa, totais ou parciais, sem autorização escrita.'],
- ['p','O sistema não realiza integração, envio ou processamento de dados por serviços de inteligência artificial. A base é tratada exclusivamente por programação e scripts próprios, desenvolvidos para esta empresa e executados na infraestrutura da própria conta da clínica.'],
- ['h','O que isso significa na prática'],
- ['p','O aplicativo, seus arquivos e seu funcionamento não podem ser repassados a outra clínica, empresa ou profissional. O uso é restrito às atividades do Instituto Kássila Nasser.']
-];
-const CI_AVISO = [
- 'Li e compreendi que este aplicativo é dedicado e exclusivo do Instituto Kássila Nasser.',
- 'Estou ciente de que reproduzir, copiar, distribuir ou ceder o aplicativo a terceiros é proibido, e que os direitos são reservados a Decisão Consultoria.',
- 'Estou ciente de que o sistema não integra nem envia dados a serviços de inteligência artificial, sendo a base tratada por programação própria desta empresa.'
-];
-const TXT_TERMO = [
- ['p','Este termo tem fundamento na <b>Lei nº 13.709/2018</b> (Lei Geral de Proteção de Dados Pessoais).'],
- ['p','O aplicativo trata dados pessoais de pacientes — nome, contato, cidade, histórico de orçamentos e procedimentos — com a finalidade específica de retomada de contato comercial (recall) e acompanhamento de propostas em aberto (follow-up).'],
- ['h','Dado sensível'],
- ['p','Informação sobre procedimento de saúde vinculada a pessoa identificada é <b>dado pessoal sensível</b> na forma do art. 11 da referida Lei, e recebe proteção reforçada.'],
- ['h','Acesso identificado'],
- ['p','O acesso é pessoal e intransferível, identificado por código individual. Todo registro de contato fica vinculado ao nome de quem o lançou, com data e hora.'],
- ['h','Encerramento'],
- ['p','Ao encerrar suas atividades, a pessoa se compromete a devolver ou eliminar qualquer dado em seu poder e perde o acesso ao aplicativo.']
-];
-const CI_TERMO = [
- 'Comprometo-me a tratar os dados apenas para as finalidades de recall e follow-up comercial da clínica, não os utilizando para finalidade diversa nem em proveito próprio ou de terceiros.',
- 'Comprometo-me a manter sigilo sobre tudo que acessar, não divulgando, copiando, fotografando, imprimindo ou compartilhando dados de pacientes fora do aplicativo.',
- 'Estou ciente de que meu acesso é pessoal e intransferível, que meus lançamentos ficam registrados com meu nome, data e hora, e que o uso indevido sujeita a medidas disciplinares e legais.',
- 'Comprometo-me a comunicar imediatamente à direção qualquer incidente de segurança, perda, acesso indevido ou suspeita de vazamento.'
-];
+/* Os textos ficam no Apps Script, não aqui. Ver TERMOS, acima. */
+function blocosDoc(qual){
+  if (!TERMOS) return null;
+  return qual === 'aviso' ? TERMOS.aviso : TERMOS.termo;
+}
+function ciasDoc(qual){
+  if (!TERMOS) return null;
+  return qual === 'aviso' ? TERMOS.ci_aviso : TERMOS.ci_termo;
+}
+async function garantirTermos(){
+  if (TERMOS) return TERMOS;
+  const a = await api('autorizados', {});
+  if (a && a.usuarios) USUARIOS_ABERTOS = a.usuarios;
+  if (a && a.textos) TERMOS = a.textos;
+  return TERMOS;
+}
 
 function ptErro(msg){
   const e = el('pt-erro');
@@ -2180,12 +2168,32 @@ function passoIdentificacao(){
 function passoDocumento(qual){
   const aviso = qual === 'aviso';
   el('pt-titulo').textContent = aviso ? 'Aviso de propriedade' : 'Termo de confidencialidade';
-  el('pt-sub').textContent = aviso
-    ? 'Leia até o fim e dê ciência nas três declarações.'
-    : 'Leia até o fim e dê ciência nas quatro declarações.';
-  const txt = aviso ? TXT_AVISO : TXT_TERMO;
-  const cis = aviso ? CI_AVISO : CI_TERMO;
+
+  if (!TERMOS){
+    el('pt-sub').textContent = '';
+    el('pt-corpo').innerHTML = blocoCarregando('carregando o texto');
+    el('pt-ok').style.display = 'none';
+    garantirTermos().then(t => {
+      if (t) { passoDocumento(qual); return; }
+      el('pt-corpo').innerHTML = '<div class="aviso-box">Não consegui carregar o texto do termo. ' +
+        'Atualize o <b>Codigo.gs</b> para a versão 2.5 e recarregue — o aplicativo não permite assinar ' +
+        'um documento cujo texto não veio do servidor.</div>';
+    }).catch(() => {
+      el('pt-corpo').innerHTML = '<div class="aviso-box">Não consegui carregar o texto do termo. ' +
+        'Verifique a conexão e recarregue a página.</div>';
+    });
+    return;
+  }
+
+  const txt = blocosDoc(qual);
+  const cis = ciasDoc(qual);
+  if (aviso && PT.ciA.length !== cis.length) PT.ciA = cis.map(() => false);
+  if (!aviso && PT.ciT.length !== cis.length) PT.ciT = cis.map(() => false);
   const marc = aviso ? PT.ciA : PT.ciT;
+  const versao = aviso ? TERMOS.versao_aviso : TERMOS.versao_termo;
+
+  el('pt-sub').textContent = 'Leia até o fim e dê ciência nas ' + cis.length +
+    ' declarações. Versão ' + versao + ' do documento.';
 
   el('pt-corpo').innerHTML =
     `<div class="t-doc" id="pt-doc">
@@ -2321,15 +2329,21 @@ el('pt-ok').onclick = () => {
     }).catch(e => { el('pt-ok').disabled = false; ptErro('Falha ao falar com a planilha: ' + (e.message || e)); });
     return;
   }
-  if (PT.passo === 2){
-    if (el('pt-doc').dataset.lido !== '1') { ptErro('Role o aviso até o fim antes de continuar.'); return; }
-    if (PT.ciA.filter(Boolean).length < 3) { ptErro('Dê ciência nas três declarações.'); return; }
-    irPasso(3); return;
-  }
-  if (PT.passo === 3){
-    if (el('pt-doc').dataset.lido !== '1') { ptErro('Role o termo até o fim antes de continuar.'); return; }
-    if (PT.ciT.filter(Boolean).length < 4) { ptErro('Dê ciência nas quatro declarações.'); return; }
-    irPasso(4); return;
+  if (PT.passo === 2 || PT.passo === 3){
+    const aviso = PT.passo === 2;
+    const doc = el('pt-doc');
+    if (!doc) { ptErro('O texto ainda está carregando.'); return; }
+    if (doc.dataset.lido !== '1') {
+      ptErro('Role o ' + (aviso ? 'aviso' : 'termo') + ' até o fim antes de continuar.'); return;
+    }
+    const lista = aviso ? PT.ciA : PT.ciT;
+    const faltam = lista.length - lista.filter(Boolean).length;
+    if (faltam > 0) {
+      ptErro(faltam === 1 ? 'Falta dar ciência em 1 declaração.'
+                          : 'Faltam ' + faltam + ' declarações sem ciência.');
+      return;
+    }
+    irPasso(aviso ? 3 : 4); return;
   }
   if (PT.passo === 4){
     const cpf = el('pt-cpf').value;
@@ -2394,6 +2408,7 @@ async function iniciar(){
         try {
           const a = await api('autorizados', {});
           USUARIOS_ABERTOS = (a && a.usuarios) || [];
+          if (a && a.textos) TERMOS = a.textos;
         } catch (e) {}
         abrirPortao();
       }
