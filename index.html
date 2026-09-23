@@ -896,10 +896,25 @@ async function api(acao, params){
        outro caminho e costuma passar; se também estourar, o erro sobe com
        texto que a pessoa entende, em vez de um cata-vento eterno. */
     try {
-      const r2 = await comPrazo(API_URL + '?' + new URLSearchParams(corpo).toString(), {}, PRAZO_MS);
+      /* O endereço do GET tem limite de tamanho. Mandar o navegador inteiro
+         dentro dele fazia a própria reserva falhar com 404 — o socorro
+         quebrava junto com o socorrido. Vai só o essencial. */
+      const enxuto = Object.assign({}, corpo);
+      /* sai só o que é grande e dispensável: o navegador da pessoa. Os
+         pedidos ficam — sem eles a reserva responderia vazio, que é pior que
+         responder erro. */
+      delete enxuto.dispositivo;
+      const endereco = API_URL + '?' + new URLSearchParams(enxuto).toString();
+      if (endereco.length > 1800) throw new Error('resposta grande demais para o caminho de reserva');
+      const r2 = await comPrazo(endereco, {}, PRAZO_MS);
       if (!r2.ok) throw new Error('HTTP ' + r2.status);
       j = await r2.json();
     } catch (err2) {
+      if (/404/.test(String(err2 && err2.message))) {
+        throw new Error('A planilha respondeu 404. Costuma ser resposta grande demais ' +
+          'para a ponte do Apps Script, ou implantação sem versão nova. ' +
+          'Confira em Implantar → Gerenciar implantações.');
+      }
       throw new Error(String(err2 && err2.name) === 'AbortError'
         ? 'A planilha demorou mais de ' + Math.round(PRAZO_MS / 1000) +
           ' segundos para responder. Costuma ser uma carga em andamento; tente de novo em instantes.'
@@ -2789,6 +2804,20 @@ let USUARIO_PEDIU = false;
    por baixo sem a pessoa saber. */
 
 async function entrarNoApp(painel){
+  /* O 'entrar' agora só confirma quem é a pessoa — voltou a ser só login.
+     As telas vêm aqui, numa chamada própria: se alguma falhar, a pessoa já
+     está dentro e vê o erro na aba, em vez de ficar trancada do lado de
+     fora. */
+  if (!painel){
+    try {
+      painel = await api('pacote', { pedidos: JSON.stringify([
+        { chave: 'ctx', acao: 'contexto',       params: {} },
+        { chave: 'ac',  acao: 'acompanhamento', params: AC }
+      ]) });
+      if (painel){ painel = { contexto: painel.ctx, acompanhamento: painel.ac }; }
+    } catch (e) { painel = null; }
+  }
+
   /* O "entrar" já devolve cabeçalho e fila do dia. Usando o que veio, a
      entrada custa UMA ida à planilha em vez de três. Faltando alguma parte
      — servidor antigo, ou um dos dois falhou lá —, busca só a que faltou. */
