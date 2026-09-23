@@ -496,6 +496,11 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
     <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
   </nav>
 
+  <div class="aviso-box" id="aviso-valores" style="display:none;margin:10px 16px 0">
+    Seu acesso é de <b>contato com pacientes</b>: os valores financeiros não
+    aparecem e não são enviados ao seu aparelho. Tudo o mais funciona igual.
+  </div>
+
   <!-- ===================== ACOMPANHAMENTO =====================
        A fila do dia. Quem já foi contatada sai do Recall e vive aqui até
        fechar, agendar ou ser encerrada pela gestora. -->
@@ -801,8 +806,16 @@ function ligarBusca(cx, id, aplicar){
 
 const NOMES_MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 const rotuloMes = m => NOMES_MES[Number(String(m).split('-')[1]) - 1] + '/' + String(m).split('-')[0];
-const brl  = v => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
-const brl2 = v => 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+/* O servidor devolve null nos campos de dinheiro para quem não tem acesso a
+   valores. Tratando isso aqui, num lugar só, a tela inteira passa a mostrar um
+   traço no lugar do número — sem precisar de um "se" em cada ponto da
+   interface, que é onde o esquecimento mora. */
+const semValor = v => v === null || v === undefined || v === '';
+const brl  = v => semValor(v) ? '—' : 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+const brl2 = v => semValor(v) ? '—' : 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+/* Verdadeiro quando a conta não enxerga dinheiro. Vale para a tela; a
+   restrição de verdade é do servidor, que simplesmente não manda o número. */
+const semDinheiro = () => !!(USUARIO && USUARIO.ver_valores === false);
 const pct  = v => (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 1}) + '%';
 const el   = id => document.getElementById(id);
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -817,7 +830,7 @@ function soDigitos(t){ return String(t || '').replace(/\D/g, ''); }
 /* Toda chamada tem prazo. Sem isto, uma requisição enfileirada no Apps
    Script deixa a tela girando indefinidamente — foi exatamente o sintoma de
    "mais de dois minutos e não abriu". */
-const PRAZO_MS = 20000;
+const PRAZO_MS = 45000;
 async function comPrazo(url, opcoes, ms){
   if (typeof AbortController === 'undefined') return fetch(url, opcoes || {});
   const ctrl = new AbortController();
@@ -893,7 +906,8 @@ async function api(acao, params){
       j = await r2.json();
     } catch (err2) {
       throw new Error(String(err2 && err2.name) === 'AbortError'
-        ? 'A planilha não respondeu em ' + Math.round(PRAZO_MS / 1000) + ' segundos.'
+        ? 'A planilha demorou mais de ' + Math.round(PRAZO_MS / 1000) +
+          ' segundos para responder. Costuma ser uma carga em andamento; tente de novo em instantes.'
         : (err2.message || String(err2)));
     }
   }
@@ -1091,9 +1105,15 @@ function pintarUsuario(){
   const tecnico = !!USUARIO.oculto;
   // o nome da conta já pode ser "SUPORTE"; o marcador não repete a palavra,
   // usa um sinal próprio e um aviso ao passar o mouse
+  const sv = semDinheiro();
   b.textContent = (tecnico ? '⚙ ' : '') + USUARIO.nome;
-  b.title = tecnico ? 'Sessão técnica — esta entrada está registrada na aba Alertas' : '';
+  b.title = tecnico ? 'Sessão técnica — esta entrada está registrada na aba Alertas'
+          : sv ? 'Seu acesso não inclui valores. Os números de dinheiro não são enviados ao seu aparelho.' : '';
   b.classList.toggle('suporte', tecnico);
+  /* Dizer que falta e por quê é melhor do que deixar a pessoa achar que a
+     tela quebrou ao ver traços no lugar dos valores. */
+  const av = el('aviso-valores');
+  if (av) av.style.display = sv ? 'block' : 'none';
 }
 
 function pintarAtualizacao(){
@@ -1145,8 +1165,8 @@ function pintarFila(tela, d){
   const ehHt = tela === 'highticket';
 
   el(pre + '-grande').innerHTML = `${d.na_aba.toLocaleString('pt-BR')}<small style="margin-left:8px">pacientes</small>`;
-  el(pre + '-sub').textContent = brl(d.valor) + ' em histórico · ' + d.total.toLocaleString('pt-BR') +
-    ' na carteira · ' + d.encerradas + ' encerradas';
+  el(pre + '-sub').textContent = (semValor(d.valor) ? '' : brl(d.valor) + ' em histórico · ') +
+    d.total.toLocaleString('pt-BR') + ' na carteira · ' + d.encerradas + ' encerradas';
 
   if (ehHt){
     const cx = el('ht-aviso');
@@ -1171,7 +1191,8 @@ function pintarFila(tela, d){
   const r = d.resumo || {};
   el(pre + '-mini').innerHTML = ehHt
     ? `<div><b>${d.na_aba}</b><span>classificadas</span></div>` +
-      `<div><b>${brl(d.valor)}</b><span>histórico do grupo</span></div>` +
+      (semValor(d.valor) ? `<div><b>${r.na_fila || 0}</b><span>na fila</span></div>`
+                         : `<div><b>${brl(d.valor)}</b><span>histórico do grupo</span></div>`) +
       `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
       `<div><b>${r.nunca_contatada || 0}</b><span>nunca contatadas</span></div>`
     : `<div><b>${r.na_fila || 0}</b><span>na fila, sem contato</span></div>` +
@@ -1242,6 +1263,12 @@ function cartaoPaciente(p, tela){
   if (p.classe_ht) tags.push(`<span class="tag ht ${esc(p.classe_ht)}">Alto padrão · ${esc(p.classe_ht)}</span>`);
   if (p.valor)  tags.push(`<span class="tag val">${brl(p.valor)} no histórico</span>`);
   if (p.temperatura) tags.push(`<span class="tag ${esc(p.temperatura)}">${esc(ROTULO_TEMP[p.temperatura] || p.temperatura)}</span>`);
+  /* a marca vem no cartão, antes de a ficha abrir: quem varre a lista vê o
+     aviso sem precisar entrar em cada paciente */
+  const dRec = diasDesde(p.ultimo_contato);
+  if (dRec !== null && dRec <= TRAVA_DIAS){
+    tags.push(`<span class="tag alerta">Contatada ${dRec === 0 ? 'hoje' : 'há ' + dRec + ' dia(s)'} — não repetir</span>`);
+  }
   tags.push(`<span class="tag">${p.tentativas
     ? p.tentativas + 'ª tentativa' + (p.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', p.ultimo_canal)) : '')
     : 'Nunca contatada'}</span>`);
@@ -1444,8 +1471,8 @@ function pintarBarraSel(tela){
      <div class="esq">
        <button class="bt" data-a="todas">Selecionar as exibidas</button>
        <button class="bt" data-a="limpar">Limpar</button>
-       <button class="bt" data-a="xlsx">Baixar Excel</button>
-       <button class="bt" data-a="sintetico">Relatório sintético</button>
+       ${semDinheiro() ? '' : '<button class="bt" data-a="xlsx">Baixar Excel</button>' +
+         '<button class="bt" data-a="sintetico">Relatório sintético</button>'}
        <button class="bt prim" data-a="pdf">Imprimir PDF</button>
      </div>`;
   barra.querySelectorAll('[data-a]').forEach(b => {
@@ -1567,11 +1594,19 @@ function montarFicha(d){
 
   const contatos = [];
   const numero = soDigitos(p.telefone);
-  if (numero) contatos.push(`<a class="bt zap" target="_blank" rel="noopener"
+  /* A trava passa a valer AQUI, no botão, e não lá no salvar.
+     Antes ela só aparecia quando a pessoa ia registrar o contato — ou seja,
+     depois de já ter ligado. O aviso chegava tarde: a paciente já tinha sido
+     incomodada duas vezes. Agora o WhatsApp, o Ligar e o E-mail perguntam
+     antes de abrir. */
+  const alerta = diasDesde(p.ultimo_contato);
+  const travado = alerta !== null && alerta <= TRAVA_DIAS;
+  const marca = travado ? ' data-trava="1"' : '';
+  if (numero) contatos.push(`<a class="bt zap" target="_blank" rel="noopener"${marca}
       href="https://wa.me/${numero.length <= 11 ? '55' + numero : numero}">WhatsApp ${esc(p.telefone)}</a>`);
-  if (numero) contatos.push(`<a class="bt" href="tel:${numero}">Ligar</a>`);
-  if (p.email) contatos.push(`<a class="bt" href="mailto:${esc(p.email)}">E-mail</a>`);
-  contatos.push('<button class="bt" data-acao="mensagem">Mensagem padrão</button>');
+  if (numero) contatos.push(`<a class="bt"${marca} href="tel:${numero}">Ligar</a>`);
+  if (p.email) contatos.push(`<a class="bt"${marca} href="mailto:${esc(p.email)}">E-mail</a>`);
+  contatos.push(`<button class="bt"${marca} data-acao="mensagem">Mensagem padrão</button>`);
   contatos.push('<button class="bt" data-acao="pdf">Imprimir ficha em PDF</button>');
 
   const orcs = d.orcamentos.map(o => {
@@ -1654,6 +1689,25 @@ function montarFicha(d){
       b.setAttribute('aria-pressed', 'true');
     };
   });
+  /* pergunta antes de abrir o WhatsApp, a ligação ou o e-mail */
+  el('fc-corpo').querySelectorAll('[data-trava]').forEach(b => {
+    b.addEventListener('click', ev => {
+      if (b.dataset.travaOk === '1') return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const n = diasDesde(PAC && PAC.paciente ? PAC.paciente.ultimo_contato : '');
+      const quando = n === 0 ? 'hoje' : 'há ' + n + ' dia(s)';
+      /* o nome de quem ligou vem do próprio histórico da ficha */
+      const ult = PAC && PAC.contatos && PAC.contatos.length ? PAC.contatos[0] : null;
+      const quem = ult && ult.autor ? ' por ' + ult.autor : '';
+      if (!confirm('Esta paciente já foi contatada ' + quando + quem +
+                   '.\n\nAbrir mesmo assim?')) return;
+      b.dataset.travaOk = '1';
+      if (b.tagName === 'A') { window.open(b.href, b.target || '_self'); return; }
+      b.click();
+    }, true);
+  });
+
   el('fc-corpo').querySelectorAll('[data-ht]').forEach(b => {
     b.onclick = () => classificar(b.dataset.ht);
   });
@@ -1736,9 +1790,10 @@ function diasDesde(dataBr){
 function avisoContatoRecente(p){
   const n = diasDesde(p.ultimo_contato);
   if (n === null || n > TRAVA_DIAS) return '';
-  return `<div class="aviso-box">${n === 0 ? 'Esta paciente já foi contatada <b>hoje</b>.'
+  return `<div class="aviso-box"><b>Atenção antes de ligar.</b> ${n === 0
+    ? 'Esta paciente já foi contatada <b>hoje</b>.'
     : 'Esta paciente foi contatada há <b>' + n + ' dia(s)</b>.'}
-    Confira o histórico antes de registrar outro contato.</div>`;
+    Os botões de contato vão pedir confirmação.</div>`;
 }
 
 function tempEscolhida(){
@@ -2712,34 +2767,15 @@ async function iniciar(){
 
    Regras: nunca atropela um pedido que a pessoa fez (se ela trocou de aba, o
    aquecimento para), e nunca mostra erro — é trabalho de bastidor. */
-let AQUECENDO = false, USUARIO_PEDIU = false;
+let USUARIO_PEDIU = false;
 
-async function aquecerAbas(){
-  if (AQUECENDO) return;
-  AQUECENDO = true;
-  try {
-    const pedidos = [
-      { chave: 'fila:recall:'   + assinatura(FILTROS.recall),   acao: 'fila',     params: FILTROS.recall },
-      { chave: 'follow:'        + assinatura(FU),               acao: 'followup', params: FU },
-      { chave: 'fila:dormente:' + assinatura(FILTROS.dormente), acao: 'fila',     params: FILTROS.dormente },
-      { chave: 'fila:highticket:' + assinatura(FILTROS.highticket), acao: 'fila', params: FILTROS.highticket }
-    ].filter(x => !CACHE[x.chave]);
-
-    if (!pedidos.length || USUARIO_PEDIU) return;
-
-    /* UMA chamada para as três telas. O cronômetro na clínica mostrou que o
-       trabalho na planilha custa de 0,7 a 1,4 s por tela, enquanto o caminho
-       até o Apps Script custa mais que isso — e é pago por chamada, não por
-       tela. Três chamadas pagavam o caminho três vezes. */
-    const lote = await api('pacote', { pedidos: JSON.stringify(pedidos) });
-    if (!lote) return;
-    Object.keys(lote).forEach(k => { if (lote[k] && !lote[k].erro) CACHE[k] = lote[k]; });
-  } catch (e) {
-    /* bastidor: nunca aparece para quem está usando */
-  } finally {
-    AQUECENDO = false;
-  }
-}
+/* O AQUECIMENTO DE BASTIDOR FOI REMOVIDO.
+   A ideia era boa e o efeito foi ruim: o Apps Script atende uma chamada por
+   vez para a mesma conta, então a busca que rodava em silêncio logo depois da
+   entrada virava espera na cara de quem clicava numa aba nesse intervalo — e
+   foi isso que travou na apresentação. Agora Recall e Follow-up vêm junto na
+   resposta da entrada, numa chamada só, e não existe mais nada acontecendo
+   por baixo sem a pessoa saber. */
 
 async function entrarNoApp(painel){
   /* O "entrar" já devolve cabeçalho e fila do dia. Usando o que veio, a
@@ -2758,8 +2794,11 @@ async function entrarNoApp(painel){
     await carregarAcompanhamento();
   }
 
-  /* a partir daqui a tela já está pronta; o resto vem por baixo */
-  setTimeout(() => { aquecerAbas(); }, 300);
+  /* guardadas sem pintar: quando a pessoa clicar em Recall ou Follow-up, a
+     tela já está no bolso e aparece na hora, sem nova ida à planilha */
+  if (painel && painel.recall)   CACHE['fila:recall:' + assinatura(FILTROS.recall)] = painel.recall;
+  if (painel && painel.followup) CACHE['follow:' + assinatura(FU)] = painel.followup;
+
 }
 
 iniciar();
