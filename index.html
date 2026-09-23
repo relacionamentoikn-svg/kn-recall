@@ -1105,10 +1105,7 @@ function pintarUsuario(){
   b.title = tecnico ? 'Sessão técnica — esta entrada está registrada na aba Alertas'
           : sv ? 'Seu acesso não inclui valores. Os números de dinheiro não são enviados ao seu aparelho.' : '';
   b.classList.toggle('suporte', tecnico);
-  /* Dizer que falta e por quê é melhor do que deixar a pessoa achar que a
-     tela quebrou ao ver traços no lugar dos valores. */
-  const av = el('aviso-valores');
-  if (av) av.style.display = sv ? 'block' : 'none';
+
 }
 
 function pintarAtualizacao(){
@@ -1594,7 +1591,7 @@ function montarFicha(d){
      depois de já ter ligado. O aviso chegava tarde: a paciente já tinha sido
      incomodada duas vezes. Agora o WhatsApp, o Ligar e o E-mail perguntam
      antes de abrir. */
-  const alerta = diasDesde(p.ultimo_contato);
+  const alerta = ultimoContatoDe(p, d.contatos).dias;
   const travado = alerta !== null && alerta <= TRAVA_DIAS;
   const marca = travado ? ' data-trava="1"' : '';
   if (numero) contatos.push(`<a class="bt zap" target="_blank" rel="noopener"${marca}
@@ -1690,11 +1687,9 @@ function montarFicha(d){
       if (b.dataset.travaOk === '1') return;
       ev.preventDefault();
       ev.stopPropagation();
-      const n = diasDesde(PAC && PAC.paciente ? PAC.paciente.ultimo_contato : '');
-      const quando = n === 0 ? 'hoje' : 'há ' + n + ' dia(s)';
-      /* o nome de quem ligou vem do próprio histórico da ficha */
-      const ult = PAC && PAC.contatos && PAC.contatos.length ? PAC.contatos[0] : null;
-      const quem = ult && ult.autor ? ' por ' + ult.autor : '';
+      const u = ultimoContatoDe(PAC && PAC.paciente);
+      const quando = u.dias === 0 ? 'hoje' : 'há ' + u.dias + ' dia(s)';
+      const quem = u.autor ? ' por ' + u.autor : '';
       if (!confirm('Esta paciente já foi contatada ' + quando + quem +
                    '.\n\nAbrir mesmo assim?')) return;
       b.dataset.travaOk = '1';
@@ -1777,14 +1772,35 @@ async function classificar(classe){
 /* Quantos dias desde o último contato, a partir do que a ficha já traz.
    Serve para a gestora ver ANTES de ligar, sem depender do aviso do servidor. */
 function diasDesde(dataBr){
-  const a = String(dataBr || '').split('/'), b = String((CTX && CTX.hoje) || '').split('/');
+  /* parseInt, e não o "+", porque o registro de contato vem com hora:
+     "22/09/2026 18:40". O "+" tenta converter "2026 18:40" inteiro e devolve
+     NaN — a conta virava NaN, NaN nunca é menor que o limite, e a trava
+     simplesmente não ligava. O parseInt lê o 2026 e ignora o resto. */
+  const a = String(dataBr || '').trim().split('/'), b = String((CTX && CTX.hoje) || '').trim().split('/');
   if (a.length !== 3 || b.length !== 3) return null;
-  const d1 = new Date(+a[2], +a[1] - 1, +a[0]), d2 = new Date(+b[2], +b[1] - 1, +b[0]);
+  const d1 = new Date(parseInt(a[2], 10), parseInt(a[1], 10) - 1, parseInt(a[0], 10));
+  const d2 = new Date(parseInt(b[2], 10), parseInt(b[1], 10) - 1, parseInt(b[0], 10));
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return null;
   return Math.round((d2 - d1) / 86400000);
 }
+/* QUANDO FOI O ÚLTIMO CONTATO — uma função só, usada por todos.
+   A ficha pergunta primeiro ao HISTÓRICO que ela mesma carrega: é o registro
+   de verdade, com data e autor, e existe mesmo que o campo resumido venha
+   vazio. Era aí que estava o defeito — a tela consultava um campo que o
+   servidor não mandava, então a trava nunca ligava e os botões abriam
+   normalmente. */
+function ultimoContatoDe(p, contatos){
+  const lista = contatos || (PAC && PAC.contatos) || [];
+  if (lista.length && lista[0].data){
+    return { dias: diasDesde(lista[0].data), autor: lista[0].autor || '', quando: lista[0].data };
+  }
+  const d = diasDesde(p && p.ultimo_contato);
+  return { dias: d, autor: '', quando: (p && p.ultimo_contato) || '' };
+}
+
 function avisoContatoRecente(p){
-  const n = diasDesde(p.ultimo_contato);
-  if (n === null || n > TRAVA_DIAS) return '';
+  const n = ultimoContatoDe(p).dias;
+  if (n === null || isNaN(n) || n > TRAVA_DIAS) return '';
   return `<div class="aviso-box"><b>Atenção antes de ligar.</b> ${n === 0
     ? 'Esta paciente já foi contatada <b>hoje</b>.'
     : 'Esta paciente foi contatada há <b>' + n + ' dia(s)</b>.'}
