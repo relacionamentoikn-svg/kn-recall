@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<!-- RECALL E FOLLOW-UP · V4.1 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -765,7 +766,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V3.9';
+const VERSAO_TELA = 'V4.1';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -800,7 +801,9 @@ const CACHE = {};
 const SEL = { recall: [], dormente: [], highticket: [] };
 const PREFIXO = { recall: 'rc', dormente: 'dm', highticket: 'ht' };
 function assinatura(o){ return JSON.stringify(o); }
-function limparCache(){ Object.keys(CACHE).forEach(k => delete CACHE[k]); }
+const CACHE_T = {};      // quando cada item entrou no cache
+let GERACAO_LOCAL = 0;   // muda a cada gravação: resposta que voltou depois dela é velha
+function limparCache(){ GERACAO_LOCAL++; Object.keys(CACHE).forEach(k => { delete CACHE[k]; delete CACHE_T[k]; }); }
 /* UMA TELA QUE FALHA TEM DE DIZER QUE FALHOU.
    Antes, se a chamada de uma aba desse erro, o "carregando a fila" ficava na
    tela para sempre: quem olhava via um aplicativo pensando, não um aplicativo
@@ -898,7 +901,12 @@ function guardarPorta(a){
   } catch (e) {}
 }
 
+let EM_VOO = 0;
 async function api(acao, params){
+  EM_VOO++;
+  try { return await apiBruta(acao, params); } finally { EM_VOO--; }
+}
+async function apiBruta(acao, params){
   if (typeof google !== 'undefined' && google.script && google.script.run){
     return new Promise((ok, falha) => {
       google.script.run
@@ -1399,6 +1407,7 @@ function ligarCartoes(container, tela){
       abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]);
     };
     c.onclick = abrir;
+    ligarAquecimento(c);
     c.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); abrir(ev); } };
   });
 }
@@ -1530,6 +1539,7 @@ function ligarCartoesAc(){
       };
     });
     c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
+    ligarAquecimento(c);
   });
 }
 
@@ -1676,6 +1686,42 @@ function entregarArquivo(r){
    ========================================================================== */
 let POSICAO_ROLAGEM = 0;
 
+/* ==========================================================================
+   FICHA RÁPIDA
+   Duas coisas, e nenhuma delas mexe no que a ficha mostra:
+   1. A mesma ficha nunca é pedida duas vezes ao mesmo tempo — se o aquecimento
+      já saiu buscando, o clique aproveita a mesma resposta.
+   2. Parado por um instante sobre um cartão (só no computador), o app já vai
+      buscar a ficha. Quando o clique chega, ela está no bolso. Só aquece com a
+      linha livre: nunca atravessa uma chamada que a pessoa esteja esperando.
+   ========================================================================== */
+const FICHA_VOO = {};
+function buscarFicha(chave){
+  if (FICHA_VOO[chave]) return FICHA_VOO[chave];
+  const geracao = GERACAO_LOCAL;
+  const p = api('ficha', { chave: chave }).then(d => {
+    if (d && !d.erro && geracao === GERACAO_LOCAL){
+      CACHE['ficha:' + chave] = d; CACHE_T['ficha:' + chave] = Date.now();
+    }
+    return d;
+  }).finally(() => { delete FICHA_VOO[chave]; });
+  FICHA_VOO[chave] = p;
+  return p;
+}
+function aquecerFicha(chave){
+  if (!chave || !USUARIO || CACHE['ficha:' + chave] || FICHA_VOO[chave] || EM_VOO > 0) return;
+  buscarFicha(chave).catch(() => {});
+}
+function ligarAquecimento(c){
+  let t = null;
+  c.addEventListener('pointerenter', ev => {
+    if (ev.pointerType && ev.pointerType !== 'mouse') return;
+    clearTimeout(t);
+    t = setTimeout(() => aquecerFicha(c.dataset.chave), 300);
+  });
+  c.addEventListener('pointerleave', () => clearTimeout(t));
+}
+
 function abrirFicha(chave, jaSabido){
   if (!chave) return;
   const lateral = el('ficha').classList.contains('lateral');
@@ -1692,7 +1738,12 @@ function abrirFicha(chave, jaSabido){
   }
 
   const cacheChave = 'ficha:' + chave;
-  if (CACHE[cacheChave]) { PAC = CACHE[cacheChave]; montarFicha(PAC); }
+  const idade = Date.now() - (CACHE_T[cacheChave] || 0);
+  if (CACHE[cacheChave]) {
+    PAC = CACHE[cacheChave]; montarFicha(PAC);
+    /* Ficha de poucos segundos atrás é a mesma ficha: não pergunta de novo. */
+    if (idade < 45000) return;
+  }
   else if (jaSabido) {
     /* A lista já tem nome, telefone, dias, valor e faixa. Pintar o cabeçalho
        com isso ANTES de a planilha responder tira a sensação de travamento:
@@ -1704,9 +1755,9 @@ function abrirFicha(chave, jaSabido){
     ].filter(Boolean).join(' · ');
   }
 
-  api('ficha', { chave: chave }).then(d => {
+  buscarFicha(chave).then(d => {
     if (!d || d.erro){ toast((d && d.erro) || 'Ficha não encontrada.'); fecharFicha(); return; }
-    CACHE[cacheChave] = d;
+    CACHE[cacheChave] = d; CACHE_T[cacheChave] = Date.now();
     PAC = d;
     montarFicha(d);
   }).catch(e => { falhar(e); if (!CACHE[cacheChave]) fecharFicha(); });
@@ -2415,6 +2466,7 @@ function ligarFollow(){
       };
     });
     c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
+    ligarAquecimento(c);
   });
 }
 
