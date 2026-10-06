@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.2 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.3 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -149,11 +149,12 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .cab-tela{display:grid;gap:14px;margin-bottom:14px}
 @media(min-width:1000px){.cab-tela{grid-template-columns:minmax(300px,.9fr) minmax(340px,1.4fr)}}
 .regua{display:flex;height:46px;border-radius:9px;overflow:hidden;border:1px solid var(--linha)}
-.regua button{border:0;padding:0;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:52px;transition:filter .15s}
+.regua button{border:0;padding:0 2px;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:0;overflow:hidden;transition:filter .15s}
 .regua button:hover{filter:brightness(1.08)}
 .regua button[aria-pressed="true"]{box-shadow:inset 0 0 0 3px rgba(255,255,255,.85)}
 .regua b{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;line-height:1}
-.regua span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.regua span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.92;max-width:100%;white-space:nowrap}
+@media(max-width:480px){.regua span{font-size:7px;letter-spacing:.02em}.regua b{font-size:15px}}
 .fx-DIAMANTE{background:var(--f-diamante)}.fx-OURO{background:var(--f-ouro)}
 .fx-BRONZE{background:var(--f-bronze)}
 .tj-DIAMANTE{background:var(--f-diamante)}.tj-OURO{background:var(--f-ouro)}
@@ -553,7 +554,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
         <div class="sub" id="ac-sub">—</div>
       </div>
       <div class="card">
-        <h3>Em que pé está cada paciente <span class="aux">toque num bloco para filtrar</span></h3>
+        <h3>Status paciente <span class="aux">toque num bloco para filtrar</span></h3>
         <div class="regua" id="ac-regua"></div>
         <div class="legenda" id="ac-legenda"></div>
       </div>
@@ -766,7 +767,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.2';
+const VERSAO_TELA = 'V4.3';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1280,8 +1281,7 @@ function pintarFila(tela, d){
   }
 
   el(pre + '-regua').innerHTML = faixas.map(k => {
-    const largura = Math.max(14, Math.round(d.faixas[k] / totalAba * 100));
-    return `<button class="fx-${k}" style="flex:0 0 ${largura}%" data-f="${k}"
+    return `<button class="fx-${k}" style="flex:${pesoRegua(d.faixas[k], totalAba)} 1 0" data-f="${k}"
       aria-pressed="${f.faixa === k}"><b>${d.faixas[k]}</b><span>${k.toLowerCase()}</span></button>`;
   }).join('');
   el(pre + '-regua').querySelectorAll('button').forEach(b => {
@@ -1422,6 +1422,9 @@ function ligarCartoes(container, tela){
 /* ==========================================================================
    ACOMPANHAMENTO — a fila do dia
    ========================================================================== */
+/* Peso de cada bloco da régua. A régua sempre fecha os 100% da largura (antes
+   sobrava um vazio no fim) e nenhum bloco fica estreito demais para o rótulo. */
+function pesoRegua(qtd, total){ return Math.round(Math.max(Number(qtd) || 0, (Number(total) || 1) * 0.22) * 1000); }
 const BLOCOS_AC = [
   ['VENCIDOS',   'Vencidos',   'retorno prometido chegou ou passou', 'var(--vermelho)'],
   ['SEM_DATA',   'Sem data',   'contatada e sem próximo passo',      'var(--decidir)'],
@@ -1469,8 +1472,7 @@ function pintarAcompanhamento(d){
     `${d.encerradas} encerradas`;
 
   el('ac-regua').innerHTML = BLOCOS_AC.map(x => {
-    const largura = Math.max(14, Math.round((r[x[0]] || 0) / total * 100));
-    return `<button style="flex:0 0 ${largura}%;background:${x[3]}" data-b="${x[0]}"
+    return `<button style="flex:${pesoRegua(r[x[0]] || 0, total)} 1 0;background:${x[3]}" data-b="${x[0]}"
       aria-pressed="${AC.bloco === x[0]}"><b>${r[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
   }).join('');
   el('ac-regua').querySelectorAll('button').forEach(b => {
@@ -2424,8 +2426,7 @@ function pintarFollow(d){
     d.todos + ' no total (' + brl(d.valor_todos) + ')';
 
   el('fu-regua').innerHTML = FAROIS_FU.map(x => {
-    const largura = Math.max(14, Math.round((pf[x[0]] || 0) / total * 100));
-    return `<button style="flex:0 0 ${largura}%;background:${x[3]}" data-f="${x[0]}"
+    return `<button style="flex:${pesoRegua(pf[x[0]] || 0, total)} 1 0;background:${x[3]}" data-f="${x[0]}"
       aria-pressed="${FU.farol === x[0]}"><b>${pf[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
   }).join('');
   el('fu-regua').querySelectorAll('button').forEach(b => {
