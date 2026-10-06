@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.1 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.2 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -766,7 +766,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.1';
+const VERSAO_TELA = 'V4.2';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1052,6 +1052,7 @@ const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
 
 /* ---------- navegação ---------- */
 function irPara(t){
+  if (t === 'highticket' && semDinheiro()) t = 'acompanhamento';
   USUARIO_PEDIU = true;   // a partir do primeiro clique, o aquecimento não começa mais
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tela === t));
   document.querySelectorAll('.tela').forEach(s => s.classList.toggle('on', s.id === 'tela-' + t));
@@ -1179,7 +1180,13 @@ function pintarUsuario(){
   b.title = tecnico ? 'Sessão técnica — esta entrada está registrada na aba Alertas'
           : sv ? 'Seu acesso não inclui valores. Os números de dinheiro não são enviados ao seu aparelho.' : '';
   b.classList.toggle('suporte', tecnico);
-
+  /* Conta sem valores também não enxerga a carteira High Ticket: a aba some
+     e o servidor recusa o pedido (classe e carteira não saem de lá). */
+  const abaHt = document.querySelector('nav.tabs button[data-tela="highticket"]');
+  if (abaHt){
+    abaHt.style.display = sv ? 'none' : '';
+    if (sv && abaHt.classList.contains('on')) irPara('acompanhamento');
+  }
 }
 
 function pintarVersao(){
@@ -1587,7 +1594,7 @@ function pintarBarraSel(tela){
       /* O sintético é a folha que vai para a direção: contato e dinheiro,
          agrupado por classificação e somado. A lista completa é a folha de
          trabalho da gestora — outro documento, outro leitor. */
-      exportar({ tipo: a === 'sintetico' ? 'SINTETICA' : 'LISTA',
+      (a === 'pdf' ? exportarPdf : exportar)({ tipo: a === 'sintetico' ? 'SINTETICA' : 'LISTA',
                  formato: a === 'xlsx' ? 'XLSX' : 'PDF',
                  chaves: SEL[tela].join(';'), titulo: tituloExport(tela),
                  agrupar: tela === 'highticket' ? '1' : '0' });
@@ -1641,7 +1648,7 @@ function imprimirTela(tela){
       ' folhas.\n\nQuer imprimir assim mesmo? Se preferir menos, feche aqui e use os ' +
       'filtros da tela antes.')) return;
 
-  exportar({ tipo: 'LISTA', formato: 'PDF', chaves: chaves.join(';'),
+  exportarPdf({ tipo: 'LISTA', formato: 'PDF', chaves: chaves.join(';'),
              titulo: c.titulo(), agrupar: c.agrupar ? '1' : '0' });
 }
 
@@ -1649,6 +1656,21 @@ function tituloExport(tela){
   const f = FILTROS[tela];
   const base = { recall: 'Recall', dormente: 'Dormente', highticket: 'Alto padrão' }[tela] || 'Recall';
   return f.faixa && f.faixa !== 'TODAS' ? base + ' ' + f.faixa.toLowerCase() : base;
+}
+
+/* Quem vê valores escolhe, a cada PDF, se a folha sai com ou sem dinheiro.
+   A versão sem valores é a que se distribui para a equipe. */
+function exportarPdf(params){
+  if (semDinheiro()) return exportar(params);
+  abrirModal(`<div style="padding:6px 4px">
+    <h3 style="margin:0 0 6px">Imprimir PDF</h3>
+    <p style="margin:0 0 14px;color:#666">Como a folha deve sair?</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="bt prim" id="pv-com">Com valores</button>
+      <button class="bt" id="pv-sem">Sem valores (para distribuir)</button>
+    </div></div>`);
+  el('pv-com').onclick = () => exportar(Object.assign({}, params, { semvalores: '0' }));
+  el('pv-sem').onclick = () => exportar(Object.assign({}, params, { semvalores: '1' }));
 }
 
 async function exportar(params){
@@ -1785,7 +1807,7 @@ function montarFicha(d){
   const p = d.paciente;
   el('fc-nome').textContent = p.nome;
   el('fc-pdf').style.display = '';
-  el('fc-pdf').onclick = () => exportar({ tipo: 'FICHA', formato: 'PDF', chave: p.chave });
+  el('fc-pdf').onclick = () => exportarPdf({ tipo: 'FICHA', formato: 'PDF', chave: p.chave });
   el('fc-sub').textContent = [
     p.faixa ? p.faixa.charAt(0) + p.faixa.slice(1).toLowerCase() : '',
     p.dias == null ? '' : p.dias + ' dias desde o último orçamento',
@@ -1918,7 +1940,7 @@ function montarFicha(d){
       if (a === 'agendar')  return formAgendamento(PAC.paciente);
       if (a === 'encerrar') return formEncerrar();
       if (a === 'mensagem') return escolherMensagem(PAC.paciente);
-      if (a === 'pdf')      return exportar({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
+      if (a === 'pdf')      return exportarPdf({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
     };
   });
 }
@@ -1938,6 +1960,7 @@ function montarFicha(d){
 const CLASSES_HT = ['DIAMANTE', 'OURO', 'BRONZE'];
 
 function blocoClasse(p){
+  if (semDinheiro()) return '<div data-bloco-ht="1" style="display:none"></div>';
   const atual = p.classe_ht || '';
   const botoes = CLASSES_HT.map(c =>
     `<button class="bt" data-ht="${c}" aria-pressed="${atual === c}">${c.charAt(0) + c.slice(1).toLowerCase()}</button>`
@@ -2345,7 +2368,7 @@ function cartaoBusca(p){
     <div class="tarja tj-${esc(p.faixa || 'DORMENTE')}"></div>
     <div class="pac-in">
       <div class="pac-l1"><span class="pac-nome">${esc(p.paciente)}</span>
-        <span class="onde onde-${esc(p.onde)}">${esc(ROTULO_ONDE[p.onde] || p.onde)}</span>
+        ${p.onde ? `<span class="onde onde-${esc(p.onde)}">${esc(ROTULO_ONDE[p.onde] || p.onde)}</span>` : ''}
         ${p.classe_ht ? `<span class="tag ht ${esc(p.classe_ht)}">${esc(p.classe_ht)}</span>` : ''}
         <span class="pac-dias"><b>${p.dias == null ? '—' : p.dias}</b><span>dias</span></span></div>
       <div class="pac-l2">${p.telefone ? esc(p.telefone) + ' · ' : ''}${p.ultimo_orcamento
