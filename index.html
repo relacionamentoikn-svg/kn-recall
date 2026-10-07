@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.3 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.4 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -155,6 +155,16 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .regua b{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;line-height:1}
 .regua span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.92;max-width:100%;white-space:nowrap}
 @media(max-width:480px){.regua span{font-size:7px;letter-spacing:.02em}.regua b{font-size:15px}}
+.colabs{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.colab{border:1px solid var(--linha-forte);border-radius:10px;padding:8px 10px;text-align:left;background:#fff;color:inherit;font:inherit}
+.colab b{display:block;font-size:14px}
+.colab .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--vinho)}
+.colab small{display:block;margin-top:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.02em;opacity:.8}
+.colab[aria-pressed="true"]{outline:2px solid var(--vinho);background:#faf3f4}
+.sem-relatorio .bt-min[onclick^="imprimirTela"],.sem-relatorio #fc-pdf,.sem-relatorio [data-acao="pdf"],
+.sem-relatorio .barra-sel [data-a="pdf"],.sem-relatorio .barra-sel [data-a="xlsx"],.sem-relatorio .barra-sel [data-a="sintetico"],
+.conta-restrita [data-acao="encerrar"],.conta-restrita [data-acao="remarcar"],.conta-restrita [data-acao="resolvido"],
+.conta-restrita [data-acao="veio"],.conta-restrita [data-acao="faltou"]{display:none!important}
 .fx-DIAMANTE{background:var(--f-diamante)}.fx-OURO{background:var(--f-ouro)}
 .fx-BRONZE{background:var(--f-bronze)}
 .tj-DIAMANTE{background:var(--f-diamante)}.tj-OURO{background:var(--f-ouro)}
@@ -557,6 +567,10 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
         <h3>Status paciente <span class="aux">toque num bloco para filtrar</span></h3>
         <div class="regua" id="ac-regua"></div>
         <div class="legenda" id="ac-legenda"></div>
+        <div id="ac-colabs-box" style="display:none">
+          <h3 style="margin-top:18px">Por colaboradora <span class="aux">toque num nome para filtrar</span></h3>
+          <div class="colabs" id="ac-colabs"></div>
+        </div>
       </div>
     </div>
     <div id="ac-aviso"></div>
@@ -767,7 +781,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.3';
+const VERSAO_TELA = 'V4.4';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -791,7 +805,7 @@ const FILTROS = {
      pacientes que mais importam. */
   highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'NAO' }
 };
-const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '' };
+const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS' };
 const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
 
 /* Cache de tela. Cada aba guarda a última resposta boa; ao voltar nela o app
@@ -864,6 +878,32 @@ const brl2 = v => semValor(v) ? '—' : 'R$ ' + (Number(v) || 0).toLocaleString(
 /* Verdadeiro quando a conta não enxerga dinheiro. Vale para a tela; a
    restrição de verdade é do servidor, que simplesmente não manda o número. */
 const semDinheiro = () => !!(USUARIO && USUARIO.ver_valores === false);
+/* Telas liberadas para a conta. null = vê tudo. O servidor recusa o resto; a
+   tela só esconde para a pessoa não esbarrar em porta fechada. */
+const abasConta = () => (USUARIO && Array.isArray(USUARIO.abas)) ? USUARIO.abas : null;
+const contaRestrita = () => !!abasConta();
+const semRelatorio = () => semDinheiro() || contaRestrita();
+function podeAba(t){
+  const a = abasConta();
+  if (t === 'highticket' && semDinheiro()) return false;
+  if (!a) return true;
+  const tem = k => a.indexOf(k) > -1;
+  switch (t){
+    case 'acompanhamento': return tem('RECALL') || tem('DORMENTE') || tem('HIGHTICKET') || tem('FOLLOWUP');
+    case 'recall':      return tem('RECALL');
+    case 'dormente':    return tem('DORMENTE');
+    case 'highticket':  return tem('HIGHTICKET');
+    case 'follow':      return tem('FOLLOWUP');
+    case 'agenda':      return tem('AGENDA');
+    case 'indicadores': return tem('INDICADORES');
+  }
+  return false;
+}
+function primeiraAbaLivre(){
+  const ordem = ['acompanhamento','recall','dormente','highticket','follow','agenda','indicadores'];
+  for (let k = 0; k < ordem.length; k++) if (podeAba(ordem[k])) return ordem[k];
+  return 'acompanhamento';
+}
 const pct  = v => (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 1}) + '%';
 const el   = id => document.getElementById(id);
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -1053,7 +1093,7 @@ const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
 
 /* ---------- navegação ---------- */
 function irPara(t){
-  if (t === 'highticket' && semDinheiro()) t = 'acompanhamento';
+  if (!podeAba(t)) t = primeiraAbaLivre();
   USUARIO_PEDIU = true;   // a partir do primeiro clique, o aquecimento não começa mais
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tela === t));
   document.querySelectorAll('.tela').forEach(s => s.classList.toggle('on', s.id === 'tela-' + t));
@@ -1183,11 +1223,14 @@ function pintarUsuario(){
   b.classList.toggle('suporte', tecnico);
   /* Conta sem valores também não enxerga a carteira High Ticket: a aba some
      e o servidor recusa o pedido (classe e carteira não saem de lá). */
-  const abaHt = document.querySelector('nav.tabs button[data-tela="highticket"]');
-  if (abaHt){
-    abaHt.style.display = sv ? 'none' : '';
-    if (sv && abaHt.classList.contains('on')) irPara('acompanhamento');
-  }
+  document.querySelectorAll('nav.tabs button').forEach(bt => {
+    bt.style.display = podeAba(bt.dataset.tela) ? '' : 'none';
+  });
+  const aberta = document.querySelector('nav.tabs button.on');
+  if (aberta && !podeAba(aberta.dataset.tela)) irPara(primeiraAbaLivre());
+  document.body.classList.toggle('sem-relatorio', semRelatorio());
+  document.body.classList.toggle('conta-restrita', contaRestrita());
+  if (contaRestrita()) b.title = 'Seu acesso é só das carteiras que a gestora liberou.';
 }
 
 function pintarVersao(){
@@ -1431,6 +1474,7 @@ const BLOCOS_AC = [
   ['AGUARDANDO', 'Aguardando', 'retorno marcado para frente',        'var(--latao)'],
   ['AGENDADAS',  'Agendadas',  'já tem horário marcado',             'var(--salvia)']
 ];
+const blocosAc = () => contaRestrita() ? BLOCOS_AC.filter(x => x[0] !== 'AGENDADAS') : BLOCOS_AC;
 const ROTULO_ORIGEM = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up' };
 
 async function carregarAcompanhamento(){
@@ -1455,8 +1499,8 @@ function montarFiltrosAc(){
   const cx = el('ac-filtros');
   cx.innerHTML =
     campoBusca('ac-busca', 'Buscar nesta fila por nome ou telefone', AC.busca) +
-    campoSelecao('ac-origem', 'Origem', origens, AC.origem);
-  el('ac-origem').onchange = () => { AC.origem = el('ac-origem').value; carregarAcompanhamento().catch(falhar); };
+    (contaRestrita() ? '' : campoSelecao('ac-origem', 'Origem', origens, AC.origem));
+  if (el('ac-origem')) el('ac-origem').onchange = () => { AC.origem = el('ac-origem').value; carregarAcompanhamento().catch(falhar); };
   ligarBusca(cx, 'ac-busca', v => { AC.busca = v; carregarAcompanhamento().catch(falhar); });
 }
 
@@ -1464,28 +1508,37 @@ function pintarAcompanhamento(d){
   const r = d.resumo || {};
   LEMBRETE_DIAS = d.lembrete_dias || 7;
   TRAVA_DIAS = d.trava_dias || 3;
-  const total = BLOCOS_AC.reduce((s2, x) => s2 + (r[x[0]] || 0), 0) || 1;
+  const total = blocosAc().reduce((s2, x) => s2 + (r[x[0]] || 0), 0) || 1;
   el('ac-lembrete').textContent = d.lembrete_dias;
 
   el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
   el('ac-sub').textContent = `${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
     `${d.encerradas} encerradas`;
 
-  el('ac-regua').innerHTML = BLOCOS_AC.map(x => {
+  el('ac-regua').innerHTML = blocosAc().map(x => {
     return `<button style="flex:${pesoRegua(r[x[0]] || 0, total)} 1 0;background:${x[3]}" data-b="${x[0]}"
       aria-pressed="${AC.bloco === x[0]}"><b>${r[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
   }).join('');
   el('ac-regua').querySelectorAll('button').forEach(b => {
     b.onclick = () => { AC.bloco = (AC.bloco === b.dataset.b) ? 'TODOS' : b.dataset.b; pintarAcompanhamento(d); };
   });
-  el('ac-legenda').innerHTML = BLOCOS_AC.map(x =>
+  el('ac-legenda').innerHTML = blocosAc().map(x =>
     `<div><i style="background:${x[3]}"></i><b>${x[1]}</b> ${x[2]}</div>`).join('');
+
+  const cols = d.colaboradoras || [];
+  el('ac-colabs-box').style.display = cols.length ? '' : 'none';
+  el('ac-colabs').innerHTML = cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
+      <b>${esc(c.nome)}</b><span class="n">${c.total} em andamento</span>
+      <small>${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
+  el('ac-colabs').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { AC.colab = (AC.colab === b.dataset.n) ? 'TODAS' : b.dataset.n; carregarAcompanhamento().catch(falhar); };
+  });
 
   el('ac-aviso').innerHTML = (r.SEM_DATA || 0)
     ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
        São as que caem no esquecimento: marque a data do retorno ou encerre.</div>` : '';
 
-  const mostrar = AC.bloco === 'TODOS' ? BLOCOS_AC.map(x => x[0]) : [AC.bloco];
+  const mostrar = AC.bloco === 'TODOS' ? blocosAc().map(x => x[0]) : [AC.bloco];
   let html = '';
   mostrar.forEach(k => {
     const b = d.blocos[k];
@@ -1636,7 +1689,7 @@ function imprimirTela(tela){
   if (!USUARIO){ abrirPortao(); return; }
   const c = IMPRESSAO[tela];
   if (!c) return;
-  if (semDinheiro()){
+  if (semRelatorio()){
     toast('Seu acesso é de contato com pacientes e não inclui relatórios.');
     return;
   }
