@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.4 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.4 + tela de acesso nova (pacote V4.5) — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -19,7 +19,7 @@
 <meta name="theme-color" content="#5C1A2B">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ==========================================================================
    Mesmos tokens do painel KN Vendas. Nada aqui é escolha nova: cor, fonte,
@@ -502,6 +502,69 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .t-erro.on{display:block}
 .pt-rod{text-align:center;color:rgba(250,247,243,.7);font-family:'IBM Plex Mono',monospace;font-size:10px;
   margin-top:16px;line-height:1.7;letter-spacing:.05em}
+
+/* ============ TELA DE ACESSO — modelo C (retrato da Dra.) ============
+   Mesmo desenho do painel de vendas: painel de marca à esquerda, formulário
+   à direita; no celular o painel vira faixa no topo. */
+#login-tela{display:none;position:fixed;inset:0;z-index:95;overflow:auto;grid-template-columns:1.05fr 1fr;
+  font-family:'IBM Plex Sans',Inter,system-ui,sans-serif;color:#241E1C;background:#fff}
+#login-tela.on{display:grid}
+.lg-marca{position:relative;overflow:hidden;background:#7A2226;color:#FAF7F3;
+  padding:56px 56px 40px;display:flex;flex-direction:column}
+.lg-foto{position:absolute;top:0;right:0;width:62%;height:100%;object-fit:cover;object-position:50% 6%}
+.lg-fade{position:absolute;top:0;right:0;width:62%;height:100%;
+  background:linear-gradient(90deg,#7A2226 0%,rgba(122,34,38,0) 34%)}
+.lg-topo{display:flex;align-items:center;gap:14px;position:relative}
+.lg-mono{width:48px;height:48px;border-radius:50%;flex:none}
+.lg-nome{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:26px;line-height:1}
+.lg-desc-marca{font-size:11px;letter-spacing:.32em;color:#E9CF9E;margin-top:7px}
+.lg-meio{margin-top:auto;position:relative;max-width:300px}
+.lg-fio{width:48px;height:2px;background:#D7B27A;margin-bottom:20px}
+.lg-tit{margin:0;font-family:'Fraunces',Georgia,serif;font-size:44px;font-weight:500;line-height:1.05}
+.lg-desc{margin:16px 0 0;font-size:15px;line-height:1.55;color:rgba(250,247,243,.86)}
+.lg-rod{margin-top:72px;font-size:12px;line-height:1.6;color:rgba(250,247,243,.72);position:relative}
+.lg-form-box{display:flex;align-items:center;justify-content:center;padding:40px;background:#fff}
+.lg-form{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px}
+.lg-form h1{margin:0;font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:500;color:#5C1A2B}
+.lg-sub{margin:0;font-size:14px;line-height:1.5;color:#5F6976}
+.lg-erro{display:none;margin:0;font-size:13px;font-weight:700;line-height:1.45;color:#A8281E}
+.lg-erro.on{display:block}
+.lg-rot{font-size:12px;font-weight:600;letter-spacing:.06em;color:#5F6976;margin:4px 0 -6px}
+.lg-campo{height:48px;box-sizing:border-box;width:100%;border-radius:8px;background:#F7F3EE;
+  border:1px solid #E4DAD1;padding:0 14px;font:500 16px 'IBM Plex Sans',Inter,sans-serif;color:#241E1C}
+.lg-campo:focus{outline:none;border-color:#5C1A2B;box-shadow:0 0 0 3px rgba(92,26,43,.14)}
+.lg-cod{font-family:'IBM Plex Mono',monospace;letter-spacing:.3em}
+.lg-lembrar{display:flex;align-items:center;gap:8px;min-height:32px;font-size:13px;font-weight:600;cursor:pointer}
+.lg-lembrar input{width:18px;height:18px;accent-color:#5C1A2B;margin:0}
+.lg-dica{margin:-6px 0 0;font-size:12px;font-style:italic;line-height:1.5;color:#7D8795}
+.lg-bt{height:50px;border:0;border-radius:8px;background:#5C1A2B;color:#fff;
+  font:700 16px 'IBM Plex Sans',Inter,sans-serif;cursor:pointer;margin-top:4px}
+.lg-bt:focus-visible{outline:3px solid #D7B27A;outline-offset:2px}
+.lg-bt:disabled{opacity:.6;cursor:wait}
+.lg-troca{display:none;align-self:center;background:none;border:0;padding:10px 6px;
+  font:400 13px 'IBM Plex Sans',Inter,sans-serif;color:#5F6976;text-decoration:underline;cursor:pointer}
+.lg-troca.on{display:block}
+.lg-troca:hover{color:#5C1A2B}
+.lg-pe{border-top:1px solid #E4DAD1;padding-top:14px;font-size:11px;line-height:1.6;color:#7D8795}
+@media(max-width:880px){
+  #login-tela.on{display:flex;flex-direction:column}
+  .lg-marca{padding:28px 22px 24px;min-height:290px;box-sizing:border-box;flex:none}
+  .lg-foto,.lg-fade{width:58%;right:-18px}
+  .lg-foto{object-position:50% 4%}
+  .lg-fade{background:linear-gradient(90deg,#7A2226 0%,rgba(122,34,38,0) 40%)}
+  .lg-mono{width:38px;height:38px}
+  .lg-nome{font-size:20px}
+  .lg-desc-marca{font-size:10px;margin-top:5px}
+  .lg-meio{max-width:190px}
+  .lg-fio,.lg-desc,.lg-rod{display:none}
+  .lg-tit{font-size:30px}
+  .lg-form-box{align-items:flex-start;padding:24px 18px}
+  .lg-form h1{font-size:25px}
+  .lg-lembrar{min-height:44px;font-size:14px}
+  .lg-troca{min-height:44px;font-size:14px}
+}
+/* botão Sair no topo do app */
+.btn-sair{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;width:auto!important;padding:0 10px!important}
 </style>
 </head>
 <body>
@@ -530,6 +593,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
       <div class="atz"><span id="atz-txt">—</span><span id="atz-base"></span><span id="atz-ver"></span></div>
       <button class="quem" id="bt-quem" onclick="abrirPortao()">Identificar-se</button>
       <button class="btn-atz" id="bt-atz" onclick="atualizarAgora()" title="Atualizar dados">↻</button>
+      <button class="btn-atz btn-sair" id="btn-sair" onclick="sairDoApp()" title="Sair e esquecer este aparelho">SAIR</button>
     </div>
   </header>
 
@@ -742,6 +806,43 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 <div id="toast"></div>
 
 <!-- ===================== PORTÃO DE ACESSO ===================== -->
+<div id="login-tela">
+  <div class="lg-marca">
+    <img class="lg-foto" id="lg-foto" src="login-dra.jpg" alt="Dra. Kássila Nasser"
+         onerror="if(!this.dataset.f){this.dataset.f=1;this.src='https://relacionamentoikn-svg.github.io/kassila-app/login-dra.jpg'}else{this.style.display='none'}">
+    <div class="lg-fade"></div>
+    <div class="lg-topo">
+      <img class="lg-mono" id="lg-mono" alt="Monograma KN">
+      <div><div class="lg-nome">Kássila Nasser</div><div class="lg-desc-marca">INSTITUTO</div></div>
+    </div>
+    <div class="lg-meio">
+      <div class="lg-fio"></div>
+      <h2 class="lg-tit">Recall<br>e Follow-up</h2>
+      <p class="lg-desc">Fila do dia, acompanhamento, agenda e carteira de pacientes.</p>
+    </div>
+    <div class="lg-rod">Instituto Kássila Nasser<br>Uso interno e confidencial</div>
+  </div>
+  <div class="lg-form-box">
+    <form class="lg-form" id="lg-form" onsubmit="event.preventDefault();loginEntrar()" autocomplete="off">
+      <h1>Acesso restrito</h1>
+      <p class="lg-sub">Informe seu usuário e o código de acesso que você recebeu. Neste aparelho o app lembra de você: da próxima vez é só apertar Enter.</p>
+      <p class="lg-erro" id="lg-erro" role="alert"></p>
+      <label class="lg-rot" for="lg-usr">USUÁRIO</label>
+      <input class="lg-campo" id="lg-usr" type="text" list="lg-lista" placeholder="Seu nome"
+             autocapitalize="words" spellcheck="false" enterkeyhint="next">
+      <datalist id="lg-lista"></datalist>
+      <label class="lg-rot" for="lg-cod">CÓDIGO DE ACESSO</label>
+      <input class="lg-campo lg-cod" id="lg-cod" type="password" inputmode="numeric" maxlength="6"
+             placeholder="0000" autocomplete="off" enterkeyhint="go">
+      <label class="lg-lembrar"><input type="checkbox" id="lg-lembrar" checked> Lembrar neste aparelho</label>
+      <p class="lg-dica">Quatro dígitos, entregues pessoalmente. Não compartilhe — as ações ficam registradas em seu nome.</p>
+      <button class="lg-bt" id="lg-bt" type="submit">Entrar</button>
+      <button class="lg-troca" id="lg-troca" type="button" onclick="loginTrocar()">Não sou eu · trocar usuário</button>
+      <div class="lg-pe">Instituto Kássila Nasser · Maringá-PR<br>Recall e Follow-up · desenvolvido por Decisão Consultoria</div>
+    </form>
+  </div>
+</div>
+
 <div id="portao"><div class="pt-in">
   <div class="pt-topo"><img id="pt-logo" alt=""></div>
   <!-- A régua de passos nasce escondida. Na identificação ela não informa
@@ -781,7 +882,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.4';
+const VERSAO_TELA = 'V4.4';   // igual ao Codigo.gs: a V4.5 só mudou a tela de acesso
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -2826,6 +2927,134 @@ function pintarIndicadores(d){
    ========================================================================== */
 const PT = { passo: 1, usuario: null, codigo: '', ciA: [], ciT: [], assinou: false };
 
+/* ============ TELA DE ACESSO (passo 1) ============
+   Mesmo contrato com o servidor de antes: api('entrar', {nome, codigo}).
+   Os passos 2 a 4 (aviso, termo, assinatura) seguem no #portao, como antes.
+   Nome em branco + código continua entrando nas contas técnicas ocultas. */
+const LG_CHAVE = 'recall_lembrar';
+
+function lgNorm(v){
+  return String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+function lgLer(){
+  try { const v = JSON.parse(localStorage.getItem(LG_CHAVE) || 'null'); return v && v.nome ? v : null; }
+  catch (e) { return null; }
+}
+function lgGravar(v){ try { localStorage.setItem(LG_CHAVE, JSON.stringify(v)); } catch (e) {} }
+function lgApagar(){ try { localStorage.removeItem(LG_CHAVE); } catch (e) {} }
+function lgNomes(){
+  return ((CTX && CTX.usuarios) || []).length ? CTX.usuarios : (USUARIOS_ABERTOS || []);
+}
+function loginErro(msg){
+  const e = el('lg-erro'); if (!e) return;
+  e.textContent = msg || '';
+  e.classList.toggle('on', !!msg);
+}
+/* Acha o usuário pelo que foi digitado: nome exato, depois começo do nome.
+   Sem acento e sem diferença de maiúscula. */
+function loginResolver(texto){
+  const q = lgNorm(texto), L = lgNomes();
+  if (!q) return {u: null};   // em branco: só vale para conta técnica (código decide)
+  const exato = L.filter(u => lgNorm(u.nome) === q);
+  if (exato.length === 1) return {u: exato[0]};
+  const inicio = L.filter(u => lgNorm(u.nome).indexOf(q) === 0);
+  if (inicio.length === 1) return {u: inicio[0]};
+  if (exato.length > 1 || inicio.length > 1)
+    return {erro: 'Mais de um usuário combina com "' + texto.trim() + '". Digite o nome completo.'};
+  return {erro: 'Usuário não encontrado. Escolha na lista ou digite o nome como aparece nela.'};
+}
+function mostrarLogin(erro){
+  el('portao').classList.remove('on');
+  const tela = el('login-tela');
+  tela.classList.add('on');
+  const mono = el('lg-mono');
+  if (mono && !mono.getAttribute('src')) mono.src = monogramaSrc();
+  ligarEntradaTecnica();
+  el('lg-lista').innerHTML = lgNomes().map(u => '<option value="' + esc(u.nome) + '"></option>').join('');
+  const usr = el('lg-usr'), cod = el('lg-cod'), bt = el('lg-bt');
+  bt.disabled = false; bt.textContent = 'Entrar';
+  usr.placeholder = MODO_TECNICO ? 'Nome cadastrado (acesso técnico)' : 'Seu nome';
+  const lem = lgLer();
+  const valido = !!lem && lgNomes().some(u => lgNorm(u.nome) === lgNorm(lem.nome));
+  if (lem && !valido && lgNomes().length) lgApagar();
+  if (valido && !usr.value){
+    usr.value = lem.nome; cod.value = lem.codigo || '';
+    el('lg-lembrar').checked = true;
+  }
+  el('lg-troca').classList.toggle('on', !!valido);
+  loginErro(erro || '');
+  setTimeout(() => {
+    if (!usr.value) usr.focus();
+    else if (!cod.value) cod.focus();
+    else bt.focus();
+  }, 30);
+}
+function loginTrocar(){
+  lgApagar();
+  el('lg-usr').value = ''; el('lg-cod').value = '';
+  el('lg-troca').classList.remove('on');
+  loginErro('');
+  el('lg-usr').focus();
+}
+/* Recusa do servidor vira a frase do padrão; bloqueio por tentativas e falha
+   de rede seguem com o texto original, que explica o que fazer. */
+function loginFalha(m, veioDeExcecao){
+  const recusa = /inv[aá]lid|incorret|n[aã]o confere/i.test(m) && !/tent|bloque|aguard|espere|planilha|HTTP|demorou/i.test(m);
+  loginErro(recusa ? 'Código de acesso inválido ou usuário inativo.' : m);
+  if (recusa) { try { el('lg-cod').select(); } catch (e) {} }
+}
+function loginEntrar(){
+  const bt = el('lg-bt');
+  if (bt.disabled) return;
+  const texto = el('lg-usr').value.trim();
+  const cod = el('lg-cod').value.trim();
+  let nome = '', achado = null;
+  if (MODO_TECNICO){ nome = texto; }
+  else {
+    const r = loginResolver(texto);
+    if (r.erro){ loginErro(r.erro); el('lg-usr').focus(); return; }
+    if (r.u){ achado = r.u; nome = r.u.nome; }
+  }
+  if (!cod){ loginErro('Informe o código de acesso.'); el('lg-cod').focus(); return; }
+  loginErro('');
+  bt.disabled = true; bt.textContent = 'Verificando…';
+  const volta = () => { bt.disabled = false; bt.textContent = 'Entrar'; };
+  api('entrar', { nome: nome, codigo: cod, dispositivo: navigator.userAgent }).then(r => {
+    if (!r || !r.ok){
+      volta(); loginFalha((r && r.erro) || 'Não consegui validar.'); return;
+    }
+    PT.usuario = r.usuario; PT.codigo = cod;
+    USUARIO = r.usuario; pintarUsuario();
+    try {
+      localStorage.setItem('recall_sessao', JSON.stringify({nome: r.usuario.nome, codigo: cod}));
+      localStorage.setItem('recall_usuario', JSON.stringify(r.usuario));
+      localStorage.removeItem('recall_ultimo_nome');
+    } catch (e) {}
+    if (el('lg-lembrar').checked && achado) lgGravar({nome: r.usuario.nome || achado.nome, codigo: cod});
+    else lgApagar();
+    if (!r.precisa_termo){
+      el('login-tela').classList.remove('on');
+      fecharPortao(); limparCache();
+      entrarNoApp(r.painel).catch(falhar);
+      return;
+    }
+    el('pt-passos').style.display = 'flex';
+    irPasso(2);
+  }).catch(e => { volta(); loginFalha(e && e.message ? e.message : String(e), true); });
+}
+/* Sair: esquece quem estava neste aparelho e volta ao acesso. */
+function sairDoApp(){
+  lgApagar();
+  try { localStorage.removeItem('recall_sessao'); localStorage.removeItem('recall_usuario'); } catch (e) {}
+  USUARIO = null; PT.usuario = null; PT.codigo = '';
+  location.reload();
+}
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Enter' || !ev.target || ev.target.id !== 'lg-usr') return;
+  ev.preventDefault(); el('lg-cod').focus();
+});
+
 /* Os textos ficam no Apps Script, não aqui. Ver TERMOS, acima. */
 function blocosDoc(qual){
   if (!TERMOS) return null;
@@ -2844,6 +3073,7 @@ async function garantirTermos(){
 }
 
 function ptErro(msg){
+  if (el('login-tela').classList.contains('on')){ loginErro(msg || ''); return; }
   const e = el('pt-erro');
   if (!msg) { e.classList.remove('on'); return; }
   e.textContent = msg; e.classList.add('on');
@@ -2865,7 +3095,10 @@ function abrirPortao(){
 function fecharPortao(){ el('portao').classList.remove('on'); }
 
 function irPasso(n){
-  PT.passo = n; ptErro(''); ptPassos();
+  PT.passo = n;
+  if (n === 1){ el('portao').classList.remove('on'); mostrarLogin(); return; }
+  el('login-tela').classList.remove('on'); el('portao').classList.add('on');
+  ptErro(''); ptPassos();
   el('pt-voltar').style.display = n > 1 ? '' : 'none';
   if (n === 1) passoIdentificacao();
   if (n === 2) passoDocumento('aviso');
@@ -2873,66 +3106,15 @@ function irPasso(n){
   if (n === 4) passoAssinatura();
 }
 
-function passoIdentificacao(){
-  el('pt-titulo').textContent = 'Identificação';
-  const nomes = ((CTX && CTX.usuarios) || []).length ? CTX.usuarios : USUARIOS_ABERTOS;
-
-  if (MODO_TECNICO){
-    el('pt-sub').textContent = 'Acesso técnico. Digite o nome exatamente como está na aba Usuarios.';
-    el('pt-corpo').innerHTML =
-      `<div class="grid-campo">
-        <div class="campo"><label>Nome</label>
-          <input id="pt-nome-livre" autocomplete="off" placeholder="Nome cadastrado"></div>
-        <div class="campo"><label>Código de acesso</label>
-          <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></div></div>
-       <div class="nota">Esta entrada fica registrada na aba <b>Alertas</b>, com data, hora e dispositivo.
-         <a href="#" id="pt-voltar-lista">Voltar para a lista</a>.</div>`;
-    el('pt-voltar-lista').onclick = ev => { ev.preventDefault(); MODO_TECNICO = false; passoIdentificacao(); };
-    el('pt-ok').textContent = 'Entrar';
-    el('pt-ok').style.display = '';
-    setTimeout(() => el('pt-nome-livre').focus(), 60);
-    return;
-  }
-
-  el('pt-sub').textContent = 'Gestão de recall e follow-up do Instituto Kássila Nasser.';
-  /* A tela abre sempre em "— selecione —", sem nome nenhum escolhido.
-     Guardar o último nome parecia gentileza, mas o aplicativo é usado por
-     mais de uma pessoa no mesmo aparelho: quem chegasse depois encontrava o
-     nome de outra pessoa já marcado e entraria por cima sem perceber. Num
-     sistema em que cada contato fica gravado com nome, isso é registro
-     errado, não comodidade. E para quem entra sem escolher nome, o campo
-     pré-preenchido era um passo a mais, não a menos. */
-  /* A opção em branco no começo é de propósito: deixando o nome como está e
-     digitando só o código, entram as contas ocultas — é assim no app de
-     vendas, e quem usa os dois não deveria ter de lembrar de dois jeitos.
-     Para as contas da clínica o nome continua obrigatório, conferido no
-     servidor. Os campos aparecem mesmo com a lista vazia, para que uma falha
-     de rede não tranque quem já sabe o próprio código. */
-  el('pt-corpo').innerHTML =
-    `<div class="grid-campo">
-      <div class="campo"><label>Nome</label><select id="pt-nome">
-        <option value="">— selecione —</option>
-        ${nomes.map(u => `<option>${esc(u.nome)}</option>`).join('')}</select></div>
-      <div class="campo"><label>Código de acesso</label>
-        <input id="pt-codigo" type="password" inputmode="numeric" maxlength="6" autocomplete="off"
-          placeholder="••••"></div></div>`;
-  el('pt-ok').textContent = 'Entrar';
-  el('pt-ok').style.display = '';
-  /* Enter no código entra, e o cursor já começa lá quando o nome está
-     escolhido: para quem abre o app todo dia, é um toque e quatro dígitos. */
-  const campoCod = el('pt-codigo');
-  if (campoCod){
-    campoCod.onkeydown = ev => { if (ev.key === 'Enter') el('pt-ok').click(); };
-    setTimeout(() => { try { campoCod.focus(); } catch (e) {} }, 60);
-  }
-}
+/* O passo 1 agora é a tela de acesso nova (mostrarLogin). */
+function passoIdentificacao(){ mostrarLogin(); }
 
 /* Cinco toques no monograma, dentro de três segundos. Não é senha — é só para
    o campo não ficar à mostra para a equipe da clínica. Quem entra continua
    precisando do nome e do código corretos. */
 let __toques = 0, __toqueRelogio = null;
 function ligarEntradaTecnica(){
-  const logo = el('pt-logo');
+  const logo = el('lg-mono');
   if (!logo) return;
   logo.style.cursor = 'default';
   logo.onclick = () => {
@@ -3187,7 +3369,10 @@ async function iniciar(){
     USUARIOS_ABERTOS = a.usuarios || [];
     if (a.textos) TERMOS = a.textos;
     guardarPorta(a);
-    if (el('portao').classList.contains('on') && PT.passo === 1) passoIdentificacao();
+    if ((el('portao').classList.contains('on') || el('login-tela').classList.contains('on')) && PT.passo === 1){
+      /* repinta só a lista; não mexe no que a pessoa já digitou */
+      el('lg-lista').innerHTML = lgNomes().map(u => '<option value="' + esc(u.nome) + '"></option>').join('');
+    }
   }).catch(() => {
     if (!USUARIOS_ABERTOS.length && PT.passo === 1) ptErro(
       'Não consegui buscar a lista de nomes agora. Se você tem código de acesso, pode entrar assim mesmo.');
