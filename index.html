@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.4 + tela de acesso nova (pacote V4.5) — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.6 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -565,6 +565,116 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 }
 /* botão Sair no topo do app */
 .btn-sair{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;width:auto!important;padding:0 10px!important}
+
+/* ============ V4.6 — refinamento, agenda em calendário, destaques ============ */
+.card,.pac,.filtros{box-shadow:0 1px 2px rgba(36,30,28,.04),0 8px 22px -14px rgba(36,30,28,.18)}
+.hero{background:linear-gradient(135deg,var(--vinho) 0%,#74283D 100%);box-shadow:0 10px 26px -16px rgba(92,26,43,.7)}
+.hero .grande{font-family:'Fraunces',Georgia,serif;font-weight:500;letter-spacing:-.02em}
+.hero .sub{line-height:1.55}
+.sec{margin:20px 0 9px}
+/* Acompanhamento no PC: o título e os filtros ficam sob o cartão escuro, sem vão */
+.cab-ac{align-items:start}
+@media(min-width:1000px){
+  .cab-ac{grid-template-areas:"h s" "f s";grid-template-rows:auto 1fr}
+  .cab-ac>.hero{grid-area:h}
+  .cab-ac>.card{grid-area:s}
+  .cab-ac>#ac-filtros{grid-area:f;margin:0}
+}
+.cab-ac>#ac-filtros{margin:0}
+/* Faixa de cada bloco do acompanhamento */
+.sec-bloco{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:22px 0 10px;padding:9px 12px;
+  background:#fff;border:1px solid var(--linha);border-left:5px solid var(--c);border-radius:9px}
+.sec-bloco b{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--tinta)}
+.sec-bloco .n{background:var(--c);color:#fff;border-radius:99px;min-width:24px;text-align:center;padding:2px 9px;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600}
+.sec-bloco .v{margin-left:auto;background:#FBF3E2;border:1px solid #E3CF9F;color:#7A5810;border-radius:99px;
+  padding:3px 11px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600}
+/* Filtros ativos */
+.ativos{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.ativos .at{display:inline-flex;align-items:center;gap:7px;background:var(--vinho);color:#fff;border:0;border-radius:99px;
+  padding:6px 8px 6px 13px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em}
+.ativos .at i{font-style:normal;background:rgba(255,255,255,.22);border-radius:50%;width:18px;height:18px;display:grid;place-items:center;font-size:11px}
+.ativos .tudo{background:#fff;color:var(--vinho);border:1px solid var(--vinho);border-radius:99px;padding:6px 13px;
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:600}
+.colab.todas{display:flex;flex-direction:column;justify-content:center}
+/* Bloco de agendamento — o que importa em destaque */
+.agbox{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;margin:10px 0 2px;
+  padding:10px 12px;border:1px solid #BFD3C0;border-left:5px solid var(--salvia);background:#F1F7F1;border-radius:10px}
+.agbox-d{text-align:center;background:var(--salvia);color:#fff;border-radius:8px;padding:6px 10px;min-width:54px}
+.agbox-d b{display:block;font-family:'IBM Plex Mono',monospace;font-size:17px;line-height:1.1}
+.agbox-d span{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.9}
+.agbox-h{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--tinta);line-height:1.1}
+.agbox-p{font-size:13px;font-weight:700;color:var(--vinho);margin-top:3px}
+.agbox-p i{font-weight:400;color:rgba(36,30,28,.5)}
+.agbox-p small{font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:rgba(36,30,28,.5);margin-right:5px}
+.agbox-o{font-size:12px;color:rgba(36,30,28,.7);margin-top:2px;line-height:1.4}
+.agbox.passou{border-color:#E8C4B6;border-left-color:var(--vinho-2);background:#FBF0EC}
+.agbox.passou .agbox-d{background:var(--vinho-2)}
+@media(max-width:520px){.agbox{grid-template-columns:auto minmax(0,1fr)}.agbox>.st{grid-column:1/-1;justify-self:start}}
+/* Ficha: cabeçalho em etiquetas, orçamentos legíveis */
+.fc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.fc-chips span{background:rgba(250,247,243,.16);border:1px solid rgba(250,247,243,.26);border-radius:99px;padding:3px 10px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.03em;color:#fff;opacity:1;white-space:nowrap}
+#ficha .fc-topo .sub{opacity:1}
+.proc{margin:5px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.proc li{position:relative;padding-left:13px;font-size:12px;line-height:1.4;color:rgba(36,30,28,.72)}
+.proc li:before{content:"";position:absolute;left:1px;top:.58em;width:5px;height:5px;border-radius:50%;background:var(--ouro,#B8894A)}
+.proc li.mais{color:rgba(36,30,28,.45);font-style:italic}
+.orc-l{align-items:flex-start}
+.chips-dt{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.chips-dt button{background:#fff;border:1px solid var(--linha-forte);border-radius:99px;padding:4px 11px;
+  font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--vinho)}
+.chips-dt button:hover{background:var(--vinho);color:#fff;border-color:var(--vinho)}
+input[data-mk]{font-family:'IBM Plex Mono',monospace;letter-spacing:.06em}
+input.inv{border-color:#C0392B!important;background:#FDF3F1}
+
+/* ---------- Agenda em calendário ---------- */
+.ag-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;flex:2 1 260px;justify-content:flex-end}
+.seg{display:inline-flex;border:1px solid var(--linha-forte);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{border:0;background:none;padding:9px 14px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:rgba(36,30,28,.6)}
+.seg button[aria-pressed="true"]{background:var(--vinho);color:#fff;font-weight:600}
+.cal{background:var(--papel-2);border:1px solid var(--linha);border-radius:12px;padding:10px;margin-bottom:14px}
+.cal-sem,.cal-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-sem span{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(36,30,28,.5);padding:4px 0 6px}
+.cal-mes{grid-column:1/-1;font-family:'Fraunces',Georgia,serif;font-size:15px;color:var(--vinho);margin:8px 2px 2px;text-transform:capitalize}
+.cal-d{position:relative;min-height:78px;border:1px solid var(--linha);border-radius:9px;background:#fff;padding:6px 6px 5px;
+  text-align:left;display:flex;flex-direction:column;gap:3px;min-width:0;overflow:hidden;color:inherit;font:inherit}
+.cal-d .num{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:rgba(36,30,28,.7)}
+.cal-d.fora{background:transparent;border-style:dashed;opacity:.38}
+.cal-d.hoje .num{background:var(--vinho);color:#fff;border-radius:99px;padding:1px 7px;align-self:flex-start}
+.cal-d.tem{border-color:#BFD3C0;background:#F1F7F1}
+.cal-d.sel{outline:2px solid var(--vinho);outline-offset:0;background:#FBF3F5}
+.cal-d .bd{position:absolute;top:5px;right:5px;background:var(--salvia);color:#fff;border-radius:99px;min-width:18px;height:18px;
+  display:grid;place-items:center;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:0 5px}
+.cal-d .mini2{display:grid;gap:2px}
+.cal-d .mini2 i{font-style:normal;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--tinta)}
+.cal-d .mini2 i b{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--vinho);margin-right:4px}
+.cal-d .mini2 i.mais{color:rgba(36,30,28,.5)}
+@media(max-width:720px){
+  .cal-d{min-height:48px;align-items:center;padding:5px 2px}
+  .cal-d .mini2{display:none}
+  .cal-d .bd{position:static;margin-top:1px}
+  .cal-g,.cal-sem{gap:3px}
+}
+.dia-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 9px;padding-bottom:8px;border-bottom:2px solid var(--vinho)}
+.dia-cab .dn{background:var(--vinho);color:#fff;border-radius:9px;padding:5px 11px;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;line-height:1.1;text-align:center}
+.dia-cab .dt b{display:block;font-family:'Fraunces',Georgia,serif;font-size:18px;color:var(--vinho)}
+.dia-cab .dt span{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:rgba(36,30,28,.55)}
+.dia-cab .bt-min{margin-left:auto}
+.agc{display:grid;grid-template-columns:78px minmax(0,1fr);gap:0;border:1px solid var(--linha);border-radius:12px;background:#fff;margin-bottom:9px;overflow:hidden}
+.agc-h{background:var(--vinho);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;text-align:center}
+.agc-h b{font-family:'IBM Plex Mono',monospace;font-size:20px;line-height:1.1}
+.agc-h span{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;margin-top:3px}
+.agc-c{padding:11px 13px;min-width:0}
+.agc-n{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:15px;font-weight:700;line-height:1.25}
+.agc-fatos{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:9px}
+.agc-fatos div{background:var(--papel-2);border:1px solid var(--linha);border-radius:8px;padding:6px 9px;min-width:0}
+.agc-fatos small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(36,30,28,.5)}
+.agc-fatos b{display:block;font-size:13px;color:var(--vinho);overflow-wrap:anywhere;margin-top:1px}
+.agc-rod{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.agc-rod .ag-acoes{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.agc-hist{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--vinho-2);border-top:1px dashed var(--linha);padding-top:7px;margin-top:9px}
+@media(max-width:520px){.agc{grid-template-columns:62px minmax(0,1fr)}.agc-h b{font-size:17px}}
 </style>
 </head>
 <body>
@@ -621,7 +731,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
        A fila do dia. Quem já foi contatada sai do Recall e vive aqui até
        fechar, agendar ou ser encerrada pela gestora. -->
   <section class="tela on" id="tela-acompanhamento">
-    <div class="cab-tela">
+    <div class="cab-tela cab-ac">
       <div class="hero">
         <div class="rot">Acompanhamento</div>
         <div class="grande" id="ac-grande">—</div>
@@ -636,9 +746,10 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
           <div class="colabs" id="ac-colabs"></div>
         </div>
       </div>
+      <div class="filtros bloco" id="ac-filtros"></div>
     </div>
     <div id="ac-aviso"></div>
-    <div class="filtros bloco" id="ac-filtros"></div>
+    <div id="ac-ativos"></div>
     <div class="split">
       <div>
         <div class="sec-imp"><div class="sec" id="ac-rotulo">Fila do dia</div><button class="bt-min" onclick="imprimirTela('acompanhamento')" title="Imprime em PDF as pacientes que estão nesta tela, do jeito que elas estão filtradas">Imprimir relatório</button></div>
@@ -768,7 +879,8 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
     <div class="filtros bloco" id="ag-filtros"></div>
     <div class="ind-cards" id="ag-kpis"></div>
     <div class="split">
-      <div id="ag-lista"><div class="carregando">Carregando…</div></div>
+      <div><div class="cal" id="ag-cal" style="display:none"></div>
+        <div id="ag-lista"><div class="carregando">Carregando…</div></div></div>
       <div class="ficha-slot" id="slot-agenda"></div>
     </div>
   </section>
@@ -882,7 +994,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.4';   // igual ao Codigo.gs: a V4.5 só mudou a tela de acesso
+const VERSAO_TELA = 'V4.6';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1007,6 +1119,130 @@ function primeiraAbaLivre(){
 }
 const pct  = v => (Number(v) || 0).toLocaleString('pt-BR', {maximumFractionDigits: 1}) + '%';
 const el   = id => document.getElementById(id);
+/* ============ V4.6 — datas, horas, destaques ============ */
+const DIAS_CURTO = ['dom','seg','ter','qua','qui','sex','sáb'];
+const DIAS_LONGO = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+const MESES_LONGO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const dois = n => ('0' + n).slice(-2);
+function parseBR(s){
+  const m = String(s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+}
+function fmtBR(d){ return dois(d.getDate()) + '/' + dois(d.getMonth() + 1) + '/' + d.getFullYear(); }
+function diaSemana(s, longo){
+  const d = parseBR(s);
+  return d ? (longo ? DIAS_LONGO : DIAS_CURTO)[d.getDay()] : '';
+}
+/* A planilha às vezes devolve a hora como "Sat Dec 30 1899 14:00:00 GMT…".
+   Só o HH:MM interessa, venha como vier. */
+function fmtHora(h){
+  const m = String(h || '').match(/(\d{1,2}):(\d{2})/);
+  return m ? dois(m[1]) + ':' + m[2] : '';
+}
+function dataValida(s){
+  const m = String(s).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return false;
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d.getFullYear() === +m[3] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[1] && +m[3] >= 2020;
+}
+function horaValida(s){ return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(s)); }
+
+/* Máscaras: quem digita só os números; as barras e os dois pontos entram sozinhos. */
+function mascaraData(v){
+  const d = String(v).replace(/\D/g, '').slice(0, 8);
+  let o = d.slice(0, 2);
+  if (d.length > 2) o += '/' + d.slice(2, 4);
+  if (d.length > 4) o += '/' + d.slice(4);
+  return o;
+}
+function mascaraHora(v){
+  const d = String(v).replace(/\D/g, '').slice(0, 4);
+  return d.length > 2 ? d.slice(0, 2) + ':' + d.slice(2) : d;
+}
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (!t || !t.dataset || !t.dataset.mk) return;
+  const n = t.dataset.mk === 'data' ? mascaraData(t.value) : mascaraHora(t.value);
+  if (n !== t.value) t.value = n;
+  t.classList.remove('inv');
+});
+document.addEventListener('focusout', ev => {
+  const t = ev.target;
+  if (!t || !t.dataset || t.dataset.mk !== 'hora' || !t.value) return;
+  const d = t.value.replace(/\D/g, '');
+  if (d.length <= 2) t.value = dois(d || '0') + ':00';
+  else if (d.length === 3) t.value = '0' + d[0] + ':' + d.slice(1);
+});
+/* Atalhos de data: "hoje", "amanhã", "+7 dias" preenchem o campo certo. */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-add-dias]');
+  if (!b) return;
+  ev.preventDefault();
+  const alvo = el(b.dataset.alvo);
+  if (!alvo) return;
+  const d = new Date(); d.setDate(d.getDate() + Number(b.dataset.addDias));
+  alvo.value = fmtBR(d); alvo.classList.remove('inv');
+});
+const atributosData = 'data-mk="data" inputmode="numeric" maxlength="10" autocomplete="off"';
+const atributosHora = 'data-mk="hora" inputmode="numeric" maxlength="5" autocomplete="off"';
+function atalhosData(alvo, lista){
+  return '<div class="chips-dt">' + lista.map(x =>
+    `<button type="button" data-add-dias="${x[0]}" data-alvo="${alvo}">${x[1]}</button>`).join('') + '</div>';
+}
+/* Confere data (e hora) antes de mandar; marca o campo errado. */
+function conferirDataHora(idData, idHora, obrigaData){
+  const d = el(idData), h = idHora ? el(idHora) : null;
+  if (d && (d.value || obrigaData) && !dataValida(d.value)){
+    d.classList.add('inv'); d.focus(); toast('Data inválida. Use dia/mês/ano, por exemplo 20/10/2026.'); return false;
+  }
+  if (h && h.value && !horaValida(h.value)){
+    h.classList.add('inv'); h.focus(); toast('Hora inválida. Use horas:minutos, por exemplo 09:00.'); return false;
+  }
+  return true;
+}
+function agoraBR(){ const n = new Date(); return fmtBR(n) + ' ' + dois(n.getHours()) + ':' + dois(n.getMinutes()); }
+
+/* Texto de procedimentos que vem como "* CAPILAR PROTOCOLO X, * Protocolo Y"
+   vira lista legível, sem asteriscos e sem gritar em maiúsculas. */
+function capitaliza(x){
+  const letras = x.replace(/\([^)]*\)/g, '').replace(/[^A-Za-zÀ-ÿ]/g, '');
+  const maius = letras.replace(/[^A-ZÀ-Þ]/g, '').length;
+  if (letras.length > 3 && maius / letras.length > .7){
+    x = x.toLowerCase().replace(/(^|[\s(\/-])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+  }
+  return x.charAt(0).toUpperCase() + x.slice(1);
+}
+function listaProc(s){
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  if (!t) return [];
+  let partes = t.split(/\s*,?\s*\*\s*/).map(x => x.trim().replace(/^[,;\s-]+|[,;\s]+$/g, '')).filter(Boolean);
+  if (partes.length <= 1) partes = t.split(/\s*;\s*(?![^(]*\))/).map(x => x.trim()).filter(Boolean);
+  return partes.map(capitaliza);
+}
+function htmlProc(s, max){
+  const l = listaProc(s), m = max || 3;
+  if (!l.length) return '';
+  return '<ul class="proc">' + l.slice(0, m).map(x => `<li>${esc(x)}</li>`).join('') +
+    (l.length > m ? `<li class="mais">+ ${l.length - m} procedimento(s)</li>` : '') + '</ul>';
+}
+function chipsFicha(partes){
+  return partes.filter(Boolean).map(x => `<span>${esc(x)}</span>`).join('');
+}
+
+/* O agendamento em destaque: dia, hora, profissional e o que será feito. */
+function blocoAgendado(a){
+  const dm = String(a.data || '').slice(0, 5), h = fmtHora(a.hora);
+  const dt = parseBR(a.data), hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const passou = dt && dt < hoje && !/COMPARECEU|CANCELADA/.test(a.status);
+  const o = [rotuloLista('TIPO_AGENDAMENTO', a.tipo), a.obs].filter(Boolean).map(esc).join(' · ');
+  return `<div class="agbox${passou ? ' passou' : ''}">
+    <div class="agbox-d"><b>${esc(dm)}</b><span>${esc(diaSemana(a.data))}</span></div>
+    <div><div class="agbox-h">${h ? 'às ' + esc(h) : 'sem hora marcada'}</div>
+      <div class="agbox-p"><small>Profissional</small>${a.profissional ? esc(a.profissional) : '<i>a definir</i>'}</div>
+      <div class="agbox-o">${o}</div></div>
+    <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>`;
+}
+
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function soDigitos(t){ return String(t || '').replace(/\D/g, ''); }
@@ -1628,11 +1864,33 @@ function pintarAcompanhamento(d){
 
   const cols = d.colaboradoras || [];
   el('ac-colabs-box').style.display = cols.length ? '' : 'none';
-  el('ac-colabs').innerHTML = cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
+  el('ac-colabs').innerHTML = (cols.length ? `<button class="colab todas" data-n="TODAS" aria-pressed="${AC.colab === 'TODAS'}">
+      <b>Todas</b><span class="n">${cols.reduce((n, c) => n + c.total, 0)} em andamento</span></button>` : '') +
+    cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
       <b>${esc(c.nome)}</b><span class="n">${c.total} em andamento</span>
       <small>${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
   el('ac-colabs').querySelectorAll('button').forEach(b => {
     b.onclick = () => { AC.colab = (AC.colab === b.dataset.n) ? 'TODAS' : b.dataset.n; carregarAcompanhamento().catch(falhar); };
+  });
+  /* Filtros ligados ficam à vista, cada um com seu X, e um botão que limpa tudo.
+     Antes dava para ficar preso numa colaboradora sem enxergar como sair. */
+  const ativos = [];
+  if (AC.colab && AC.colab !== 'TODAS') ativos.push(['colab', 'Colaboradora: ' + AC.colab]);
+  if (AC.bloco && AC.bloco !== 'TODOS') ativos.push(['bloco', (BLOCOS_AC.filter(x => x[0] === AC.bloco)[0] || [0, AC.bloco])[1]]);
+  if (AC.origem && AC.origem !== 'TODAS') ativos.push(['origem', 'Origem: ' + (ROTULO_ORIGEM[AC.origem] || AC.origem)]);
+  if (AC.busca) ativos.push(['busca', 'Busca: ' + AC.busca]);
+  el('ac-ativos').innerHTML = ativos.length
+    ? '<div class="ativos">' + ativos.map(a => `<button class="at" data-k="${a[0]}">${esc(a[1])}<i>×</i></button>`).join('') +
+      '<button class="tudo" data-k="tudo">Mostrar todas</button></div>' : '';
+  el('ac-ativos').querySelectorAll('[data-k]').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.k;
+      if (k === 'colab' || k === 'tudo') AC.colab = 'TODAS';
+      if (k === 'bloco' || k === 'tudo') AC.bloco = 'TODOS';
+      if (k === 'origem' || k === 'tudo') AC.origem = 'TODAS';
+      if (k === 'busca' || k === 'tudo') AC.busca = '';
+      carregarAcompanhamento().catch(falhar);
+    };
   });
 
   el('ac-aviso').innerHTML = (r.SEM_DATA || 0)
@@ -1645,9 +1903,8 @@ function pintarAcompanhamento(d){
     const b = d.blocos[k];
     if (!b || !b.qtd) return;
     const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
-    html += `<div class="sec" style="display:flex;align-items:center;gap:8px">
-      <i style="width:9px;height:9px;border-radius:2px;background:${meta[3]};display:inline-block"></i>
-      ${meta[1]} — ${b.qtd}${b.valor_aberto ? ' · ' + brl(b.valor_aberto) + ' em aberto' : ''}</div>` +
+    html += `<div class="sec-bloco" style="--c:${meta[3]}"><b>${meta[1]}</b><span class="n">${b.qtd}</span>` +
+      `${b.valor_aberto ? `<span class="v">${brl(b.valor_aberto)} em aberto</span>` : ''}</div>` +
       b.itens.map(x => cartaoAc(x, k)).join('');
   });
   el('ac-rotulo').textContent = AC.bloco === 'TODOS'
@@ -1663,8 +1920,7 @@ function cartaoAc(x, bloco){
   tags.push(`<span class="tag">${x.tentativas}ª tentativa${x.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', x.ultimo_canal)) : ''}</span>`);
   if (x.temperatura) tags.push(`<span class="tag ${esc(x.temperatura)}">${esc(ROTULO_TEMP[x.temperatura] || x.temperatura)}</span>`);
   if (x.valor_aberto) tags.push(`<span class="tag val">${brl(x.valor_aberto)} em aberto</span>`);
-  if (bloco === 'AGENDADAS' && x.agenda)
-    tags.push(`<span class="tag ok">${esc(x.agenda.data)}${x.agenda.hora ? ' às ' + esc(x.agenda.hora) : ''} · ${esc(x.agenda.status)}</span>`);
+  if (bloco === 'AGENDADAS' && x.agenda) { /* o agendamento ganha bloco próprio, abaixo */ }
   else if (bloco === 'VENCIDOS')
     tags.push(`<span class="tag alerta">${x.atraso === 0 ? 'Retornar hoje' : 'Vencido há ' + x.atraso + ' dia(s)'}</span>`);
   else if (bloco === 'AGUARDANDO')
@@ -1682,6 +1938,7 @@ function cartaoAc(x, bloco){
         <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span>
       </div>
       <div class="pac-l2">Último contato ${esc(x.ultimo_contato || '—')}${x.ultimo_autor ? ' · ' + esc(x.ultimo_autor) : ''}${x.ultima_obs ? ' — “' + esc(String(x.ultima_obs).substring(0, 120)) + '”' : ''}</div>
+      ${bloco === 'AGENDADAS' && x.agenda ? blocoAgendado(x.agenda) : ''}
       <div class="pac-l3">${tags.join('')}
         <button class="bt-min" data-acao="ficha">Registrar contato</button>
         <button class="bt-min" data-acao="whats">Mensagem</button></div>
@@ -1892,6 +2149,9 @@ function aquecerFicha(chave){
 }
 function ligarAquecimento(c){
   let t = null;
+  /* No celular não existe "passar o mouse": o toque já começa a busca, e a ficha
+     chega uns décimos de segundo antes do clique terminar. */
+  c.addEventListener('pointerdown', () => aquecerFicha(c.dataset.chave));
   c.addEventListener('pointerenter', ev => {
     if (ev.pointerType && ev.pointerType !== 'mouse') return;
     clearTimeout(t);
@@ -1927,10 +2187,10 @@ function abrirFicha(chave, jaSabido){
        com isso ANTES de a planilha responder tira a sensação de travamento:
        a ficha abre na hora e o miolo chega depois. */
     el('fc-nome').textContent = jaSabido.paciente || '';
-    el('fc-sub').textContent = [
-      jaSabido.faixa, jaSabido.dias == null ? '' : jaSabido.dias + ' dias desde o último orçamento',
+    el('fc-sub').innerHTML = chipsFicha([
+      jaSabido.faixa, jaSabido.dias == null ? '' : jaSabido.dias + ' dias sem orçamento',
       jaSabido.cidade ? jaSabido.cidade + (jaSabido.uf ? '/' + jaSabido.uf : '') : ''
-    ].filter(Boolean).join(' · ');
+    ]);
   }
 
   buscarFicha(chave).then(d => {
@@ -1964,12 +2224,12 @@ function montarFicha(d){
   el('fc-nome').textContent = p.nome;
   el('fc-pdf').style.display = '';
   el('fc-pdf').onclick = () => exportarPdf({ tipo: 'FICHA', formato: 'PDF', chave: p.chave });
-  el('fc-sub').textContent = [
-    p.faixa ? p.faixa.charAt(0) + p.faixa.slice(1).toLowerCase() : '',
-    p.dias == null ? '' : p.dias + ' dias desde o último orçamento',
+  el('fc-sub').innerHTML = chipsFicha([
+    p.faixa ? (p.faixa === 'FOLLOWUP' ? 'Follow-up' : p.faixa.charAt(0) + p.faixa.slice(1).toLowerCase()) : '',
+    p.dias == null ? '' : p.dias + ' dias sem orçamento',
     p.cidade ? p.cidade + (p.uf ? '/' + p.uf : '') : '',
     ROTULO_PERFIL[p.perfil] || ''
-  ].filter(Boolean).join(' · ');
+  ]);
 
   const contatos = [];
   const numero = soDigitos(p.telefone);
@@ -1993,7 +2253,7 @@ function montarFicha(d){
     return `<div class="orc-l"><div class="dt">${esc(o.data)}</div><div class="ce">
       <div class="tt">ORÇ ${esc(o.num)} <span class="pill ${cls}">${esc(o.situacao)}</span>
       ${o.dias_aberto ? `<span class="tag">${o.dias_aberto} dias em aberto</span>` : ''}</div>
-      <div class="pp">${esc(String(o.procedimentos).substring(0, 140))}</div></div>
+      ${htmlProc(o.procedimentos, 3)}</div>
       <div class="vv">${brl(o.valor)}</div></div>`;
   }).join('') || '<div class="vazio">Nenhum orçamento na base.</div>';
 
@@ -2004,10 +2264,7 @@ function montarFicha(d){
     || '<div class="vazio">Nenhuma tentativa registrada ainda.</div>';
 
   const ags = d.agendamentos.length
-    ? d.agendamentos.map(a => `<div class="orc-l"><div class="dt">${esc(a.data)}</div><div class="ce">
-        <div class="tt">${esc(a.hora || '—')} · ${esc(rotuloLista('TIPO_AGENDAMENTO', a.tipo))}
-        <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>
-        <div class="pp">${esc(a.profissional || '')}${a.obs ? ' · ' + esc(a.obs) : ''}</div></div></div>`).join('')
+    ? d.agendamentos.map(a => blocoAgendado(a)).join('')
     : '<div class="vazio">Nenhum agendamento.</div>';
 
   const abertos = d.orcamentos.filter(o => /aberto/i.test(o.situacao));
@@ -2034,7 +2291,7 @@ function montarFicha(d){
     <div class="card"><div class="tl">${cts}</div></div>
 
     <div class="sec">Agendamentos — ${d.agendamentos.length}</div>
-    <div class="card" style="padding:4px 14px">${ags}</div>
+    <div class="card" style="padding:4px 14px 12px">${ags}</div>
 
     <div class="sec">Registrar novo contato</div>
     <div class="card">
@@ -2047,7 +2304,8 @@ function montarFicha(d){
             `<button data-v="${t}" aria-pressed="${p.temperatura === t}">${ROTULO_TEMP[t]}</button>`).join('')}</div></div>
         <div class="campo wide"><label>O que aconteceu</label>
           <textarea id="f-obs" placeholder="Escreva com as palavras dela — é isso que o próximo contato vai ler."></textarea></div>
-        <div class="campo"><label>Próximo contato em</label><input id="f-prox" placeholder="dd/mm/aaaa — em branco = ${LEMBRETE_DIAS} dias"></div>
+        <div class="campo"><label>Próximo contato em</label><input id="f-prox" placeholder="dd/mm/aaaa — em branco = ${LEMBRETE_DIAS} dias" ${atributosData}>
+          ${atalhosData('f-prox', [[3,'3 dias'],[7,'7 dias'],[15,'15 dias'],[30,'30 dias']])}</div>
         <div class="campo"><label>Lembrete</label><select id="f-lemb">
           <option value="PADRAO">Lembrar em ${LEMBRETE_DIAS} dias se eu não marcar data</option>
           <option value="SEM_LEMBRETE">Sem lembrete — vou encerrar</option></select></div>
@@ -2253,11 +2511,30 @@ function tempEscolhida(){
   return b ? b.dataset.v : '';
 }
 
+let __recarga = null;
+function recarregarDepois(ms){
+  clearTimeout(__recarga);
+  __recarga = setTimeout(() => {
+    if (EM_VOO > 0) { recarregarDepois(1500); return; }
+    recarregarTelaAtiva().catch(() => {});
+  }, ms || 1500);
+}
+/* Busca a ficha de novo por trás; só repinta se a pessoa não estiver digitando. */
+function atualizarFichaDepois(chave){
+  buscarFicha(chave).then(d => {
+    if (!d || d.erro || !PAC || PAC.paciente.chave !== chave) return;
+    CACHE['ficha:' + chave] = d; CACHE_T['ficha:' + chave] = Date.now();
+    PAC = d;
+    const obs = el('f-obs');
+    if (!obs || !obs.value) montarFicha(d);
+  }).catch(() => {});
+}
 function salvarContato(confirmado){
   if (!USUARIO) { abrirPortao(); return; }
   const p = PAC.paciente;
   const obs = el('f-obs').value.trim();
   if (!obs) { toast('Escreva o que aconteceu no contato.'); return; }
+  if (!conferirDataHora('f-prox', null, false)) return;
   const bt = el('fc-corpo').querySelector('[data-acao="salvar"]');
   const dados = {
     chave: p.chave, paciente: p.nome, telefone: p.telefone, autor: USUARIO.nome,
@@ -2289,9 +2566,19 @@ function salvarContato(confirmado){
       ? 'Contato registrado. Retorno marcado sozinho para ' + r.proximo + '.'
       : 'Contato registrado.');
     if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p);
+    /* A ficha se atualiza SOZINHA com o que acabou de ser gravado, sem esperar a
+       planilha. A conferência com o servidor roda por trás, e a lista só recarrega
+       depois, para não disputar a linha com o próximo clique. */
     limparCache();
-    abrirFicha(p.chave);
-    recarregarTelaAtiva().catch(() => {});
+    const d2 = JSON.parse(JSON.stringify(PAC));
+    d2.contatos.unshift({ id: '', data: agoraBR(), autor: USUARIO.nome, canal: dados.canal, resultado: dados.resultado,
+      temperatura: dados.temperatura, obs: dados.observacao, proximo: r.proximo || dados.proximo,
+      origem: dados.origem, ref: dados.ref });
+    if (dados.temperatura) d2.paciente.temperatura = dados.temperatura;
+    CACHE['ficha:' + p.chave] = d2; CACHE_T['ficha:' + p.chave] = Date.now();
+    PAC = d2; montarFicha(d2);
+    atualizarFichaDepois(p.chave);
+    recarregarDepois(2500);
   }).catch(e => { if (bt) { bt.disabled = false; bt.textContent = 'Salvar contato'; } falhar(e); });
 }
 
@@ -2311,8 +2598,8 @@ function escolherMensagem(p){
     <div class="grid-campo">
       <div class="campo wide"><label>Modelo</label><select id="ms-evento">
         ${modelos.map(m => `<option value="${esc(m.evento)}">${esc(m.rotulo)}</option>`).join('')}</select></div>
-      <div class="campo"><label>Data (se o modelo usar)</label><input id="ms-data" placeholder="dd/mm/aaaa"></div>
-      <div class="campo"><label>Hora (se o modelo usar)</label><input id="ms-hora" placeholder="hh:mm"></div>
+      <div class="campo"><label>Data (se o modelo usar)</label><input id="ms-data" placeholder="dd/mm/aaaa" ${atributosData}></div>
+      <div class="campo"><label>Hora (se o modelo usar)</label><input id="ms-hora" placeholder="hh:mm" ${atributosHora}></div>
       <div class="campo wide"><label>Procedimento (se o modelo usar)</label><input id="ms-proc" placeholder="opcional"></div>
     </div>
     <div class="acoes"><button class="bt prim larga" id="ms-ver">Montar mensagem</button></div>
@@ -2352,15 +2639,16 @@ function formAgendamento(p, ref, valor){
   if (!USUARIO) { abrirPortao(); return; }
   abrirModal(`<h2>Agendar — ${esc(p.nome)}</h2>
     <div class="grid-campo">
-      <div class="campo"><label>Data</label><input id="ag-data" placeholder="dd/mm/aaaa"></div>
-      <div class="campo"><label>Hora</label><input id="ag-hora" placeholder="hh:mm"></div>
+      <div class="campo"><label>Data</label><input id="ag-data" placeholder="dd/mm/aaaa" ${atributosData}>
+        ${atalhosData('ag-data', [[0,'Hoje'],[1,'Amanhã'],[7,'+7 dias']])}</div>
+      <div class="campo"><label>Hora</label><input id="ag-hora" placeholder="hh:mm" ${atributosHora}></div>
       <div class="campo"><label>Tipo</label><select id="ag-tipo">${opcoes('TIPO_AGENDAMENTO')}</select></div>
       <div class="campo"><label>Profissional</label><input id="ag-prof" value="${esc(p.profissional || '')}"></div>
       <div class="campo wide"><label>Observação</label><textarea id="ag-obs"></textarea></div>
     </div>
     <div class="acoes"><button class="bt prim larga" id="ag-ok">Salvar agendamento</button></div>`);
   el('ag-ok').onclick = () => {
-    if (!el('ag-data').value) { toast('Informe a data.'); return; }
+    if (!conferirDataHora('ag-data', 'ag-hora', true)) return;
     const bt = el('ag-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
     api('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('ag-data').value,
@@ -2373,7 +2661,8 @@ function formAgendamento(p, ref, valor){
       toast('Agendamento criado.');
       if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p); else fecharModal();
       limparCache();
-      recarregarTelaAtiva().catch(() => {});
+      atualizarFichaDepois(p.chave);
+      recarregarDepois(2500);
     }).catch(e => { bt.disabled = false; bt.textContent = 'Salvar agendamento'; falhar(e); });
   };
 }
@@ -2660,13 +2949,33 @@ function mensagemDoFollow(chave, num){
 /* ==========================================================================
    AGENDA
    ========================================================================== */
+/* ==========================================================================
+   AGENDA — calendário do período, o dia escolhido abaixo, ficha ao lado (PC)
+   ========================================================================== */
+let AG_VISAO = 'cal', AG_SEL = '', AG_DADOS = null;
+
 function montarFiltrosAgenda(){
-  const periodos = [['7','Próximos 7 dias'],['14','Próximos 14 dias'],['30','Próximos 30 dias']];
+  const periodos = [['7','Próximos 7 dias'],['14','Próximos 14 dias'],['30','Próximos 30 dias'],['60','Próximos 60 dias']];
   const cx = el('ag-filtros');
-  cx.innerHTML = campoSelecao('ag-periodo', 'Período', periodos, String(PERIODO_AGENDA));
+  cx.innerHTML = campoSelecao('ag-periodo', 'Período', periodos, String(PERIODO_AGENDA)) +
+    `<div class="ag-tools">
+      <div class="seg" role="group" aria-label="Forma de ver">
+        <button data-v="cal" aria-pressed="${AG_VISAO === 'cal'}">Calendário</button>
+        <button data-v="lista" aria-pressed="${AG_VISAO === 'lista'}">Lista</button></div>
+      <button class="bt prim" data-acao="pdf" id="ag-pdf">Imprimir PDF do período</button></div>`;
   el('ag-periodo').onchange = () => {
     PERIODO_AGENDA = Number(el('ag-periodo').value);
+    AG_SEL = '';
     carregarAgenda().catch(falhar);
+  };
+  cx.querySelectorAll('.seg button').forEach(b => {
+    b.onclick = () => { AG_VISAO = b.dataset.v; montarFiltrosAgenda(); if (AG_DADOS) pintarAgenda(AG_DADOS); };
+  });
+  el('ag-pdf').onclick = () => {
+    if (!USUARIO){ abrirPortao(); return; }
+    if (!AG_DADOS) return;
+    exportarPdf({ tipo: 'AGENDA', formato: 'PDF', de: AG_DADOS.de, ate: AG_DADOS.ate,
+                  titulo: 'Agenda — ' + AG_DADOS.de.slice(0, 5) + ' a ' + AG_DADOS.ate.slice(0, 5) });
   };
 }
 
@@ -2674,13 +2983,12 @@ async function carregarAgenda(){
   montarFiltrosAgenda();
   const hoje = new Date();
   const ate = new Date(hoje.getTime() + PERIODO_AGENDA * 86400000);
-  const f = d2 => ('0' + d2.getDate()).slice(-2) + '/' + ('0' + (d2.getMonth() + 1)).slice(-2) + '/' + d2.getFullYear();
   const ch = 'agenda:' + PERIODO_AGENDA;
   if (CACHE[ch]) pintarAgenda(CACHE[ch]);
   else el('ag-lista').innerHTML = blocoCarregando('carregando a agenda');
   marcarAtualizando('ag-lista', !!CACHE[ch]);
   try {
-    const d = await api('agenda', { de: f(hoje), ate: f(ate) });
+    const d = await api('agenda', { de: fmtBR(hoje), ate: fmtBR(ate) });
     CACHE[ch] = d;
     pintarAgenda(d);
   } catch (e) {
@@ -2691,8 +2999,10 @@ async function carregarAgenda(){
 }
 
 function pintarAgenda(d){
+  AG_DADOS = d;
   const k = d.kpis || {};
   d.dias = d.dias || [];
+  d.dias.forEach(dia => dia.itens.forEach(a => { a.hora = fmtHora(a.hora); }));
 
   el('ag-kpis').innerHTML =
     cardInd(k.total, 'agendamentos no período', (k.doRecall || 0) + ' vieram do recall') +
@@ -2700,11 +3010,65 @@ function pintarAgenda(d){
     cardInd(k.remarcadas, 'remarcadas', '') +
     cardInd(brl(k.valor), 'em orçamento previsto', '');
 
-  el('ag-lista').innerHTML = d.dias.length
-    ? d.dias.map(dia => `<div class="dia-h"><h3>${esc(dia.data)}</h3><span>${dia.itens.length} agendamento(s)</span></div>` +
-        dia.itens.map(a => cartaoAgenda(a, d.alerta_remarcacoes)).join('')).join('')
+  const mapa = {};
+  d.dias.forEach(dia => { mapa[dia.data] = dia.itens; });
+  if (!AG_SEL || !mapa[AG_SEL]){
+    const hojeBr = fmtBR(new Date());
+    AG_SEL = mapa[hojeBr] ? hojeBr : (d.dias[0] ? d.dias[0].data : '');
+  }
+
+  const cal = el('ag-cal');
+  if (AG_VISAO === 'cal' && d.dias.length){
+    cal.style.display = '';
+    cal.innerHTML = htmlCalendario(d, mapa);
+    cal.querySelectorAll('.cal-d.tem').forEach(b => {
+      b.onclick = () => {
+        AG_SEL = b.dataset.d; pintarAgenda(d);
+        if (window.innerWidth < 1100) el('ag-lista').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
+  } else { cal.style.display = 'none'; cal.innerHTML = ''; }
+
+  const dias = AG_VISAO === 'cal' ? d.dias.filter(x => x.data === AG_SEL) : d.dias;
+  el('ag-lista').innerHTML = dias.length
+    ? dias.map(dia => cabDia(dia) + dia.itens.map(a => cartaoAgenda(a, d.alerta_remarcacoes)).join('')).join('')
     : '<div class="card vazio">Nenhum agendamento no período.</div>';
   ligarAgenda();
+}
+
+function cabDia(dia){
+  const dt = parseBR(dia.data);
+  const nome0 = dt ? DIAS_LONGO[dt.getDay()] + ', ' + dt.getDate() + ' de ' + MESES_LONGO[dt.getMonth()] : dia.data;
+  const nome = nome0.charAt(0).toUpperCase() + nome0.slice(1);
+  return `<div class="dia-cab"><div class="dn">${esc(dia.data.slice(0, 2))}</div>
+    <div class="dt"><b>${esc(nome)}</b><span>${dia.itens.length} agendamento(s) · ${esc(dia.data)}</span></div>
+    <button class="bt-min" data-acao="pdf" data-dia="${esc(dia.data)}">Imprimir este dia</button></div>`;
+}
+
+function htmlCalendario(d, mapa){
+  const de = parseBR(d.de), ate = parseBR(d.ate);
+  const ini = new Date(de); ini.setDate(de.getDate() - de.getDay());
+  const fim = new Date(ate); fim.setDate(ate.getDate() + (6 - ate.getDay()));
+  const hojeBr = fmtBR(new Date());
+  let h = '<div class="cal-sem">' + DIAS_CURTO.map(x => `<span>${x}</span>`).join('') + '</div><div class="cal-g">';
+  let mesAnt = -1;
+  for (let c = new Date(ini); c <= fim; c.setDate(c.getDate() + 1)){
+    if (c.getDay() === 0 && c.getMonth() !== mesAnt){
+      /* título do mês no começo da semana em que ele aparece */
+      mesAnt = c.getMonth();
+      const ref = new Date(c); ref.setDate(ref.getDate() + 6);
+      const mm = (c < de ? ref : c);
+      h += `<div class="cal-mes">${MESES_LONGO[mm.getMonth()]} ${mm.getFullYear()}</div>`;
+    }
+    const br = fmtBR(c), itens = mapa[br] || [], fora = c < de || c > ate;
+    const mini = itens.slice(0, 2).map(a =>
+      `<i><b>${esc(a.hora || '')}</b>${esc(String(a.paciente).split(' ')[0])}</i>`).join('') +
+      (itens.length > 2 ? `<i class="mais">+ ${itens.length - 2}</i>` : '');
+    h += `<button class="cal-d${fora ? ' fora' : ''}${br === hojeBr ? ' hoje' : ''}${itens.length ? ' tem' : ''}${br === AG_SEL ? ' sel' : ''}"
+      data-d="${br}" ${itens.length ? '' : 'tabindex="-1"'} aria-label="${br}, ${itens.length} agendamento(s)">
+      <span class="num">${c.getDate()}</span>${itens.length ? `<span class="bd">${itens.length}</span><span class="mini2">${mini}</span>` : ''}</button>`;
+  }
+  return h + '</div>';
 }
 
 function cardInd(valor, rot, extra){
@@ -2714,24 +3078,29 @@ function cardInd(valor, rot, extra){
 
 function cartaoAgenda(a, alertaRem){
   const hist = a.remarcacoes > 0
-    ? `<div class="ag-hist">${esc(a.trilha)} · <b>${a.remarcacoes}ª remarcação</b>` +
+    ? `<div class="agc-hist">${esc(a.trilha)} · <b>${a.remarcacoes}ª remarcação</b>` +
       (a.motivo ? ' · motivo: ' + esc(rotuloLista('MOTIVO_REMARCACAO', a.motivo)) : '') +
       (a.remarcacoes >= alertaRem ? ' — avaliar se insiste' : '') + '</div>' : '';
-  return `<div class="ag" data-id="${esc(a.id)}" data-chave="${esc(a.chave)}">
-    <div class="hora">${esc(a.hora || '—')}</div>
-    <div class="ag-c"><div class="ag-n">${esc(a.paciente)}
-      <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>
-      <div class="ag-p">${esc(rotuloLista('TIPO_AGENDAMENTO', a.tipo))}${a.profissional ? ' · ' + esc(a.profissional) : ''}${a.obs ? ' · ' + esc(a.obs) : ''}</div></div>
-    <div class="ag-rod"><span class="tag">${esc(a.origem)}</span>
-      <div class="ag-acoes">
-        <button class="bt-min" data-acao="ficha">Ficha</button>
-        <button class="bt-min" data-acao="remarcar">Remarcar</button>
-        <button class="bt-min" data-acao="faltou">Faltou</button>
-        <button class="bt-min" data-acao="veio">Veio</button></div></div>${hist}</div>`;
+  return `<div class="agc" data-id="${esc(a.id)}" data-chave="${esc(a.chave)}">
+    <div class="agc-h"><b>${esc(fmtHora(a.hora) || '—')}</b><span>${esc(diaSemana(a.data))} ${esc(String(a.data).slice(0, 5))}</span></div>
+    <div class="agc-c">
+      <div class="agc-n">${esc(a.paciente)} <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>
+      <div class="agc-fatos">
+        <div><small>Profissional</small><b>${a.profissional ? esc(a.profissional) : '—'}</b></div>
+        <div><small>O que fazer</small><b>${esc(rotuloLista('TIPO_AGENDAMENTO', a.tipo))}${a.obs ? ' · ' + esc(a.obs) : ''}</b></div>
+      </div>
+      <div class="agc-rod"><span class="tag">${esc(ROTULO_ORIGEM[a.origem] || a.origem)}</span>
+        <div class="ag-acoes">
+          <button class="bt-min" data-acao="ficha">Ficha</button>
+          <button class="bt-min" data-acao="remarcar">Remarcar</button>
+          <button class="bt-min" data-acao="faltou">Faltou</button>
+          <button class="bt-min" data-acao="veio">Veio</button></div></div>${hist}
+    </div></div>`;
 }
 
 function ligarAgenda(){
-  el('ag-lista').querySelectorAll('.ag').forEach(c => {
+  el('ag-lista').querySelectorAll('.agc').forEach(c => {
+    c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
     c.querySelectorAll('[data-acao]').forEach(b => {
       b.onclick = () => {
         const a = b.dataset.acao;
@@ -2745,13 +3114,21 @@ function ligarAgenda(){
       };
     });
   });
+  el('ag-lista').querySelectorAll('[data-dia]').forEach(b => {
+    b.onclick = () => {
+      if (!USUARIO){ abrirPortao(); return; }
+      exportarPdf({ tipo: 'AGENDA', formato: 'PDF', de: b.dataset.dia, ate: b.dataset.dia,
+                    titulo: 'Agenda — ' + b.dataset.dia });
+    };
+  });
 }
 
 function formRemarcar(id){
   abrirModal(`<h2>Remarcar agendamento</h2>
     <div class="grid-campo">
-      <div class="campo"><label>Nova data</label><input id="rm-data" placeholder="dd/mm/aaaa"></div>
-      <div class="campo"><label>Novo horário</label><input id="rm-hora" placeholder="hh:mm"></div>
+      <div class="campo"><label>Nova data</label><input id="rm-data" placeholder="dd/mm/aaaa" ${atributosData}>
+        ${atalhosData('rm-data', [[1,'Amanhã'],[7,'+7 dias'],[14,'+14 dias']])}</div>
+      <div class="campo"><label>Novo horário</label><input id="rm-hora" placeholder="hh:mm" ${atributosHora}></div>
       <div class="campo"><label>Quem pediu</label><select id="rm-quem">
         <option value="PACIENTE">A paciente</option><option value="CLINICA">A clínica</option>
         <option value="PROFISSIONAL">Profissional indisponível</option></select></div>
@@ -2761,7 +3138,7 @@ function formRemarcar(id){
     <div class="acoes"><button class="bt prim larga" id="rm-ok">Salvar nova data</button></div>
     <div class="nota">A data anterior fica guardada na trilha do agendamento. Remarcação não conta como falta.</div>`);
   el('rm-ok').onclick = () => {
-    if (!el('rm-data').value) { toast('Informe a nova data.'); return; }
+    if (!conferirDataHora('rm-data', 'rm-hora', true)) return;
     api('remarcar', { id: id, nova_data: el('rm-data').value, nova_hora: el('rm-hora').value,
       quem_pediu: el('rm-quem').value, motivo: el('rm-motivo').value, observacao: el('rm-obs').value })
       .then(r => {
