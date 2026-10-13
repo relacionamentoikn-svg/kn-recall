@@ -691,6 +691,15 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 .rel-gap{font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--linha)}
 .rel-gap b{font-size:15px;color:var(--vinho)}
 .rel-esp{font-size:12px;color:#8A6529;padding:8px 0;border-bottom:1px solid var(--linha)}
+
+/* V4.7 — títulos marsala e blocos recolhíveis na ficha */
+#fc-corpo .sec{background:var(--vinho);color:var(--creme);padding:9px 12px;border-radius:8px;
+  margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;color:#FAF7F3}
+#fc-corpo .sec-dobra{cursor:pointer;user-select:none}
+#fc-corpo .sec .dobra-arw{font-size:11px;opacity:.85;transition:transform .15s;flex:none}
+#fc-corpo .sec.aberto .dobra-arw{transform:rotate(180deg)}
+#fc-corpo .dobra-alvo{display:none}
+#fc-corpo .dobra-alvo.aberto{display:block}
 </style>
 </head>
 <body>
@@ -2303,7 +2312,7 @@ function montarFicha(d){
     const itens = o.itens.filter(x=>x.pend>0 || x.aguardando>0).map(x => {
       const feitoApp = (x.fin || 0) + (x.aguardando || 0);
       const aguard = x.aguardando ? `<span class="pend-aw">${x.aguardando} aguardando ERP</span>` : '';
-      const btAg = x.pend>0 ? `<button class="bt-min" data-pa="ag" data-num="${esc(o.num)}" data-proc="${esc(x.proc)}">Agendar</button>` : '';
+      const btAg = x.pend>0 ? `<button class="bt-min" data-pa="ag" data-num="${esc(o.num)}" data-proc="${esc(x.proc)}" data-feito="${feitoApp}" data-qtd="${x.qtd||0}">Agendar</button>` : '';
       return `<div class="pend-i">
         <div class="pn">${esc(x.proc)} <b>${feitoApp}/${x.qtd}</b>${aguard}${x.obs ? ' · ' + esc(x.obs) : ''}</div>
         <div class="pend-bts">${btAg}
@@ -2343,18 +2352,18 @@ function montarFicha(d){
        Ela volta sozinha à fila se aparecer orçamento novo.</div>` : ''}
     ${avisoContatoRecente(p)}
 
-    ${totPac ? `<div class="sec">Procedimentos pendentes — ${totSess} ${totSess===1?'sessão':'sessões'} em ${totPac} ${totPac===1?'pacote':'pacotes'}</div>
-    <div class="card" style="padding:4px 14px">${pendHtml}
+    ${totPac ? `<div class="sec sec-dobra aberto"><span>Procedimentos pendentes — ${totSess} ${totSess===1?'sessão':'sessões'} em ${totPac} ${totPac===1?'pacote':'pacotes'}</span><span class="dobra-arw">▾</span></div>
+    <div class="card dobra-alvo aberto" style="padding:4px 14px">${pendHtml}
       <div class="pend-nota">Agendar grava na aba Agenda. Realizado é auditoria — registra que já foi feito, para acertar o ERP. Tudo entra no fechamento do dia.</div></div>` : ''}
 
-    <div class="sec">Histórico de orçamentos — ${d.orcamentos.length}</div>
-    <div class="card" style="padding:4px 14px">${orcs}</div>
+    <div class="sec sec-dobra"><span>Histórico de orçamentos — ${d.orcamentos.length}</span><span class="dobra-arw">▾</span></div>
+    <div class="card dobra-alvo" style="padding:4px 14px">${orcs}</div>
 
     <div class="sec">Tentativas de contato — ${d.contatos.length}</div>
     <div class="card"><div class="tl">${cts}</div></div>
 
-    <div class="sec">Agendamentos &amp; relacionamento — via Agenda (ERP Clínica nas Nuvens)</div>
-    <div class="card" style="padding:4px 14px 12px">${relGap}${relEsp}${relUlt}</div>
+    <div class="sec sec-dobra"><span>Agendamentos &amp; relacionamento — via Agenda (ERP Clínica nas Nuvens)</span><span class="dobra-arw">▾</span></div>
+    <div class="card dobra-alvo" style="padding:4px 14px 12px">${relGap}${relEsp}${relUlt}</div>
 
     <div class="sec">Registrar novo contato</div>
     <div class="card">
@@ -2424,33 +2433,49 @@ function montarFicha(d){
   el('fc-corpo').querySelectorAll('[data-pa]').forEach(b => {
     b.onclick = () => {
       const num = b.dataset.num, proc = b.dataset.proc;
-      if (b.dataset.pa === 'ag') return formSessao(num, proc);
+      if (b.dataset.pa === 'ag') return formSessao(num, proc, Number(b.dataset.feito || 0), Number(b.dataset.qtd || 0));
       if (b.dataset.pa === 're') return formRealizado(num, proc, Number(b.dataset.max || 1));
       if (b.dataset.pa === 'pay') return togglePagamento(num, b.dataset.on === '1');
     };
   });
+
+  el('fc-corpo').querySelectorAll('.sec-dobra').forEach(h => {
+    h.onclick = () => {
+      h.classList.toggle('aberto');
+      const c = h.nextElementSibling;
+      if (c && c.classList.contains('dobra-alvo')) c.classList.toggle('aberto');
+    };
+  });
 }
 
-function formSessao(num, proc){
+function formSessao(num, proc, feito, qtd){
   if (!USUARIO) { abrirPortao(); return; }
   const p = PAC.paciente;
+  feito = Number(feito || 0); qtd = Number(qtd || 0);
+  let sessaoOpts = '';
+  if (qtd > 0) { for (let n = feito + 1; n <= qtd; n++) sessaoOpts += `<option value="${n}">${n} de ${qtd}</option>`; }
+  const campoSessao = qtd > 0
+    ? `<div class="campo"><label>Qual sessão</label><select id="se-sessao">${sessaoOpts}</select></div>` : '';
   abrirModal(`<h2>Agendar sessão — ${esc(p.nome)}</h2>
     <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:10px">${esc(proc)} · ORÇ ${esc(num)}</div>
     <div class="grid-campo">
+      ${campoSessao}
       <div class="campo"><label>Data</label><input id="se-data" placeholder="dd/mm/aaaa"></div>
       <div class="campo"><label>Hora</label><input id="se-hora" placeholder="hh:mm"></div>
       <div class="campo"><label>Profissional</label><input id="se-prof" value=""></div>
       <div class="campo wide"><label>Observação</label><textarea id="se-obs"></textarea></div>
     </div>
-    <div class="nota">Uma sessão por vez. Para agendar várias, salve e clique em Agendar de novo para a próxima data.</div>
+    <div class="nota">Uma sessão por vez. Para agendar a próxima, salve e clique em Agendar de novo escolhendo a sessão seguinte.</div>
     <div class="acoes"><button class="bt prim larga" id="se-ok">Agendar na Agenda</button></div>`);
   el('se-ok').onclick = () => {
     if (!el('se-data').value) { toast('Informe a data.'); return; }
+    const sessao = el('se-sessao') ? el('se-sessao').value : '';
+    const tipoSessao = sessao ? `${proc} (sessão ${sessao}/${qtd})` : proc;
     const bt = el('se-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
     api('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('se-data').value,
-      hora: el('se-hora').value, tipo: proc, profissional: el('se-prof').value,
-      observacao: el('se-obs').value, autor: USUARIO.nome, ref: num, origem: 'SESSAO'
+      hora: el('se-hora').value, tipo: tipoSessao, profissional: el('se-prof').value,
+      observacao: el('se-obs').value, autor: USUARIO.nome, ref: num, origem: 'SESSAO', sessao: sessao
     }).then(r => {
       bt.disabled = false; bt.textContent = 'Agendar na Agenda';
       if (r.erro) { toast(r.erro); return; }
