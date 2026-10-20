@@ -1019,7 +1019,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.13';
+const VERSAO_TELA = 'V4.15';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1347,7 +1347,25 @@ function guardarPorta(a){
 }
 
 let EM_VOO = 0;
+/* V4.15 — ações que GRAVAM. Se a mesma chamada, com os mesmos dados, já está a caminho (clique repetido
+   na demora), devolve a mesma resposta em vez de mandar outra. */
+const ACOES_QUE_GRAVAM = {salvarContato:1, salvarAgendamento:1, remarcar:1, encerrar:1, resolvido:1,
+  statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1};
+const GRAVANDO = {};
+let GRAVANDO_N = 0;
 async function api(acao, params){
+  if (ACOES_QUE_GRAVAM[acao]){
+    let chave = acao;
+    try { chave += '|' + JSON.stringify(params || {}); } catch (e) {}
+    if (GRAVANDO[chave]) return GRAVANDO[chave];
+    /* Enquanto grava, a tela inteira diz "processando": quem não vê resposta clica de novo. */
+    GRAVANDO_N++; mostrarCarregando('processando, aguarde');
+    const p = (async () => { EM_VOO++; try { return await apiBruta(acao, params); } finally { EM_VOO--; } })();
+    GRAVANDO[chave] = p;
+    const solta = () => { delete GRAVANDO[chave]; GRAVANDO_N = Math.max(0, GRAVANDO_N - 1); if (!GRAVANDO_N) esconderCarregando(); };
+    p.then(solta, solta);
+    return p;
+  }
   EM_VOO++;
   try { return await apiBruta(acao, params); } finally { EM_VOO--; }
 }
@@ -2506,6 +2524,10 @@ function formSessao(num, proc, feito, qtd){
       <div class="campo"><label>Data</label><input id="se-data" placeholder="dd/mm/aaaa"></div>
       <div class="campo"><label>Hora</label><input id="se-hora" placeholder="hh:mm"></div>
       <div class="campo"><label>Profissional</label><input id="se-prof" value=""></div>
+      <div class="campo wide"><label>A paciente entrou em contato?</label>
+        <select id="se-contato"><option value="">— selecione —</option>
+          <option value="SIM">Sim, a paciente ligou ou escreveu</option>
+          <option value="NAO">Não, estou apenas registrando um horário já combinado</option></select></div>
       <div class="campo wide"><label>Observação</label><textarea id="se-obs"></textarea></div>
     </div>
     <div class="nota">Uma sessão por vez. Para agendar a próxima, salve e clique em Agendar de novo escolhendo a sessão seguinte.</div>
@@ -2513,13 +2535,15 @@ function formSessao(num, proc, feito, qtd){
   vigiarHorario('se-data', 'se-hora', 'se-prof');
   el('se-ok').onclick = () => {
     if (!el('se-data').value) { toast('Informe a data.'); return; }
+    if (!el('se-contato').value) { el('se-contato').focus(); toast('Informe se a paciente entrou em contato.'); return; }
     const sessao = el('se-sessao') ? el('se-sessao').value : '';
     const tipoSessao = sessao ? `${proc} (sessão ${sessao}/${qtd})` : proc;
     const bt = el('se-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
     apiComAviso('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('se-data').value,
       hora: el('se-hora').value, tipo: tipoSessao, profissional: el('se-prof').value,
-      observacao: el('se-obs').value, autor: USUARIO.nome, ref: num, origem: 'SESSAO', sessao: sessao
+      observacao: el('se-obs').value, autor: USUARIO.nome, ref: num, origem: 'SESSAO', sessao: sessao,
+      contato_paciente: el('se-contato').value
     }).then(r => {
       bt.disabled = false; bt.textContent = 'Agendar na Agenda';
       if (r.cancelado) return;
@@ -2547,12 +2571,26 @@ function formRealizado(num, proc, max){
     <div class="acoes"><button class="bt prim larga" id="re-ok">Confirmar baixa</button></div>`);
   el('re-ok').onclick = () => {
     const bt = el('re-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
-    api('marcarRealizado', {
-      chave: p.chave, paciente: p.nome, num: num, procedimento: proc,
-      qtd: el('re-qtd').value, quando: el('re-data').value, profissional: el('re-prof').value,
-      observacao: el('re-obs').value, autor: USUARIO.nome
-    }).then(r => {
+    /* V4.14 — se o mesmo procedimento deste orçamento, na mesma data, já foi lançado, pergunta antes de gravar. */
+    const enviar = async () => {
+      const dados = {
+        chave: p.chave, paciente: p.nome, num: num, procedimento: proc,
+        qtd: el('re-qtd').value, quando: el('re-data').value, profissional: el('re-prof').value,
+        observacao: el('re-obs').value, autor: USUARIO.nome
+      };
+      let r = await api('marcarRealizado', dados);
+      if (r && r.repetido){
+        const lista = (r.existentes || []).map(x => '• ' + (x.autor || 'alguém') + (x.em ? ' em ' + x.em : '') +
+          (x.qtd ? ' (' + x.qtd + ' realizada' + (x.qtd > 1 ? 's' : '') + ')' : '')).join('\n');
+        if (!confirm('Este procedimento já foi lançado neste orçamento para a mesma data:\n' + lista +
+                     '\n\nLançar mesmo assim?')) return {cancelado: true};
+        r = await api('marcarRealizado', Object.assign({}, dados, {confirmar_repetido: '1'}));
+      }
+      return r;
+    };
+    enviar().then(r => {
       bt.disabled = false; bt.textContent = 'Confirmar baixa';
+      if (r && r.cancelado) return;
       if (r.erro) { toast(r.erro); return; }
       toast('Registrado no fechamento.'); fecharModal();
       limparCache(); recarregarTelaAtiva().catch(() => {});
@@ -2855,18 +2893,23 @@ function formAgendamento(p, ref, valor){
       <div class="campo"><label>Hora</label><input id="ag-hora" placeholder="hh:mm" ${atributosHora}></div>
       <div class="campo"><label>Tipo</label><select id="ag-tipo">${opcoes('TIPO_AGENDAMENTO')}</select></div>
       <div class="campo"><label>Profissional</label><input id="ag-prof" value="${esc(p.profissional || '')}"></div>
+      <div class="campo wide"><label>A paciente entrou em contato?</label>
+        <select id="ag-contato"><option value="">— selecione —</option>
+          <option value="SIM">Sim, a paciente ligou ou escreveu</option>
+          <option value="NAO">Não, estou apenas registrando um horário já combinado</option></select></div>
       <div class="campo wide"><label>Observação</label><textarea id="ag-obs"></textarea></div>
     </div>
     <div class="acoes"><button class="bt prim larga" id="ag-ok">Salvar agendamento</button></div>`);
   vigiarHorario('ag-data', 'ag-hora', 'ag-prof');
   el('ag-ok').onclick = () => {
     if (!conferirDataHora('ag-data', 'ag-hora', true)) return;
+    if (!el('ag-contato').value) { el('ag-contato').focus(); toast('Informe se a paciente entrou em contato.'); return; }
     const bt = el('ag-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
     apiComAviso('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('ag-data').value,
       hora: el('ag-hora').value, tipo: el('ag-tipo').value, profissional: el('ag-prof').value,
       observacao: el('ag-obs').value, autor: USUARIO.nome, ref: ref || '', valor: valor || 0,
-      origem: ref ? 'FOLLOWUP' : 'RECALL'
+      origem: ref ? 'FOLLOWUP' : 'RECALL', contato_paciente: el('ag-contato').value
     }).then(r => {
       bt.disabled = false; bt.textContent = 'Salvar agendamento';
       if (r.cancelado) return;
