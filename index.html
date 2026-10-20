@@ -1019,7 +1019,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.12';
+const VERSAO_TELA = 'V4.13';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1933,7 +1933,7 @@ function pintarAcompanhamento(d){
   const cols = d.colaboradoras || [];
   el('ac-colabs-box').style.display = cols.length ? '' : 'none';
   el('ac-colabs').innerHTML = (cols.length ? `<button class="colab todas" data-n="TODAS" aria-pressed="${AC.colab === 'TODAS'}">
-      <b>Todas</b><span class="n">${cols.reduce((n, c) => n + c.total, 0)} em andamento</span></button>` : '') +
+      <b>Todas</b><span class="n">${d.todas_total != null ? d.todas_total : cols.reduce((n, c) => n + c.total, 0)} em andamento</span></button>` : '') +
     cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
       <b>${esc(c.nome)}</b><span class="n">${c.total} em andamento</span>
       <small>${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
