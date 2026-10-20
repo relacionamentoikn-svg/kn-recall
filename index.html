@@ -1019,7 +1019,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.11';
+const VERSAO_TELA = 'V4.12';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1878,7 +1878,8 @@ const BLOCOS_AC = [
   ['AGUARDANDO', 'Aguardando', 'retorno marcado para frente',        'var(--latao)'],
   ['AGENDADAS',  'Agendadas',  'já tem horário marcado',             'var(--salvia)']
 ];
-const blocosAc = () => contaRestrita() ? BLOCOS_AC.filter(x => x[0] !== 'AGENDADAS') : BLOCOS_AC;
+/* V4.12 — o agendamento não tira a paciente da colaboradora: o bloco Agendadas aparece para todas as contas */
+const blocosAc = () => BLOCOS_AC;
 const ROTULO_ORIGEM = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up' };
 
 async function carregarAcompanhamento(){
