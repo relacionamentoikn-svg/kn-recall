@@ -163,7 +163,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .colab[aria-pressed="true"]{outline:2px solid var(--vinho);background:#faf3f4}
 .sem-relatorio .bt-min[onclick^="imprimirTela"],.sem-relatorio #fc-pdf,.sem-relatorio [data-acao="pdf"],
 .sem-relatorio .barra-sel [data-a="pdf"],.sem-relatorio .barra-sel [data-a="xlsx"],.sem-relatorio .barra-sel [data-a="sintetico"],
-.conta-restrita [data-acao="encerrar"],.conta-restrita [data-acao="remarcar"],.conta-restrita [data-acao="resolvido"],
+.conta-restrita [data-acao="encerrar"],.conta-restrita [data-acao="resolvido"],
 .conta-restrita [data-acao="veio"],.conta-restrita [data-acao="faltou"]{display:none!important}
 .fx-DIAMANTE{background:var(--f-diamante)}.fx-OURO{background:var(--f-ouro)}
 .fx-BRONZE{background:var(--f-bronze)}
@@ -1019,7 +1019,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.10';
+const VERSAO_TELA = 'V4.11';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1132,7 +1132,7 @@ function podeAba(t){
     case 'dormente':    return tem('DORMENTE');
     case 'highticket':  return tem('HIGHTICKET');
     case 'follow':      return tem('FOLLOWUP');
-    case 'agenda':      return tem('AGENDA');
+    case 'agenda':      return true;   // V4.11: a Agenda é aberta a todas as contas
     case 'indicadores': return tem('INDICADORES');
   }
   return false;
@@ -1224,6 +1224,48 @@ function conferirDataHora(idData, idHora, obrigaData){
     h.classList.add('inv'); h.focus(); toast('Hora inválida. Use horas:minutos, por exemplo 09:00.'); return false;
   }
   return true;
+}
+/* ============ V4.11 — horário já reservado ============
+   Mesma profissional + mesma data + mesma hora. Aviso ao vivo no formulário e,
+   se ainda assim for salvar, confirmação antes de gravar. */
+function textoReserva(c){
+  return (c.paciente || 'Outra paciente') + ' às ' + c.hora + (c.profissional ? ' com ' + c.profissional : '') + ' em ' + c.data;
+}
+async function apiComAviso(acao, params){
+  let r = await api(acao, params);
+  if (r && r.conflito){
+    const lista = (r.conflitos || []).map(textoReserva).join('\n');
+    if (!confirm('Horário já reservado:\n' + lista + '\n\nAgendar mesmo assim?')) return {cancelado: true};
+    r = await api(acao, Object.assign({}, params, {confirmar_conflito: '1'}));
+  }
+  return r;
+}
+function vigiarHorario(idData, idHora, idProf, ignorarId){
+  const dEl = el(idData), hEl = el(idHora), pEl = idProf ? el(idProf) : null;
+  if (!dEl || !hEl) return;
+  const grade = dEl.closest('.grid-campo');
+  if (!grade) return;
+  const caixa = document.createElement('div');
+  caixa.className = 'aviso-box'; caixa.style.display = 'none';
+  grade.parentNode.insertBefore(caixa, grade.nextSibling);
+  let tempo = null, seq = 0;
+  const checar = () => {
+    clearTimeout(tempo);
+    tempo = setTimeout(async () => {
+      const meu = ++seq;
+      const d = dEl.value, h = hEl.value, pr = pEl ? pEl.value : '';
+      if (!dataValida(d) || !h || !horaValida(h) || (pEl && !pr.trim())){ caixa.style.display = 'none'; return; }
+      try {
+        const r = await api('conflitoHorario', {data: d, hora: h, profissional: pr, ignorar_id: ignorarId || ''});
+        if (meu !== seq || !caixa.isConnected) return;
+        if (r && r.conflitos && r.conflitos.length){
+          caixa.innerHTML = '<b>Horário já reservado.</b> ' + r.conflitos.map(c => esc(textoReserva(c))).join(' · ');
+          caixa.style.display = '';
+        } else caixa.style.display = 'none';
+      } catch (e) { caixa.style.display = 'none'; }
+    }, 350);
+  };
+  [dEl, hEl, pEl].forEach(x => { if (x){ x.addEventListener('input', checar); x.addEventListener('change', checar); } });
 }
 function agoraBR(){ const n = new Date(); return fmtBR(n) + ' ' + dois(n.getHours()) + ':' + dois(n.getMinutes()); }
 
@@ -2467,17 +2509,19 @@ function formSessao(num, proc, feito, qtd){
     </div>
     <div class="nota">Uma sessão por vez. Para agendar a próxima, salve e clique em Agendar de novo escolhendo a sessão seguinte.</div>
     <div class="acoes"><button class="bt prim larga" id="se-ok">Agendar na Agenda</button></div>`);
+  vigiarHorario('se-data', 'se-hora', 'se-prof');
   el('se-ok').onclick = () => {
     if (!el('se-data').value) { toast('Informe a data.'); return; }
     const sessao = el('se-sessao') ? el('se-sessao').value : '';
     const tipoSessao = sessao ? `${proc} (sessão ${sessao}/${qtd})` : proc;
     const bt = el('se-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
-    api('salvarAgendamento', {
+    apiComAviso('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('se-data').value,
       hora: el('se-hora').value, tipo: tipoSessao, profissional: el('se-prof').value,
       observacao: el('se-obs').value, autor: USUARIO.nome, ref: num, origem: 'SESSAO', sessao: sessao
     }).then(r => {
       bt.disabled = false; bt.textContent = 'Agendar na Agenda';
+      if (r.cancelado) return;
       if (r.erro) { toast(r.erro); return; }
       toast('Sessão agendada.');
       if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p); else fecharModal();
@@ -2813,16 +2857,18 @@ function formAgendamento(p, ref, valor){
       <div class="campo wide"><label>Observação</label><textarea id="ag-obs"></textarea></div>
     </div>
     <div class="acoes"><button class="bt prim larga" id="ag-ok">Salvar agendamento</button></div>`);
+  vigiarHorario('ag-data', 'ag-hora', 'ag-prof');
   el('ag-ok').onclick = () => {
     if (!conferirDataHora('ag-data', 'ag-hora', true)) return;
     const bt = el('ag-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
-    api('salvarAgendamento', {
+    apiComAviso('salvarAgendamento', {
       chave: p.chave, paciente: p.nome, telefone: p.telefone, data: el('ag-data').value,
       hora: el('ag-hora').value, tipo: el('ag-tipo').value, profissional: el('ag-prof').value,
       observacao: el('ag-obs').value, autor: USUARIO.nome, ref: ref || '', valor: valor || 0,
       origem: ref ? 'FOLLOWUP' : 'RECALL'
     }).then(r => {
       bt.disabled = false; bt.textContent = 'Salvar agendamento';
+      if (r.cancelado) return;
       if (r.erro) { toast(r.erro); return; }
       toast('Agendamento criado.');
       if (r.mensagem && r.mensagem.texto) mostrarMensagem(r.mensagem, p); else fecharModal();
@@ -3243,6 +3289,10 @@ function cardInd(valor, rot, extra){
 }
 
 function cartaoAgenda(a, alertaRem){
+  /* V4.11 — a Agenda mostra todos os horários, inclusive os do ERP. Horário do ERP só abre a ficha;
+     a conta restrita remarca apenas o que ela mesma marcou. */
+  const doErp = String(a.origem) === 'ERP';
+  const minha = !contaRestrita() || (USUARIO && String(a.autor || '').trim().toLowerCase() === String(USUARIO.nome || '').trim().toLowerCase());
   const hist = a.remarcacoes > 0
     ? `<div class="agc-hist">${esc(a.trilha)} · <b>${a.remarcacoes}ª remarcação</b>` +
       (a.motivo ? ' · motivo: ' + esc(rotuloLista('MOTIVO_REMARCACAO', a.motivo)) : '') +
@@ -3258,9 +3308,9 @@ function cartaoAgenda(a, alertaRem){
       <div class="agc-rod"><span class="tag">${esc(ROTULO_ORIGEM[a.origem] || a.origem)}</span>
         <div class="ag-acoes">
           <button class="bt-min" data-acao="ficha">Ficha</button>
-          <button class="bt-min" data-acao="remarcar">Remarcar</button>
+          ${doErp ? '' : `${minha ? '<button class="bt-min" data-acao="remarcar">Remarcar</button>' : ''}
           <button class="bt-min" data-acao="faltou">Faltou</button>
-          <button class="bt-min" data-acao="veio">Compareceu</button></div></div>${hist}
+          <button class="bt-min" data-acao="veio">Compareceu</button>`}</div></div>${hist}
     </div></div>`;
 }
 
@@ -3303,11 +3353,13 @@ function formRemarcar(id){
     </div>
     <div class="acoes"><button class="bt prim larga" id="rm-ok">Salvar nova data</button></div>
     <div class="nota">A data anterior fica guardada na trilha do agendamento. Remarcação não conta como falta.</div>`);
+  vigiarHorario('rm-data', 'rm-hora', null, id);
   el('rm-ok').onclick = () => {
     if (!conferirDataHora('rm-data', 'rm-hora', true)) return;
-    api('remarcar', { id: id, nova_data: el('rm-data').value, nova_hora: el('rm-hora').value,
+    apiComAviso('remarcar', { id: id, nova_data: el('rm-data').value, nova_hora: el('rm-hora').value,
       quem_pediu: el('rm-quem').value, motivo: el('rm-motivo').value, observacao: el('rm-obs').value })
       .then(r => {
+        if (r.cancelado) return;
         if (r.erro) { toast(r.erro); return; }
         toast('Remarcado — ' + r.remarcacoes + 'ª vez.');
         if (r.mensagem && r.mensagem.texto) {
