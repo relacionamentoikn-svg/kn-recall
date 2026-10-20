@@ -1019,7 +1019,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.15';
+const VERSAO_TELA = 'V4.17';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -2339,7 +2339,7 @@ function montarFicha(d){
     return `<div class="orc-l"><div class="dt">${esc(o.data)}</div><div class="ce">
       <div class="tt">ORÇ ${esc(o.num)} <span class="pill ${cls}">${esc(o.situacao)}</span>
       ${o.dias_aberto ? `<span class="tag">${o.dias_aberto} dias em aberto</span>` : ''}</div>
-      ${htmlProc(o.procedimentos, 3)}</div>
+      ${htmlProc(o.procedimentos, 999)}</div>
       <div class="vv">${brl(o.valor)}</div></div>`;
   }).join('') || '<div class="vazio">Nenhum orçamento na base.</div>';
 
@@ -2367,6 +2367,7 @@ function montarFicha(d){
     if (sp<=0 && aw<=0) return '';
     const pg = pagos[o.num];
     const pgChip = pg ? '<span class="pend-pg">pendente de pagamento</span>' : '';
+    const pgInfo = (pg && (pg.por || pg.em)) ? `<div class="pend-nota">Pendente de pagamento — marcado${pg.por ? ' por ' + esc(pg.por) : ''}${pg.em ? ' em ' + esc(pg.em) : ''}</div>` : '';
     const pgBt = pg
       ? `<button class="bt-min" data-pa="pay" data-num="${esc(o.num)}" data-on="1">Baixar pendência de pgto</button>`
       : `<button class="bt-min" data-pa="pay" data-num="${esc(o.num)}" data-on="0">Marcar pendente de pagamento</button>`;
@@ -2374,15 +2375,18 @@ function montarFicha(d){
       const feitoApp = (x.fin || 0) + (x.aguardando || 0);
       const aguard = x.aguardando ? `<span class="pend-aw">${x.aguardando} aguardando ERP</span>` : '';
       const btAg = x.pend>0 ? `<button class="bt-min" data-pa="ag" data-num="${esc(o.num)}" data-proc="${esc(x.proc)}" data-feito="${feitoApp}" data-qtd="${x.qtd||0}">Agendar</button>` : '';
+      const feitos = (x.acoes || []).map(a => a.tipo === 'REALIZADO'
+        ? `<div class="pend-nota">Realizado${a.qtd ? ' ' + a.qtd + '×' : ''}${a.quando ? ' em ' + esc(a.quando) : ''}${a.profissional ? ' · ' + esc(a.profissional) : ''} — lançado${a.autor ? ' por ' + esc(a.autor) : ''}${a.em ? ' em ' + esc(a.em) : ''} · ${a.confirmado ? 'confirmado pelo ERP' : 'aguardando baixa do ERP'}</div>`
+        : `<div class="pend-nota">Agendado${a.data ? ' para ' + esc(a.data) : ''}${a.hora ? ' às ' + esc(a.hora) : ''}${a.profissional ? ' · ' + esc(a.profissional) : ''} — lançado${a.autor ? ' por ' + esc(a.autor) : ''}${a.em ? ' em ' + esc(a.em) : ''}</div>`).join('');
       return `<div class="pend-i">
-        <div class="pn">${esc(x.proc)} <b>${feitoApp}/${x.qtd}</b>${aguard}${x.obs ? ' · ' + esc(x.obs) : ''}</div>
+        <div class="pn">${esc(x.proc)} <b>${feitoApp}/${x.qtd}</b>${aguard}${x.obs ? ' · ' + esc(x.obs) : ''}${feitos}</div>
         <div class="pend-bts">${btAg}
           <button class="bt-min" data-pa="re" data-num="${esc(o.num)}" data-proc="${esc(x.proc)}" data-max="${x.pend || x.qtd}">Realizado</button>
         </div></div>`;
     }).join('');
     return `<div class="pend-h"><div class="n">ORÇ ${esc(o.num)} <span style="font-size:11px;color:rgba(36,30,28,.5)">${esc(o.data)}</span>${pgChip}</div>
         <div class="v">${brl(o.valor)}</div></div>
-      <div style="padding-bottom:4px">${pgBt}</div>${itens}`;
+      ${pgInfo}<div style="padding-bottom:4px">${pgBt}</div>${itens}`;
   }).join('') : '';
 
   const rel = d.relacionamento || {};
