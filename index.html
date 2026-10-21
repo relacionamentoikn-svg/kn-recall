@@ -610,6 +610,9 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .agbox-o{font-size:12px;color:rgba(36,30,28,.7);margin-top:2px;line-height:1.4}
 .agbox.passou{border-color:#E8C4B6;border-left-color:var(--vinho-2);background:#FBF0EC}
 .agbox.passou .agbox-d{background:var(--vinho-2)}
+.agerp{font-size:12px;margin:4px 0 2px;padding:5px 10px;border-radius:6px;border:1px solid var(--linha-forte);color:rgba(36,30,28,.75);background:#fff}
+.agerp.ok{border-color:#B9D3C2;background:#F1F8F3;color:#2F6B45}
+.agerp.alerta{border-color:var(--vinho-2);background:#FBF0EC;color:#7E2E17;font-weight:600}
 @media(max-width:520px){.agbox{grid-template-columns:auto minmax(0,1fr)}.agbox>.st{grid-column:1/-1;justify-self:start}}
 /* Ficha: cabeçalho em etiquetas, orçamentos legíveis */
 .fc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
@@ -1019,7 +1022,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.17';
+const VERSAO_TELA = 'V4.18';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1043,7 +1046,7 @@ const FILTROS = {
      pacientes que mais importam. */
   highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'NAO' }
 };
-const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS' };
+const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS', divergentes: '' };
 const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
 
 /* Cache de tela. Cada aba guarda a última resposta boa; ao voltar nela o app
@@ -1307,7 +1310,8 @@ function blocoAgendado(a){
     <div><div class="agbox-h">${h ? 'às ' + esc(h) : 'sem hora marcada'}</div>
       <div class="agbox-p"><small>Profissional</small>${a.profissional ? esc(a.profissional) : '<i>a definir</i>'}</div>
       <div class="agbox-o">${o}</div></div>
-    <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>`;
+    <span class="st st-${esc(a.status)}">${esc(a.status)}</span></div>` +
+    (a.erp ? `<div class="agerp ${a.erp.alerta ? 'alerta' : 'ok'}">${a.erp.alerta ? '⚠ ' : '✓ '}${esc(a.erp.rotulo)}</div>` : '');
 }
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -1965,6 +1969,7 @@ function pintarAcompanhamento(d){
   if (AC.bloco && AC.bloco !== 'TODOS') ativos.push(['bloco', (BLOCOS_AC.filter(x => x[0] === AC.bloco)[0] || [0, AC.bloco])[1]]);
   if (AC.origem && AC.origem !== 'TODAS') ativos.push(['origem', 'Origem: ' + (ROTULO_ORIGEM[AC.origem] || AC.origem)]);
   if (AC.busca) ativos.push(['busca', 'Busca: ' + AC.busca]);
+  if (AC.divergentes) ativos.push(['diverg', 'Só horários que não batem com o ERP']);
   el('ac-ativos').innerHTML = ativos.length
     ? '<div class="ativos">' + ativos.map(a => `<button class="at" data-k="${a[0]}">${esc(a[1])}<i>×</i></button>`).join('') +
       '<button class="tudo" data-k="tudo">Mostrar todas</button></div>' : '';
@@ -1975,13 +1980,19 @@ function pintarAcompanhamento(d){
       if (k === 'bloco' || k === 'tudo') AC.bloco = 'TODOS';
       if (k === 'origem' || k === 'tudo') AC.origem = 'TODAS';
       if (k === 'busca' || k === 'tudo') AC.busca = '';
+      if (k === 'diverg' || k === 'tudo') AC.divergentes = '';
       carregarAcompanhamento().catch(falhar);
     };
   });
 
-  el('ac-aviso').innerHTML = (r.SEM_DATA || 0)
+  el('ac-aviso').innerHTML = ((r.SEM_DATA || 0)
     ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
-       São as que caem no esquecimento: marque a data do retorno ou encerre.</div>` : '';
+       São as que caem no esquecimento: marque a data do retorno ou encerre.</div>` : '') +
+    ((d.divergentes || 0) && !AC.divergentes
+    ? `<div class="aviso-box"><b>${d.divergentes} horário(s) lançado(s) no app não batem com a agenda do ERP.</b>
+       Cancelado, outra data ou hora, ou ausente no ERP. Nada foi alterado: confira e ajuste.
+       <button class="bt-min" id="ac-div" style="margin-left:8px">Ver só estas</button></div>` : '');
+  if (el('ac-div')) el('ac-div').onclick = () => { AC.divergentes = '1'; AC.bloco = 'TODOS'; carregarAcompanhamento().catch(falhar); };
 
   const mostrar = AC.bloco === 'TODOS' ? blocosAc().map(x => x[0]) : [AC.bloco];
   let html = '';
