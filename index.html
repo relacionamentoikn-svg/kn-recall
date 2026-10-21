@@ -610,6 +610,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .agbox-o{font-size:12px;color:rgba(36,30,28,.7);margin-top:2px;line-height:1.4}
 .agbox.passou{border-color:#E8C4B6;border-left-color:var(--vinho-2);background:#FBF0EC}
 .agbox.passou .agbox-d{background:var(--vinho-2)}
+.agedit{margin:4px 0 8px}
 .agerp{font-size:12px;margin:4px 0 2px;padding:5px 10px;border-radius:6px;border:1px solid var(--linha-forte);color:rgba(36,30,28,.75);background:#fff}
 .agerp.ok{border-color:#B9D3C2;background:#F1F8F3;color:#2F6B45}
 .agerp.alerta{border-color:var(--vinho-2);background:#FBF0EC;color:#7E2E17;font-weight:600}
@@ -1022,7 +1023,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.18';
+const VERSAO_TELA = 'V4.19';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1353,7 +1354,7 @@ function guardarPorta(a){
 let EM_VOO = 0;
 /* V4.15 — ações que GRAVAM. Se a mesma chamada, com os mesmos dados, já está a caminho (clique repetido
    na demora), devolve a mesma resposta em vez de mandar outra. */
-const ACOES_QUE_GRAVAM = {salvarContato:1, salvarAgendamento:1, remarcar:1, encerrar:1, resolvido:1,
+const ACOES_QUE_GRAVAM = {salvarContato:1, salvarAgendamento:1, remarcar:1, corrigirAgendamento:1, encerrar:1, resolvido:1,
   statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1};
 const GRAVANDO = {};
 let GRAVANDO_N = 0;
@@ -2026,6 +2027,7 @@ function cartaoAc(x, bloco){
     tags.push('<span class="tag roxo">Sem próximo passo</span>');
 
   const cor = BLOCOS_AC.filter(b => b[0] === bloco)[0][3];
+  if (bloco === 'AGENDADAS' && x.agenda) guardarAgEdit(x.agenda, x.paciente, x.chave);
   return `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
     <div class="tarja" style="background:${cor}"></div>
     <div class="pac-in">
@@ -2038,6 +2040,7 @@ function cartaoAc(x, bloco){
       ${bloco === 'AGENDADAS' && x.agenda ? blocoAgendado(x.agenda) : ''}
       <div class="pac-l3">${tags.join('')}
         <button class="bt-min" data-acao="ficha">Registrar contato</button>
+        ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
         <button class="bt-min" data-acao="whats">Mensagem</button></div>
     </div></div>`;
 }
@@ -2048,6 +2051,7 @@ function ligarCartoesAc(){
       b.onclick = ev => {
         ev.stopPropagation();
         if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); return; }
+        if (b.dataset.acao === 'corrigir') { formCorrigir(b.dataset.agid); return; }
         api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
           if (m.erro) { toast(m.erro); return; }
           abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
@@ -2361,7 +2365,8 @@ function montarFicha(d){
     || '<div class="vazio">Nenhuma tentativa registrada ainda.</div>';
 
   const ags = d.agendamentos.length
-    ? d.agendamentos.map(a => blocoAgendado(a)).join('')
+    ? d.agendamentos.map(a => { guardarAgEdit(a, d.paciente.nome, d.paciente.chave);
+        return blocoAgendado(a) + (podeCorrigirAg(a) ? `<div class="agedit"><button class="bt-min" data-corrigir-ficha="${esc(a.id)}">Corrigir horário</button></div>` : ''); }).join('')
     : '<div class="vazio">Nenhum agendamento.</div>';
 
   const pendentes = d.pendentes || [];
@@ -3356,6 +3361,7 @@ function cartaoAgenda(a, alertaRem){
     ? `<div class="agc-hist">${esc(a.trilha)} · <b>${a.remarcacoes}ª remarcação</b>` +
       (a.motivo ? ' · motivo: ' + esc(rotuloLista('MOTIVO_REMARCACAO', a.motivo)) : '') +
       (a.remarcacoes >= alertaRem ? ' — avaliar se insiste' : '') + '</div>' : '';
+  guardarAgEdit(a, a.paciente, a.chave);
   return `<div class="agc" data-id="${esc(a.id)}" data-chave="${esc(a.chave)}">
     <div class="agc-h"><b>${esc(fmtHora(a.hora) || '—')}</b><span>${esc(diaSemana(a.data))} ${esc(String(a.data).slice(0, 5))}</span></div>
     <div class="agc-c">
@@ -3368,6 +3374,7 @@ function cartaoAgenda(a, alertaRem){
         <div class="ag-acoes">
           <button class="bt-min" data-acao="ficha">Ficha</button>
           ${doErp ? '' : `${minha ? '<button class="bt-min" data-acao="remarcar">Remarcar</button>' : ''}
+          ${minha ? botaoCorrigirAg(a) : ''}
           <button class="bt-min" data-acao="faltou">Faltou</button>
           <button class="bt-min" data-acao="veio">Compareceu</button>`}</div></div>${hist}
     </div></div>`;
@@ -3382,6 +3389,7 @@ function ligarAgenda(){
         if (a === 'ficha') { abrirFicha(c.dataset.chave); return; }
         if (!USUARIO) { abrirPortao(); return; }
         if (a === 'remarcar') { formRemarcar(c.dataset.id); return; }
+        if (a === 'corrigir') { formCorrigir(c.dataset.id); return; }
         const st = a === 'faltou' ? 'FALTOU' : 'COMPARECEU';
         api('statusAgendamento', { id: c.dataset.id, status: st, autor: USUARIO.nome })
           .then(() => { toast('Atualizado.'); limparCache(); carregarAgenda().catch(falhar); })
@@ -3397,6 +3405,57 @@ function ligarAgenda(){
     };
   });
 }
+
+/* V4.19 — CORRIGIR horário lançado errado. Não conta como remarcação e não muda o status. */
+const AG_EDIT = {};
+function podeCorrigirAg(a){
+  return !!(a && a.id && !/^ERP/i.test(String(a.id)) && !/CANCELADA|COMPARECEU|FALTOU/i.test(String(a.status || '')));
+}
+function guardarAgEdit(a, paciente, chave){
+  if (a && a.id) AG_EDIT[a.id] = { id: a.id, data: a.data, hora: a.hora, tipo: a.tipo, profissional: a.profissional,
+    obs: a.obs, paciente: paciente || a.paciente || '', chave: chave || a.chave || '' };
+}
+function botaoCorrigirAg(a){
+  return podeCorrigirAg(a) ? `<button class="bt-min" data-acao="corrigir" data-agid="${esc(a.id)}">Corrigir horário</button>` : '';
+}
+function formCorrigir(id){
+  if (!USUARIO) { abrirPortao(); return; }
+  const a = AG_EDIT[id];
+  if (!a) { toast('Não achei este horário. Atualize a tela e tente de novo.'); return; }
+  abrirModal(`<h2>Corrigir horário — ${esc(a.paciente)}</h2>
+    <div class="grid-campo">
+      <div class="campo"><label>Data</label><input id="cg-data" placeholder="dd/mm/aaaa" value="${esc(a.data || '')}" ${atributosData}></div>
+      <div class="campo"><label>Hora</label><input id="cg-hora" placeholder="hh:mm" value="${esc(fmtHora(a.hora) || '')}" ${atributosHora}></div>
+      <div class="campo"><label>Tipo</label><select id="cg-tipo">${opcoes('TIPO_AGENDAMENTO', a.tipo)}</select></div>
+      <div class="campo"><label>Profissional</label><input id="cg-prof" value="${esc(a.profissional || '')}"></div>
+      <div class="campo wide"><label>Observação</label><textarea id="cg-obs">${esc(a.obs || '')}</textarea></div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="cg-ok">Salvar correção</button></div>
+    <div class="nota">Use para corrigir erro de lançamento. Não conta como remarcação e não envia mensagem. A data anterior fica registrada.</div>`);
+  vigiarHorario('cg-data', 'cg-hora', 'cg-prof', id);
+  el('cg-ok').onclick = () => {
+    if (!conferirDataHora('cg-data', 'cg-hora', true)) return;
+    const bt = el('cg-ok'); bt.disabled = true; bt.textContent = 'Salvando…';
+    apiComAviso('corrigirAgendamento', { id: id, nova_data: el('cg-data').value, nova_hora: el('cg-hora').value,
+      tipo: el('cg-tipo').value, profissional: el('cg-prof').value, observacao: el('cg-obs').value, autor: USUARIO.nome })
+      .then(r => {
+        bt.disabled = false; bt.textContent = 'Salvar correção';
+        if (r.cancelado) return;
+        if (r.erro) { toast(r.erro); return; }
+        toast('Horário corrigido: ' + r.depois + '.');
+        fecharModal(); limparCache();
+        if (a.chave) atualizarFichaDepois(a.chave);
+        recarregarTelaAtiva().catch(() => {});
+      }).catch(e => { bt.disabled = false; bt.textContent = 'Salvar correção'; falhar(e); });
+  };
+}
+/* botão dentro da ficha (sem cartão em volta, então vale um ouvinte geral) */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-corrigir-ficha]');
+  if (!b) return;
+  ev.preventDefault();
+  formCorrigir(b.dataset.corrigirFicha);
+});
 
 function formRemarcar(id){
   abrirModal(`<h2>Remarcar agendamento</h2>
