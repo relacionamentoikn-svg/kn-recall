@@ -1057,7 +1057,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.21';
+const VERSAO_TELA = 'V4.22';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1351,6 +1351,38 @@ function blocoAgendado(a){
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function soDigitos(t){ return String(t || '').replace(/\D/g, ''); }
+/* V4.22 — mesma regra do servidor (telefonesCanonicos_): separa os números, acerta o 9 antigo, tira repetidos,
+   celular antes de fixo. Cada item: { d: '44998884900', txt: '(44) 99888-4900' }. */
+function listaTelefones(texto, ddd){
+  const padrao = String(ddd || '44').replace(/\D/g, '') || '44';
+  const vistos = {}, moveis = [], fixos = [];
+  const nota = d => { if (vistos[d]) return; vistos[d] = true; (d.length === 11 ? moveis : fixos).push(d); };
+  const um = d0 => {
+    let d = d0.replace(/^0+/, '');
+    if (d.length >= 12 && d.indexOf('55') === 0) d = d.slice(2);
+    if (d.length === 8 || d.length === 9) d = padrao + d;
+    if (d.length === 10){
+      const sub = d.slice(2);
+      if ('6789'.indexOf(sub.charAt(0)) > -1) d = d.slice(0, 2) + '9' + sub;
+      else { if (/^[1-9][1-9]/.test(d)) { nota(d); return true; } return false; }
+    }
+    if (d.length === 11 && d.charAt(2) === '9' && /^[1-9][1-9]/.test(d)) { nota(d); return true; }
+    return false;
+  };
+  String(texto == null ? '' : texto).split(/[,;\/|\n]+|\s+e\s+|\s+ou\s+/i).forEach(pedaco => {
+    const d = pedaco.replace(/\D/g, '');
+    if (!d || um(d)) return;
+    let resto = d.replace(/^0+/, ''), guarda = 0;
+    while (resto.length > 11 && guarda++ < 4){
+      const tam = (resto.charAt(2) === '9' && /^[1-9][1-9]/.test(resto)) ? 11 : 10;
+      if (!um(resto.slice(0, tam))) break;
+      resto = resto.slice(tam);
+    }
+    if (resto.length >= 8 && resto.length <= 11 && guarda > 0) um(resto);
+  });
+  return moveis.concat(fixos).map(d => ({ d: d, txt: d.length === 11
+    ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7) : '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6) }));
+}
 
 /* ---------- ponte com a planilha ----------
    Dentro do Apps Script a página roda num quadro isolado e o fetch não alcança
@@ -2372,7 +2404,8 @@ function montarFicha(d){
   ]);
 
   const contatos = [];
-  const numero = soDigitos(p.telefone);
+  const tels = listaTelefones(p.telefone);
+  const numero = tels.length ? tels[0].d : '';
   /* A trava passa a valer AQUI, no botão, e não lá no salvar.
      Antes ela só aparecia quando a pessoa ia registrar o contato — ou seja,
      depois de já ter ligado. O aviso chegava tarde: a paciente já tinha sido
@@ -2381,9 +2414,10 @@ function montarFicha(d){
   const alerta = ultimoContatoDe(p, d.contatos).dias;
   const travado = alerta !== null && alerta <= TRAVA_DIAS;
   const marca = travado ? ' data-trava="1"' : '';
-  if (numero) contatos.push(`<a class="bt zap" target="_blank" rel="noopener"${marca}
-      href="https://wa.me/${numero.length <= 11 ? '55' + numero : numero}">WhatsApp ${esc(p.telefone)}</a>`);
-  if (numero) contatos.push(`<a class="bt"${marca} href="tel:${numero}">Ligar</a>`);
+  tels.slice(0, 3).forEach(t => contatos.push(`<a class="bt zap" target="_blank" rel="noopener"${marca}
+      href="https://wa.me/55${t.d}">WhatsApp ${esc(t.txt)}</a>`));
+  if (numero) contatos.push(`<a class="bt"${marca} href="tel:+55${numero}">Ligar</a>`);
+  if (!tels.length && p.telefone) contatos.push(`<span class="tag alerta" title="O telefone da base não pôde ser validado">Telefone inválido: ${esc(p.telefone)}</span>`);
   if (p.email) contatos.push(`<a class="bt"${marca} href="mailto:${esc(p.email)}">E-mail</a>`);
   contatos.push(`<button class="bt"${marca} data-acao="mensagem">Mensagem padrão</button>`);
   contatos.push('<button class="bt" data-acao="pdf">Imprimir ficha em PDF</button>');
