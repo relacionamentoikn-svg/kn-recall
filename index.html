@@ -406,7 +406,13 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .onde-RECALL{background:rgba(184,137,74,.2);color:#8A6529}
 .onde-DORMENTE{background:rgba(140,128,122,.22);color:#5F5651}
 .onde-FOLLOWUP{background:rgba(79,107,88,.16);color:var(--salvia)}
-.onde-ENCERRADA{background:rgba(138,58,76,.14);color:var(--vinho-2)}
+.onde-ENCERRADA,.onde-FINALIZADOS{background:rgba(138,58,76,.14);color:var(--vinho-2)}
+.onde-ACOMPANHAMENTO{background:rgba(79,107,88,.22);color:#2F4B38}
+.situacao-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border:1px solid rgba(36,30,28,.12);border-radius:8px;background:rgba(255,255,255,.5);font-size:12.5px}
+.situacao-box .quem{color:rgba(36,30,28,.6);flex:1 1 180px}
+.opc-mover{display:block;width:100%;text-align:left;margin:0 0 8px;padding:12px 14px;border:1px solid rgba(36,30,28,.18);border-radius:8px;background:#fff;cursor:pointer;font:inherit}
+.opc-mover b{display:block;font-size:13.5px}.opc-mover span{display:block;font-size:12px;color:rgba(36,30,28,.6);margin-top:2px}
+.opc-mover[aria-pressed=true]{border-color:var(--vinho-2);box-shadow:0 0 0 2px rgba(138,58,76,.18)}
 .onde-SEM_DATA{background:rgba(36,30,28,.08);color:rgba(36,30,28,.5)}
 .onde-HIGHTICKET{background:rgba(168,123,30,.18);color:#7A5810}
 
@@ -744,6 +750,7 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     <button data-tela="dormente" onclick="irPara('dormente')">Dormente</button>
     <button data-tela="highticket" onclick="irPara('highticket')">High Ticket</button>
     <button data-tela="follow" onclick="irPara('follow')">Follow-up</button>
+    <button data-tela="finalizados" onclick="irPara('finalizados')">Finalizados</button>
     <button data-tela="agenda" onclick="irPara('agenda')">Agenda</button>
     <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
   </nav>
@@ -788,7 +795,8 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     </div>
     <div class="nota">Ninguém fica sem próximo passo: se você não marcar a data de retorno ao salvar o
       contato, o app marca sozinho para daqui a <b id="ac-lembrete">7</b> dias e a paciente reaparece em
-      <b>Vencidos</b>. Encerrar é decisão sua — o app nunca encerra ninguém.</div>
+      <b>Vencidos</b>. A paciente só sai daqui por decisão sua: <b>Mover paciente</b> devolve à fila de origem
+      ou finaliza — o app nunca tira ninguém sozinho.</div>
   </section>
 
   <!-- ===================== RECALL ===================== -->
@@ -901,6 +909,32 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     <div class="nota">O farol pega <b>o pior dos dois critérios</b>: a idade do orçamento e o atraso do retorno
       prometido. Orçamento novo com retorno vencido fica vermelho do mesmo jeito. Passando de 30 dias, a
       paciente sai desta tela e entra na fila de Recall, com a faixa dela.</div>
+  </section>
+
+  <!-- ===================== FINALIZADOS ===================== -->
+  <section class="tela" id="tela-finalizados">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Finalizados</div>
+        <div class="grande" id="fz-grande">—</div>
+        <div class="sub" id="fz-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Motivo da finalização <span class="aux">toque num motivo para filtrar</span></h3>
+        <div class="regua" id="fz-regua"></div>
+      </div>
+    </div>
+    <div class="split">
+      <div>
+        <div class="filtros bloco" id="fz-filtros"></div>
+        <div class="sec" id="fz-rotulo">Pacientes finalizadas</div>
+        <div class="lista" id="fz-lista"><div class="carregando">Carregando…</div></div>
+      </div>
+      <div class="ficha-slot" id="slot-finalizados"></div>
+    </div>
+    <div class="nota">Aqui ficam as pacientes que a equipe decidiu finalizar, com motivo, data e quem decidiu —
+      para monitoria e resgate futuro. Nada é apagado, e ninguém volta sozinha: para reabrir, use
+      <b>Mover paciente</b> e escolha para onde ela vai.</div>
   </section>
 
   <!-- ===================== AGENDA ===================== -->
@@ -1023,7 +1057,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.20';
+const VERSAO_TELA = 'V4.21';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1042,10 +1076,8 @@ const FILTROS = {
   recall:   { aba: 'RECALL',   faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'PRIORIDADE', busca: '', so_novas: 'SIM' },
   dormente: { aba: 'DORMENTE', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR',      busca: '', so_novas: 'SIM' },
   /* A aba de alto padrão não é fila de prospecção: é carteira de
-     relacionamento. Por isso nasce mostrando TODAS, e não só quem nunca foi
-     contatada — esconder quem já foi tocada esvaziaria justamente a tela das
-     pacientes que mais importam. */
-  highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'NAO' }
+     relacionamento — mas, como nas outras abas, V4.21: contatada vive no Acompanhamento. */
+  highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'SIM' }
 };
 const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS', divergentes: '' };
 const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
@@ -1060,7 +1092,7 @@ const PREFIXO = { recall: 'rc', dormente: 'dm', highticket: 'ht' };
 function assinatura(o){ return JSON.stringify(o); }
 const CACHE_T = {};      // quando cada item entrou no cache
 let GERACAO_LOCAL = 0;   // muda a cada gravação: resposta que voltou depois dela é velha
-function limparCache(){ GERACAO_LOCAL++; Object.keys(CACHE).forEach(k => { delete CACHE[k]; delete CACHE_T[k]; }); }
+function limparCache(){ GERACAO_LOCAL++; try { Object.keys(BG_CACHE).forEach(k => delete BG_CACHE[k]); } catch (e) {} Object.keys(CACHE).forEach(k => { delete CACHE[k]; delete CACHE_T[k]; }); }
 /* UMA TELA QUE FALHA TEM DE DIZER QUE FALHOU.
    Antes, se a chamada de uma aba desse erro, o "carregando a fila" ficava na
    tela para sempre: quem olhava via um aplicativo pensando, não um aplicativo
@@ -1136,13 +1168,14 @@ function podeAba(t){
     case 'dormente':    return tem('DORMENTE');
     case 'highticket':  return tem('HIGHTICKET');
     case 'follow':      return tem('FOLLOWUP');
+    case 'finalizados': return tem('RECALL') || tem('DORMENTE') || tem('HIGHTICKET') || tem('FOLLOWUP');
     case 'agenda':      return true;   // V4.11: a Agenda é aberta a todas as contas
     case 'indicadores': return tem('INDICADORES');
   }
   return false;
 }
 function primeiraAbaLivre(){
-  const ordem = ['acompanhamento','recall','dormente','highticket','follow','agenda','indicadores'];
+  const ordem = ['acompanhamento','recall','dormente','highticket','follow','finalizados','agenda','indicadores'];
   for (let k = 0; k < ordem.length; k++) if (podeAba(ordem[k])) return ordem[k];
   return 'acompanhamento';
 }
@@ -1355,7 +1388,7 @@ let EM_VOO = 0;
 /* V4.15 — ações que GRAVAM. Se a mesma chamada, com os mesmos dados, já está a caminho (clique repetido
    na demora), devolve a mesma resposta em vez de mandar outra. */
 const ACOES_QUE_GRAVAM = {salvarContato:1, salvarAgendamento:1, remarcar:1, corrigirAgendamento:1, encerrar:1, resolvido:1,
-  statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1};
+  statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1, moverPaciente:1};
 const GRAVANDO = {};
 let GRAVANDO_N = 0;
 async function api(acao, params){
@@ -1513,8 +1546,11 @@ const ROTULO_PERFIL = {
 };
 const ROTULO_TEMP = { FORTE: 'Forte', MEDIO: 'Médio', FRACO: 'Fraco' };
 const ROTULO_ONDE = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up',
-  HIGHTICKET: 'High Ticket',
-                      ENCERRADA: 'Encerrada', SEM_DATA: 'Sem data' };
+  HIGHTICKET: 'High Ticket', ACOMPANHAMENTO: 'Acompanhamento', FINALIZADOS: 'Finalizados',
+                      ENCERRADA: 'Finalizados', SEM_DATA: 'Sem data' };
+/* V4.21 — aba (tela) onde cada lugar vive */
+const TELA_DO_ONDE = { RECALL: 'recall', DORMENTE: 'dormente', FOLLOWUP: 'follow', HIGHTICKET: 'highticket',
+  ACOMPANHAMENTO: 'acompanhamento', FINALIZADOS: 'finalizados', ENCERRADA: 'finalizados' };
 const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
                     FRIO: 'var(--f-frio)', DORMENTE: 'var(--f-dormente)' };
 
@@ -1535,6 +1571,7 @@ function irPara(t){
   if (t === 'dormente')    carregarFila('dormente').catch(falhar);
   if (t === 'highticket')  carregarFila('highticket').catch(falhar);
   if (t === 'follow')      carregarFollow().catch(falhar);
+  if (t === 'finalizados') carregarFinalizados().catch(falhar);
   if (t === 'agenda')      carregarAgenda().catch(falhar);
   if (t === 'indicadores') carregarIndicadores().catch(falhar);
 }
@@ -1600,6 +1637,7 @@ function recarregarTelaAtiva(){
   if (t === 'recall')      return carregarFila('recall');
   if (t === 'dormente')    return carregarFila('dormente');
   if (t === 'follow')      return carregarFollow();
+  if (t === 'finalizados') return carregarFinalizados();
   if (t === 'agenda')      return carregarAgenda();
   if (t === 'indicadores') return carregarIndicadores();
   return Promise.resolve();
@@ -1740,7 +1778,7 @@ function pintarFila(tela, d){
 
   el(pre + '-grande').innerHTML = `${d.na_aba.toLocaleString('pt-BR')}<small style="margin-left:8px">pacientes</small>`;
   el(pre + '-sub').textContent = (semValor(d.valor) ? '' : brl(d.valor) + ' em histórico · ') +
-    d.total.toLocaleString('pt-BR') + ' na carteira · ' + d.encerradas + ' encerradas';
+    d.total.toLocaleString('pt-BR') + ' na carteira · ' + (d.em_acompanhamento || 0) + ' já no Acompanhamento · ' + d.encerradas + ' finalizadas';
 
   if (ehHt){
     const cx = el('ht-aviso');
@@ -1764,12 +1802,12 @@ function pintarFila(tela, d){
   const r = d.resumo || {};
   el(pre + '-mini').innerHTML = ehHt
     ? `<div><b>${d.na_aba}</b><span>classificadas</span></div>` +
-      (semValor(d.valor) ? `<div><b>${r.na_fila || 0}</b><span>na fila</span></div>`
+      (semValor(d.valor) ? `<div><b>${d.em_acompanhamento || 0}</b><span>já no Acompanhamento</span></div>`
                          : `<div><b>${brl(d.valor)}</b><span>histórico do grupo</span></div>`) +
       `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
       `<div><b>${r.nunca_contatada || 0}</b><span>nunca contatadas</span></div>`
     : `<div><b>${r.na_fila || 0}</b><span>na fila, sem contato</span></div>` +
-    `<div><b>${r.em_contato || 0}</b><span>em contato</span></div>` +
+    `<div><b>${d.em_acompanhamento || 0}</b><span>já no Acompanhamento</span></div>` +
     `<div class="${r.retorno_vencido ? 'alerta' : ''}"><b>${r.retorno_vencido || 0}</b><span>retorno vencido ou hoje</span></div>` +
     `<div><b>${(r.sem_aprovado || 0).toLocaleString('pt-BR')}</b><span>nunca aprovaram nada</span></div>`;
 
@@ -1809,7 +1847,6 @@ function montarFiltrosFila(tela){
     ['CONSULTA_1_PROC','Consulta + 1 proc.'],['CONSULTA_N_PROC','Consulta + vários'],['PROC_SEM_CONSULTA','Proc. sem consulta']];
   const temps = [['TODAS','Qualquer temperatura'],['FORTE','Forte'],['MEDIO','Médio'],['FRACO','Fraco'],['NUNCA','Nunca contatada']];
   const ordens = [['PRIORIDADE','Prioridade'],['RECENTE','Mais recentes'],['ANTIGO','Mais antigas'],['VALOR','Maior valor']];
-  const escopos = [['SIM','Só nunca contatadas'],['NAO','Todas, inclusive em acompanhamento']];
 
   const cx = el(pre + '-filtros');
   const ehHt = tela === 'highticket';
@@ -1817,8 +1854,7 @@ function montarFiltrosFila(tela){
     campoBusca(pre + '-busca', 'Buscar nesta fila por nome ou telefone', f.busca) +
     (ehHt ? '' : campoSelecao(pre + '-perfil', 'Perfil', perfis, f.perfil)) +
     campoSelecao(pre + '-temp', 'Temperatura', temps, f.temperatura) +
-    campoSelecao(pre + '-ordem', 'Ordem', ordens, f.ordem) +
-    (ehHt ? '' : campoSelecao(pre + '-escopo', 'Mostrar', escopos, f.so_novas));
+    campoSelecao(pre + '-ordem', 'Ordem', ordens, f.ordem);
 
   const liga = (id, campo) => {
     const c = el(id);
@@ -1827,7 +1863,6 @@ function montarFiltrosFila(tela){
   liga(pre + '-perfil', 'perfil');
   liga(pre + '-temp', 'temperatura');
   liga(pre + '-ordem', 'ordem');
-  liga(pre + '-escopo', 'so_novas');
   ligarBusca(cx, pre + '-busca', v => { f.busca = v; carregarFila(tela).catch(falhar); });
 }
 
@@ -1941,7 +1976,7 @@ function pintarAcompanhamento(d){
 
   el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
   el('ac-sub').textContent = `${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
-    `${d.encerradas} encerradas`;
+    `${d.encerradas} finalizadas`;
 
   el('ac-regua').innerHTML = blocosAc().map(x => {
     return `<button style="flex:${pesoRegua(r[x[0]] || 0, total)} 1 0;background:${x[3]}" data-b="${x[0]}"
@@ -1988,7 +2023,7 @@ function pintarAcompanhamento(d){
 
   el('ac-aviso').innerHTML = ((r.SEM_DATA || 0)
     ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
-       São as que caem no esquecimento: marque a data do retorno ou encerre.</div>` : '') +
+       São as que caem no esquecimento: marque a data do retorno ou decida para onde ela vai.</div>` : '') +
     ((d.divergentes || 0) && !AC.divergentes
     ? `<div class="aviso-box"><b>${d.divergentes} horário(s) lançado(s) no app não batem com a agenda do ERP.</b>
        Cancelado, outra data ou hora, ou ausente no ERP. Nada foi alterado: confira e ajuste.
@@ -1996,6 +2031,7 @@ function pintarAcompanhamento(d){
   if (el('ac-div')) el('ac-div').onclick = () => { AC.divergentes = '1'; AC.bloco = 'TODOS'; carregarAcompanhamento().catch(falhar); };
 
   const mostrar = AC.bloco === 'TODOS' ? blocosAc().map(x => x[0]) : [AC.bloco];
+  Object.keys(d.blocos || {}).forEach(k => guardarItens(((d.blocos[k] || {}).itens || [])));
   let html = '';
   mostrar.forEach(k => {
     const b = d.blocos[k];
@@ -2028,7 +2064,7 @@ function cartaoAc(x, bloco){
 
   const cor = BLOCOS_AC.filter(b => b[0] === bloco)[0][3];
   if (bloco === 'AGENDADAS' && x.agenda) guardarAgEdit(x.agenda, x.paciente, x.chave);
-  return `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
+  return `<div class="pac" data-chave="${esc(x.chave)}" data-bloco="${esc(bloco)}" role="button" tabindex="0">
     <div class="tarja" style="background:${cor}"></div>
     <div class="pac-in">
       <div class="pac-l1">
@@ -2041,7 +2077,8 @@ function cartaoAc(x, bloco){
       <div class="pac-l3">${tags.join('')}
         <button class="bt-min" data-acao="ficha">Registrar contato</button>
         ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
-        <button class="bt-min" data-acao="whats">Mensagem</button></div>
+        <button class="bt-min" data-acao="whats">Mensagem</button>
+        <button class="bt-min" data-acao="mover" title="Devolver à fila de origem ou finalizar">Mover…</button></div>
     </div></div>`;
 }
 
@@ -2052,6 +2089,8 @@ function ligarCartoesAc(){
         ev.stopPropagation();
         if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); return; }
         if (b.dataset.acao === 'corrigir') { formCorrigir(b.dataset.agid); return; }
+        if (b.dataset.acao === 'mover') { formMover({ chave: c.dataset.chave, nome: (ITENS_VISTOS[c.dataset.chave] || {}).paciente || c.querySelector('.pac-nome').textContent,
+          situacao: 'ACOMP', origem: (ITENS_VISTOS[c.dataset.chave] || {}).volta_para || '', temAgenda: c.dataset.bloco === 'AGENDADAS' }); return; }
         api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
           if (m.erro) { toast(m.erro); return; }
           abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
@@ -2429,8 +2468,9 @@ function montarFicha(d){
     </div>
     <div class="acoes">${contatos.join('')}</div>
     ${blocoClasse(p)}
-    ${p.status === 'ENCERRADA' ? `<div class="aviso-box">Tentativas encerradas — motivo: ${esc(p.motivo_encerramento)}.
-       Ela volta sozinha à fila se aparecer orçamento novo.</div>` : ''}
+    ${blocoSituacao(p)}
+    ${p.status === 'ENCERRADA' ? `<div class="aviso-box">Finalizada${p.encerrado_em ? ' em ' + esc(p.encerrado_em) : ''} — motivo: ${esc(rotuloLista('ENCERRAMENTO', p.motivo_encerramento) || p.motivo_encerramento)}.
+       Ela só volta por decisão de alguém: use <b>Mover paciente</b>.</div>` : ''}
     ${avisoContatoRecente(p)}
 
     ${totPac ? `<div class="sec sec-dobra aberto"><span>Procedimentos pendentes — ${totSess} ${totSess===1?'sessão':'sessões'} em ${totPac} ${totPac===1?'pacote':'pacotes'}</span><span class="dobra-arw">▾</span></div>
@@ -2466,7 +2506,7 @@ function montarFicha(d){
       <div class="acoes">
         <button class="bt prim" data-acao="salvar">Salvar contato</button>
         <button class="bt" data-acao="agendar">Agendar</button>
-        <button class="bt" data-acao="encerrar">Encerrar tentativas</button>
+        <button class="bt" data-acao="encerrar">Finalizar paciente</button>
       </div>
       <div class="nota">Se você não marcar a data, o app marca sozinho para daqui a <b>${LEMBRETE_DIAS} dias</b> e
         ela reaparece em <b>Vencidos</b>, na aba Acompanhamento — ninguém cai no esquecimento. Ao salvar, a
@@ -2506,6 +2546,8 @@ function montarFicha(d){
       if (a === 'salvar')   return salvarContato(false);
       if (a === 'agendar')  return formAgendamento(PAC.paciente);
       if (a === 'encerrar') return formEncerrar();
+      if (a === 'mover')    return formMover({ chave: PAC.paciente.chave, nome: PAC.paciente.nome, situacao: PAC.paciente.situacao,
+                                               origem: PAC.paciente.origem, temAgenda: (PAC.agendamentos || []).some(a => /AGENDADA|CONFIRMADA|REMARCADA/.test(String(a.status || '').toUpperCase())) });
       if (a === 'mensagem') return escolherMensagem(PAC.paciente);
       if (a === 'pdf')      return exportarPdf({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
     };
@@ -2943,23 +2985,83 @@ function formAgendamento(p, ref, valor){
   };
 }
 
+/* ---------- V4.21 — onde a paciente está e para onde ela pode ir ---------- */
+function blocoSituacao(p){
+  const sit = p.situacao === 'FINAL' ? 'FINALIZADOS' : (p.situacao === 'ACOMP' ? 'ACOMPANHAMENTO' : (p.origem || ''));
+  if (!sit) return '';
+  const quem = p.situacao === ''
+    ? (p.liberada_em ? 'Devolvida à fila por ' + esc(p.liberada_por || '—') + ' em ' + esc(p.liberada_em) : 'Ainda não contatada')
+    : (p.situacao === 'ACOMP' ? 'Já contatada — fica aqui até alguém decidir para onde ela vai' : 'Finalizada');
+  return `<div class="situacao-box"><span class="onde onde-${esc(sit)}">${esc(ROTULO_ONDE[sit] || sit)}</span>
+    <span class="quem">${quem}</span>
+    ${(p.situacao === 'ACOMP' || p.situacao === 'FINAL') ? '<button class="bt-min" data-acao="mover">Mover paciente…</button>' : ''}</div>`;
+}
+
+function formMover(c){
+  if (!USUARIO) { abrirPortao(); return; }
+  const origemNome = ROTULO_ONDE[c.origem] || 'fila de origem';
+  const opcs = [];
+  if (c.situacao === 'FINAL') {
+    opcs.push(['ACOMPANHAMENTO', 'Reabrir no Acompanhamento', 'Volta para a fila do dia, como paciente em andamento.']);
+    opcs.push(['ORIGEM', 'Devolver ao ' + origemNome, 'Volta para a lista de origem, como se ainda não tivesse sido contatada.']);
+  } else {
+    opcs.push(['ORIGEM', 'Devolver ao ' + origemNome, c.temAgenda
+      ? 'Indisponível: ela tem horário marcado. Enquanto o horário existir ela fica no Acompanhamento.'
+      : 'Sai do Acompanhamento e volta para a lista de origem. Um novo contato a traz de volta.']);
+    if (!contaRestrita()) opcs.push(['FINALIZADOS', 'Finalizar', 'Vai para a aba Finalizados, com motivo, para monitoria e resgate futuro.']);
+  }
+  abrirModal(`<h2>Mover paciente</h2>
+    <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">${esc(c.nome)} — para onde ela vai?</div>
+    ${opcs.map(o => `<button class="opc-mover" data-d="${o[0]}" aria-pressed="false"${(o[0] === 'ORIGEM' && c.temAgenda) ? ' disabled style="opacity:.5"' : ''}><b>${esc(o[1])}</b><span>${esc(o[2])}</span></button>`).join('')}
+    <div id="mv-fin" style="display:none">
+      <div class="grid-campo">
+        <div class="campo wide"><label>Motivo</label><select id="mv-motivo">${opcoes('ENCERRAMENTO')}</select></div>
+        <div class="campo wide"><label>Observação</label><textarea id="mv-obs"></textarea></div>
+      </div>
+    </div>
+    <div class="acoes"><button class="bt prim larga" id="mv-ok" disabled>Escolha um destino</button></div>
+    <div class="nota">Quem decide é você: o app nunca move ninguém sozinho. Nada é apagado.</div>`);
+  let dest = '';
+  el('modal-conteudo').querySelectorAll('.opc-mover').forEach(b => {
+    b.onclick = () => {
+      if (b.disabled) return;
+      dest = b.dataset.d;
+      el('modal-conteudo').querySelectorAll('.opc-mover').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      el('mv-fin').style.display = dest === 'FINALIZADOS' ? '' : 'none';
+      el('mv-ok').disabled = false; el('mv-ok').textContent = dest === 'FINALIZADOS' ? 'Finalizar' : 'Mover';
+    };
+  });
+  el('mv-ok').onclick = () => {
+    if (!dest) return;
+    const bt = el('mv-ok'); bt.disabled = true; bt.textContent = 'Movendo…';
+    api('moverPaciente', { chave: c.chave, paciente: c.nome, destino: dest, autor: USUARIO.nome,
+        motivo: dest === 'FINALIZADOS' ? el('mv-motivo').value : '', observacao: dest === 'FINALIZADOS' ? el('mv-obs').value : '' })
+      .then(r => {
+        if (r.erro) { bt.disabled = false; bt.textContent = 'Mover'; toast(r.erro); return; }
+        fecharModal();
+        toast(dest === 'FINALIZADOS' ? 'Paciente finalizada.' : (dest === 'ACOMPANHAMENTO' ? 'Reaberta no Acompanhamento.' : 'Devolvida à fila de origem.'));
+        limparCache(); resetarFicha(); posicionarFicha(); recarregarTelaAtiva().catch(() => {});
+      }).catch(e => { bt.disabled = false; bt.textContent = 'Mover'; falhar(e); });
+  };
+}
+
 function formEncerrar(){
   if (!USUARIO) { abrirPortao(); return; }
   const p = PAC.paciente;
-  abrirModal(`<h2>Encerrar tentativas</h2>
+  abrirModal(`<h2>Finalizar paciente</h2>
     <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">${esc(p.nome)}</div>
     <div class="grid-campo">
       <div class="campo wide"><label>Motivo</label><select id="ec-motivo">${opcoes('ENCERRAMENTO')}</select></div>
       <div class="campo wide"><label>Observação</label><textarea id="ec-obs"></textarea></div>
     </div>
-    <div class="acoes"><button class="bt prim larga" id="ec-ok">Encerrar</button></div>
-    <div class="nota">Nada é apagado. Ela sai da fila e volta sozinha se aparecer orçamento novo.</div>`);
+    <div class="acoes"><button class="bt prim larga" id="ec-ok">Finalizar</button></div>
+    <div class="nota">Nada é apagado. Ela vai para a aba Finalizados e só volta por decisão de alguém (Mover paciente).</div>`);
   el('ec-ok').onclick = () => {
     api('encerrar', { chave: p.chave, paciente: p.nome, motivo: el('ec-motivo').value,
       observacao: el('ec-obs').value, autor: USUARIO.nome })
       .then(r => {
         if (r.erro) { toast(r.erro); return; }
-        fecharModal(); toast('Tentativas encerradas.');
+        fecharModal(); toast('Paciente finalizada.');
         limparCache(); abrirFicha(p.chave); recarregarTelaAtiva().catch(() => {});
       }).catch(falhar);
   };
@@ -3022,7 +3124,8 @@ function ligarBuscaGlobal(){
         ? '<div class="nota" style="margin:8px 6px 2px">Mostrando as ' + d.itens.length +
           ' primeiras. Escreva mais do nome para afinar.</div>' : '');
     painel.querySelectorAll('.pac').forEach(c => {
-      c.onclick = () => { fechar(); abrirFicha(c.dataset.chave); };   // a busca já traz tudo
+      const x = d.itens.filter(i => i.chave === c.dataset.chave)[0];
+      c.onclick = () => { fechar(); irParaPaciente(x || { chave: c.dataset.chave }); };   // a busca já traz tudo
     });
   };
 
@@ -3055,7 +3158,7 @@ function ligarBuscaGlobal(){
 function abrirBusca(){
   abrirModal(`<h2>Buscar paciente</h2>
     <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">
-      Procura em toda a carteira — recall, dormente, follow-up e encerradas — por nome, telefone
+      Procura em toda a carteira — filas, acompanhamento e finalizados — por nome, telefone
       ou número de orçamento.</div>
     <div class="filtros" style="padding:0;border:0;background:none">
       ${campoBusca('bg-termo', 'Nome, telefone ou nº do orçamento', '')}</div>
@@ -3078,10 +3181,19 @@ function abrirBusca(){
         <div class="res-busca">${d.itens.map(x => cartaoBusca(x)).join('')}</div>` +
         (d.total > d.itens.length ? `<div class="nota">Mostrando os ${d.itens.length} primeiros. Refine o termo para ver o resto.</div>` : '');
       el('bg-saida').querySelectorAll('.pac').forEach(c => {
-        c.onclick = () => { fecharModal(); abrirFicha(c.dataset.chave); };
+        const x = d.itens.filter(i => i.chave === c.dataset.chave)[0];
+        c.onclick = () => { fecharModal(); irParaPaciente(x || { chave: c.dataset.chave }); };
       });
     }).catch(falhar);
   };
+}
+
+/* V4.21 — achou a paciente: vai PRIMEIRO para a aba onde ela realmente está, e só então abre a ficha. */
+function irParaPaciente(x){
+  const t = TELA_DO_ONDE[x.onde];
+  if (t && t !== telaAtiva() && podeAba(t)) irPara(t);
+  ITENS_VISTOS[x.chave] = Object.assign({}, ITENS_VISTOS[x.chave] || {}, x);
+  abrirFicha(x.chave, x.paciente ? x : undefined);
 }
 
 function cartaoBusca(p){
@@ -3096,6 +3208,58 @@ function cartaoBusca(p){
         ? 'último orçamento ' + esc(p.ultimo_orcamento) + (p.ultimo_orcamento_situacao ? ' (' + esc(p.ultimo_orcamento_situacao) + ')' : '')
         : 'sem orçamento datado'} · ${p.aprovados} aprovado(s) · ${brl(p.valor)}</div>
     </div></button>`;
+}
+
+/* ==========================================================================
+   FINALIZADOS (V4.21)
+   ========================================================================== */
+const FZ = { motivo: 'TODOS', busca: '' };
+async function carregarFinalizados(){
+  const cx = el('fz-filtros');
+  cx.innerHTML = campoBusca('fz-busca', 'Buscar por nome ou telefone', FZ.busca);
+  ligarBusca(cx, 'fz-busca', v => { FZ.busca = v; carregarFinalizados().catch(falhar); });
+  const ch = 'fz:' + assinatura(FZ);
+  if (CACHE[ch]) pintarFinalizados(CACHE[ch]);
+  else el('fz-lista').innerHTML = blocoCarregando('carregando as finalizadas');
+  marcarAtualizando('fz-lista', !!CACHE[ch]);
+  try {
+    const d = await api('finalizados', FZ);
+    CACHE[ch] = d; pintarFinalizados(d);
+  } catch (e) {
+    blocoFalha('fz-lista', e, () => carregarFinalizados().catch(() => {}));
+  } finally { marcarAtualizando('fz-lista', false); }
+}
+function pintarFinalizados(d){
+  el('fz-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">finalizadas</small>`;
+  el('fz-sub').textContent = (semValor(d.valor) ? '' : brl(d.valor) + ' em histórico · ') + 'monitoria e resgate futuro';
+  const pm = d.por_motivo || {}, mots = Object.keys(pm).sort((a, b) => pm[b] - pm[a]);
+  const tot = mots.reduce((s2, k) => s2 + pm[k], 0) || 1;
+  el('fz-regua').innerHTML = mots.length ? mots.map(k =>
+    `<button style="flex:${pesoRegua(pm[k], tot)} 1 0;background:var(--vinho-2)" data-m="${esc(k)}" aria-pressed="${FZ.motivo === k}"><b>${pm[k]}</b><span>${esc((rotuloLista('ENCERRAMENTO', k) || k).toLowerCase())}</span></button>`).join('')
+    : '<div class="vazio" style="padding:8px">Ninguém finalizada ainda.</div>';
+  el('fz-regua').querySelectorAll('button').forEach(b => {
+    b.onclick = () => { FZ.motivo = (FZ.motivo === b.dataset.m) ? 'TODOS' : b.dataset.m; carregarFinalizados().catch(falhar); };
+  });
+  el('fz-rotulo').textContent = `Pacientes finalizadas — ${d.total.toLocaleString('pt-BR')}` +
+    (FZ.motivo !== 'TODOS' ? ' · ' + (rotuloLista('ENCERRAMENTO', FZ.motivo) || FZ.motivo) : '');
+  guardarItens(d.itens);
+  el('fz-lista').innerHTML = d.itens.length ? d.itens.map(x => `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
+    <div class="tarja" style="background:var(--vinho-2)"></div><div class="pac-in">
+      <div class="pac-l1"><span class="pac-nome">${esc(x.paciente)}</span><span class="pac-cid">${esc(x.cidade || '')}</span>
+        <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span></div>
+      <div class="pac-l2">Finalizada ${esc(String(x.encerrado_em || '').split(' ')[0] || '—')}${x.finalizada_por ? ' por ' + esc(x.finalizada_por) : ''} · motivo: ${esc(rotuloLista('ENCERRAMENTO', x.motivo) || x.motivo || '—')}</div>
+      <div class="pac-l3"><span class="tag">${x.tentativas}ª tentativa</span>${x.valor ? `<span class="tag val">${brl(x.valor)} no histórico</span>` : ''}
+        <span class="tag">veio de ${esc(ROTULO_ONDE[x.origem] || x.origem || '—')}</span>
+        <button class="bt-min" data-acao="mover">Mover…</button></div>
+    </div></div>`).join('') : '<div class="card vazio">Nenhuma paciente finalizada com esses filtros.</div>';
+  el('fz-lista').querySelectorAll('.pac').forEach(c => {
+    const it = ITENS_VISTOS[c.dataset.chave] || {};
+    c.onclick = ev => {
+      if (ev.target.closest('[data-acao]')) { ev.stopPropagation(); formMover({ chave: c.dataset.chave, nome: it.paciente || '', situacao: 'FINAL', origem: it.origem || '' }); return; }
+      abrirFicha(c.dataset.chave, it);
+    };
+    c.onkeydown = ev => { if (ev.key === 'Enter') c.click(); };
+  });
 }
 
 /* ==========================================================================
@@ -3154,9 +3318,12 @@ function pintarFollow(d){
   el('fu-legenda').innerHTML = FAROIS_FU.map(x =>
     `<div><i style="background:${x[3]}"></i><b>${x[1]}</b> ${x[2]}</div>`).join('');
 
-  el('fu-aviso').innerHTML = d.criticos
+  el('fu-aviso').innerHTML = (d.criticos
     ? `<div class="aviso-box"><b>${d.criticos} orçamento(s) em vermelho ou acima de 22 dias.</b>
-       São os que precisam de decisão hoje: refazer a proposta, agendar ou encerrar.</div>` : '';
+       São os que precisam de decisão hoje: refazer a proposta, agendar ou finalizar.</div>` : '') +
+    ((d.em_acompanhamento || 0)
+    ? `<div class="aviso-box" style="background:rgba(79,107,88,.1)"><b>${d.em_acompanhamento} orçamento(s) já estão no Acompanhamento ou em Finalizados</b> e por isso não aparecem aqui:
+       esta lista é só de quem ainda não foi contatada.</div>` : '');
 
   el('fu-rotulo').textContent = `Orçamentos em aberto — ${d.total.toLocaleString('pt-BR')} · ${brl(d.valor)}` +
     ` · ${ {PRIORIDADE:'do mais urgente para o menos', DATA:'da data mais recente na clínica', VALOR:'do maior valor para o menor'}[FU.ordem] }`;
