@@ -3856,11 +3856,13 @@ function mostrarLogin(erro){
   bt.disabled = false; bt.textContent = 'Entrar';
   usr.placeholder = MODO_TECNICO ? 'Nome cadastrado (acesso técnico)' : 'Seu nome';
   const lem = lgLer();
-  const valido = !!lem && lgNomes().some(u => lgNorm(u.nome) === lgNorm(lem.nome));
+  /* Conta oculta (suporte) não está na lista: é lembrada pelo código, com o nome em branco. */
+  const valido = !!lem && (lem.oculto || lgNomes().some(u => lgNorm(u.nome) === lgNorm(lem.nome)));
   if (lem && !valido && lgNomes().length) lgApagar();
-  if (valido && !usr.value){
-    usr.value = lem.nome; cod.value = lem.codigo || '';
+  if (valido && !usr.value && !cod.value){
+    usr.value = lem.oculto ? '' : lem.nome; cod.value = lem.codigo || '';
     el('lg-lembrar').checked = true;
+    if (lem.oculto) usr.placeholder = 'Acesso técnico — nome em branco';
   }
   el('lg-troca').classList.toggle('on', !!valido);
   loginErro(erro || '');
@@ -3889,12 +3891,18 @@ function loginEntrar(){
   if (bt.disabled) return;
   const texto = el('lg-usr').value.trim();
   const cod = el('lg-cod').value.trim();
-  let nome = '', achado = null;
+  let nome = '', achado = null, erroNome = '';
   if (MODO_TECNICO){ nome = texto; }
   else {
     const r = loginResolver(texto);
-    if (r.erro){ loginErro(r.erro); el('lg-usr').focus(); return; }
-    if (r.u){ achado = r.u; nome = r.u.nome; }
+    if (r.erro){
+      /* Nome que não está na lista + código preenchido: pode ser a conta técnica (oculta), que entra só pelo
+         código — o navegador costuma preencher "Suporte" sozinho. Tenta com o nome em branco; se não for
+         conta oculta, o servidor recusa e a mensagem de usuário não encontrado aparece. */
+      if (!cod || /^Mais de um/.test(r.erro)){ loginErro(r.erro); el('lg-usr').focus(); return; }
+      erroNome = r.erro; nome = '';
+    }
+    else if (r.u){ achado = r.u; nome = r.u.nome; }
   }
   if (!cod){ loginErro('Informe o código de acesso.'); el('lg-cod').focus(); return; }
   loginErro('');
@@ -3902,7 +3910,9 @@ function loginEntrar(){
   const volta = () => { bt.disabled = false; bt.textContent = 'Entrar'; };
   api('entrar', { nome: nome, codigo: cod, dispositivo: navigator.userAgent }).then(r => {
     if (!r || !r.ok){
-      volta(); loginFalha((r && r.erro) || 'Não consegui validar.'); return;
+      volta();
+      if (erroNome) { loginErro(erroNome); el('lg-usr').focus(); return; }
+      loginFalha((r && r.erro) || 'Não consegui validar.'); return;
     }
     PT.usuario = r.usuario; PT.codigo = cod;
     USUARIO = r.usuario; pintarUsuario();
@@ -3912,6 +3922,7 @@ function loginEntrar(){
       localStorage.removeItem('recall_ultimo_nome');
     } catch (e) {}
     if (el('lg-lembrar').checked && achado) lgGravar({nome: r.usuario.nome || achado.nome, codigo: cod});
+    else if (el('lg-lembrar').checked && r.usuario && r.usuario.oculto) lgGravar({nome: r.usuario.nome, codigo: cod, oculto: true});
     else lgApagar();
     if (!r.precisa_termo){
       el('login-tela').classList.remove('on');
@@ -3921,7 +3932,7 @@ function loginEntrar(){
     }
     el('pt-passos').style.display = 'flex';
     irPasso(2);
-  }).catch(e => { volta(); loginFalha(e && e.message ? e.message : String(e), true); });
+  }).catch(e => { volta(); if (erroNome) { loginErro(erroNome); el('lg-usr').focus(); return; } loginFalha(e && e.message ? e.message : String(e), true); });
 }
 /* Sair: esquece quem estava neste aparelho e volta ao acesso. */
 function sairDoApp(){
