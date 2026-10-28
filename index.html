@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.7 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas. -->
+<!-- RECALL E FOLLOW-UP · V4.24 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -289,6 +289,9 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .tag{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.04em;padding:3px 7px;border:1px solid var(--linha-forte);border-radius:3px;color:rgba(36,30,28,.65);white-space:nowrap}
 .tag.val{border-color:var(--latao);color:#8A6529}
 .tag.alerta{border-color:var(--vinho-2);color:var(--vinho-2);font-weight:600}
+/* V4.24 — paciente em atendimento por campanha (app de Leads) */
+.tag.campanha{border-color:#B08A4E;background:#F5EEDF;color:#6E5320;font-weight:700}
+.camp-ficha{margin:0 0 12px;padding:10px 12px;border:1px solid #E2CFA5;background:#F8F1E2;border-radius:8px;font-size:13px;line-height:1.45;color:#4A3A1E}
 .tag.ok{border-color:var(--salvia);color:var(--salvia)}
 .tag.roxo{border-color:var(--decidir);color:var(--decidir);font-weight:600}
 .tag.flag{background:var(--vinho);border-color:var(--vinho);color:#fff}
@@ -1070,7 +1073,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.23.1';
+const VERSAO_TELA = 'V4.24';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1911,8 +1914,23 @@ function montarFiltrosFila(tela){
   ligarBusca(cx, pre + '-busca', v => { f.busca = v; carregarFila(tela).catch(falhar); });
 }
 
+/* V4.24 — selo da campanha (trava do app de Leads). Quem não é a dona da trava não consegue
+   registrar contato, abrir o WhatsApp pelo app nem agendar até a data: o servidor recusa. */
+function tagCampanha(p){
+  if (!p || !p.campanha) return '';
+  const minha = USUARIO && p.campanha_por && String(p.campanha_por).toLowerCase() === String(USUARIO.nome).toLowerCase();
+  return `<span class="tag campanha" title="Paciente em atendimento pela campanha ${esc(p.campanha)}">Campanha · ${esc(p.campanha)} · ${minha ? 'sua' : esc(p.campanha_por || '')} até ${esc(p.campanha_ate || '')}</span>`;
+}
+function avisoCampanhaFicha(p){
+  if (!p || !p.campanha) return '';
+  const minha = USUARIO && p.campanha_por && String(p.campanha_por).toLowerCase() === String(USUARIO.nome).toLowerCase();
+  return `<div class="camp-ficha"><b>Em atendimento pela campanha ${esc(p.campanha)}</b> — ${minha ? 'com você' : 'com <b>' + esc(p.campanha_por || '') + '</b>'} até ${esc(p.campanha_ate || '')}.
+    ${minha ? 'Os registros seguem normalmente.' : 'Contato, WhatsApp e agendamento por esta tela ficam bloqueados até essa data para não haver abordagem dupla.'}</div>`;
+}
+
 function cartaoPaciente(p, tela){
   const tags = [];
+  if (p.campanha) tags.push(tagCampanha(p));
   if (p.perfil) tags.push(`<span class="tag${p.perfil === 'NUNCA_APROVOU' ? ' roxo' : ''}">${esc(ROTULO_PERFIL[p.perfil] || p.perfil)}</span>`);
   if (p.classe_ht) tags.push(`<span class="tag ht ${esc(p.classe_ht)}">Alto padrão · ${esc(p.classe_ht)}</span>`);
   if (p.valor)  tags.push(`<span class="tag val">${brl(p.valor)} no histórico</span>`);
@@ -2131,6 +2149,7 @@ document.addEventListener('click', ev => {
 
 function cartaoAc(x, bloco){
   const tags = [];
+  if (x.campanha) tags.push(tagCampanha(x));
   tags.push(`<span class="tag">${esc(ROTULO_ORIGEM[x.origem] || x.origem)}</span>`);
   tags.push(`<span class="tag">${x.tentativas}ª tentativa${x.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', x.ultimo_canal)) : ''}</span>`);
   if (x.temperatura) tags.push(`<span class="tag ${esc(x.temperatura)}">${esc(ROTULO_TEMP[x.temperatura] || x.temperatura)}</span>`);
@@ -3088,11 +3107,11 @@ function blocoSituacao(p){
          <span class="cont" data-ms="${Number(p.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(p.whats_ms))}</span><br>
          Preencha os dados abaixo e salve o contato. Se não chegou a falar com ela, volte ao Acompanhamento e use “Não contatei”.</div>` : '';
   const sit = p.situacao === 'FINAL' ? 'FINALIZADOS' : (p.situacao === 'ACOMP' ? 'ACOMPANHAMENTO' : (p.origem || ''));
-  if (!sit) return '';
+  if (!sit) return avisoCampanhaFicha(p);
   const quem = p.situacao === ''
     ? (p.liberada_em ? 'Devolvida à fila por ' + esc(p.liberada_por || '—') + ' em ' + esc(p.liberada_em) : 'Ainda não contatada')
     : (p.situacao === 'ACOMP' ? 'Já contatada — fica aqui até alguém decidir para onde ela vai' : 'Finalizada');
-  return pendF + `<div class="situacao-box"><span class="onde onde-${esc(sit)}">${esc(ROTULO_ONDE[sit] || sit)}</span>
+  return avisoCampanhaFicha(p) + pendF + `<div class="situacao-box"><span class="onde onde-${esc(sit)}">${esc(ROTULO_ONDE[sit] || sit)}</span>
     <span class="quem">${quem}</span>
     ${(p.situacao === 'ACOMP' || p.situacao === 'FINAL') ? '<button class="bt-min" data-acao="mover">Mover paciente…</button>' : ''}</div>`;
 }
@@ -3303,6 +3322,7 @@ function cartaoBusca(p){
       <div class="pac-l1"><span class="pac-nome">${esc(p.paciente)}</span>
         ${p.onde ? `<span class="onde onde-${esc(p.onde)}">${esc(ROTULO_ONDE[p.onde] || p.onde)}</span>` : ''}
         ${p.classe_ht ? `<span class="tag ht ${esc(p.classe_ht)}">${esc(p.classe_ht)}</span>` : ''}
+        ${tagCampanha(p)}
         <span class="pac-dias"><b>${p.dias == null ? '—' : p.dias}</b><span>dias</span></span></div>
       <div class="pac-l2">${p.telefone ? esc(p.telefone) + ' · ' : ''}${p.ultimo_orcamento
         ? 'último orçamento ' + esc(p.ultimo_orcamento) + (p.ultimo_orcamento_situacao ? ' (' + esc(p.ultimo_orcamento_situacao) + ')' : '')
@@ -3436,6 +3456,7 @@ function pintarFollow(d){
 
 function cartaoFollow(i){
   const tags = [];
+  if (i.campanha) tags.push(tagCampanha(i));
   if (i.retorno) tags.push(i.atraso > 0
     ? `<span class="tag alerta">Retorno vencido há ${i.atraso} dias</span>`
     : `<span class="tag ok">Retorno marcado ${esc(i.retorno)}</span>`);
