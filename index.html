@@ -259,6 +259,19 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 /* a caixa de seleção tem alvo próprio: clicar nela não abre a ficha */
 .pac .sel-cx{cursor:pointer}
 .pac[aria-current="true"]{border-color:var(--vinho);box-shadow:0 0 0 2px rgba(92,26,43,.12)}
+
+/* V4.23 — WhatsApp aberto e contato ainda não lançado */
+.pac.pend{border:2px solid #C0392B;box-shadow:0 0 0 3px rgba(192,57,43,.12)}
+.pend-alerta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#C0392B;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.04em;font-weight:600;padding:7px 14px;margin:-12px -14px 10px}
+.pend-alerta .pulso{width:8px;height:8px;border-radius:50%;background:#fff;animation:pulsoP 1.2s infinite;flex:none}
+.pend-alerta .cont{margin-left:auto;background:rgba(255,255,255,.18);border-radius:3px;padding:2px 7px}
+@keyframes pulsoP{50%{opacity:.25}}
+.pend-quando{font-size:12px;color:var(--tinta);margin:2px 0 6px;line-height:1.45}
+.pend-quando b{color:#C0392B}
+.bt-min.alerta,.bt.alerta{background:#C0392B;border-color:#C0392B;color:#fff;font-weight:600}
+.pend-ficha{border:2px solid #C0392B;border-radius:10px;background:#FDF1EF;padding:10px 12px;margin:0 0 12px;font-size:12.5px;line-height:1.45}
+.pend-ficha b{color:#C0392B}
+.pend-ficha .cont{display:inline-block;margin-left:6px;font-family:'IBM Plex Mono',monospace;font-weight:600;color:#fff;background:#C0392B;border-radius:3px;padding:1px 7px}
 .tarja{width:4px;flex:none}
 .tj-QUENTE{background:var(--f-quente)}.tj-MORNO{background:var(--f-morno)}
 .tj-FRIO{background:var(--f-frio)}.tj-DORMENTE{background:var(--f-dormente)}
@@ -1057,7 +1070,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.22';
+const VERSAO_TELA = 'V4.23';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1963,6 +1976,7 @@ function ligarCartoes(container, tela){
    sobrava um vazio no fim) e nenhum bloco fica estreito demais para o rótulo. */
 function pesoRegua(qtd, total){ return Math.round(Math.max(Number(qtd) || 0, (Number(total) || 1) * 0.22) * 1000); }
 const BLOCOS_AC = [
+  ['PENDENTES',  'Sem lançar', 'iniciou o contato e ainda não registrou', '#C0392B'],
   ['VENCIDOS',   'Vencidos',   'retorno prometido chegou ou passou', 'var(--vermelho)'],
   ['SEM_DATA',   'Sem data',   'contatada e sem próximo passo',      'var(--decidir)'],
   ['AGUARDANDO', 'Aguardando', 'retorno marcado para frente',        'var(--latao)'],
@@ -2007,7 +2021,7 @@ function pintarAcompanhamento(d){
   el('ac-lembrete').textContent = d.lembrete_dias;
 
   el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
-  el('ac-sub').textContent = `${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
+  el('ac-sub').textContent = `${r.PENDENTES ? r.PENDENTES + ' sem lançar · ' : ''}${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
     `${d.encerradas} finalizadas`;
 
   el('ac-regua').innerHTML = blocosAc().map(x => {
@@ -2026,7 +2040,7 @@ function pintarAcompanhamento(d){
       <b>Todas</b><span class="n">${d.todas_total != null ? d.todas_total : cols.reduce((n, c) => n + c.total, 0)} em andamento</span></button>` : '') +
     cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
       <b>${esc(c.nome)}</b><span class="n">${c.total} em andamento</span>
-      <small>${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
+      <small>${c.PENDENTES ? '<b style="color:#C0392B">' + c.PENDENTES + ' sem lançar</b> · ' : ''}${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
   el('ac-colabs').querySelectorAll('button').forEach(b => {
     b.onclick = () => { AC.colab = (AC.colab === b.dataset.n) ? 'TODAS' : b.dataset.n; carregarAcompanhamento().catch(falhar); };
   });
@@ -2053,7 +2067,10 @@ function pintarAcompanhamento(d){
     };
   });
 
-  el('ac-aviso').innerHTML = ((r.SEM_DATA || 0)
+  el('ac-aviso').innerHTML = ((r.PENDENTES || 0)
+    ? `<div class="aviso-box" style="border-color:#C0392B"><b>${r.PENDENTES} paciente(s) com contato iniciado (WhatsApp, ligação ou e-mail) e ainda não lançado.</b>
+       Abra o cartão em vermelho, registre o que aconteceu e salve. Se não chegou a falar com ela, use “Não contatei”.</div>` : '') +
+    ((r.SEM_DATA || 0)
     ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
        São as que caem no esquecimento: marque a data do retorno ou decida para onde ela vai.</div>` : '') +
     ((d.divergentes || 0) && !AC.divergentes
@@ -2080,6 +2097,38 @@ function pintarAcompanhamento(d){
   ligarCartoesAc();
 }
 
+/* V4.23 — há quanto tempo o WhatsApp foi aberto sem o contato ser lançado */
+function textoDecorrido(ms){
+  const m = Math.max(0, Math.floor((Date.now() - Number(ms || 0)) / 60000));
+  if (!ms) return '';
+  if (m < 60) return m + ' min';
+  const hh = Math.floor(m / 60);
+  if (hh < 24) return hh + 'h ' + String(m % 60).padStart(2, '0') + 'min';
+  const dd = Math.floor(hh / 24);
+  return dd + ' dia' + (dd > 1 ? 's' : '') + ' e ' + (hh % 24) + 'h';
+}
+function atualizarContadores(){
+  document.querySelectorAll('[data-ms]').forEach(n => { n.textContent = 'sem lançar há ' + textoDecorrido(n.dataset.ms); });
+}
+setInterval(atualizarContadores, 30000);
+/* O toque no botão que abre o WhatsApp registra o clique e leva a paciente ao Acompanhamento de quem tocou. */
+const ROTULO_CANAL_INI = { WHATSAPP: 'WhatsApp', LIGACAO: 'Ligação', EMAIL: 'E-mail' };
+function registrarZap(chave, canal){
+  if (!chave || !USUARIO) return;
+  api('whatsClique', { chave: chave, autor: USUARIO.nome, canal: canal || 'WHATSAPP' }).then(r => {
+    if (!r || r.erro || r.ignorado) return;
+    limparCache();
+    toast(r.ja ? 'Esta paciente já estava com um contato iniciado por ' + r.por + ', ainda sem lançar.'
+               : (ROTULO_CANAL_INI[r.canal] || 'Contato') + ' iniciado: a paciente foi para o seu Acompanhamento. Lance o contato quando terminar.');
+    recarregarDepois(1200);
+    if (PAC && PAC.paciente && PAC.paciente.chave === chave) atualizarFichaDepois(chave);
+  }).catch(() => {});
+}
+document.addEventListener('click', ev => {
+  const a = ev.target && ev.target.closest ? ev.target.closest('a[data-zap]') : null;
+  if (a) registrarZap(a.dataset.chave, a.dataset.canal);
+});
+
 function cartaoAc(x, bloco){
   const tags = [];
   tags.push(`<span class="tag">${esc(ROTULO_ORIGEM[x.origem] || x.origem)}</span>`);
@@ -2096,19 +2145,23 @@ function cartaoAc(x, bloco){
 
   const cor = BLOCOS_AC.filter(b => b[0] === bloco)[0][3];
   if (bloco === 'AGENDADAS' && x.agenda) guardarAgEdit(x.agenda, x.paciente, x.chave);
-  return `<div class="pac" data-chave="${esc(x.chave)}" data-bloco="${esc(bloco)}" role="button" tabindex="0">
+  const pend = bloco === 'PENDENTES' || x.pendente;
+  const bannerP = pend ? `<div class="pend-alerta"><span class="pulso"></span>CONTATO AINDA NÃO LANÇADO — registre o que aconteceu<span class="cont" data-ms="${Number(x.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(x.whats_ms))}</span></div>` : '';
+  const quandoP = pend ? `<div class="pend-quando">📲 Contato por <b>${esc(ROTULO_CANAL_INI[x.whats_canal] || 'WhatsApp')}</b> iniciado por <b>${esc(x.whats_por || x.dono || '—')}</b> em <b>${esc(x.whats_em || '—')}</b> · ainda sem registro</div>` : '';
+  return `<div class="pac${pend ? ' pend' : ''}" data-chave="${esc(x.chave)}" data-bloco="${esc(bloco)}" role="button" tabindex="0">
     <div class="tarja" style="background:${cor}"></div>
-    <div class="pac-in">
+    <div class="pac-in">${bannerP}
       <div class="pac-l1">
         <span class="pac-nome">${esc(x.paciente)}</span>
         <span class="pac-cid">${esc(x.cidade || '')}</span>
         <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span>
       </div>
-      <div class="pac-l2">Último contato ${esc(x.ultimo_contato || '—')}${x.ultimo_autor ? ' · ' + esc(x.ultimo_autor) : ''}${x.ultima_obs ? ' — “' + esc(String(x.ultima_obs).substring(0, 120)) + '”' : ''}</div>
+      ${quandoP}<div class="pac-l2">Último contato ${esc(x.ultimo_contato || '—')}${x.ultimo_autor ? ' · ' + esc(x.ultimo_autor) : ''}${x.ultima_obs ? ' — “' + esc(String(x.ultima_obs).substring(0, 120)) + '”' : ''}</div>
       ${bloco === 'AGENDADAS' && x.agenda ? blocoAgendado(x.agenda) : ''}
       <div class="pac-l3">${tags.join('')}
-        <button class="bt-min" data-acao="ficha">Registrar contato</button>
+        <button class="bt-min${pend ? ' alerta' : ''}" data-acao="ficha">${pend ? 'Lançar contato agora' : 'Registrar contato'}</button>
         ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
+        ${pend ? '<button class="bt-min" data-acao="desfazer" title="Abri mas não falei com ela: a paciente volta para onde estava">Não contatei</button>' : ''}
         <button class="bt-min" data-acao="whats">Mensagem</button>
         <button class="bt-min" data-acao="mover" title="Devolver à fila de origem ou finalizar">Mover…</button></div>
     </div></div>`;
@@ -2121,6 +2174,15 @@ function ligarCartoesAc(){
         ev.stopPropagation();
         if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); return; }
         if (b.dataset.acao === 'corrigir') { formCorrigir(b.dataset.agid); return; }
+        if (b.dataset.acao === 'desfazer') {
+          if (!USUARIO) { abrirPortao(); return; }
+          if (!confirm('Você abriu o contato mas não chegou a falar com a paciente?\n\nA paciente volta para onde estava e nada é registrado como contato.')) return;
+          api('whatsDesfazer', { chave: c.dataset.chave, autor: USUARIO.nome }).then(r => {
+            if (r && r.erro) { toast(r.erro); return; }
+            limparCache(); toast('Desfeito: a paciente voltou para onde estava.'); carregarAcompanhamento().catch(() => {});
+          }).catch(falhar);
+          return;
+        }
         if (b.dataset.acao === 'mover') { formMover({ chave: c.dataset.chave, nome: (ITENS_VISTOS[c.dataset.chave] || {}).paciente || c.querySelector('.pac-nome').textContent,
           situacao: 'ACOMP', origem: (ITENS_VISTOS[c.dataset.chave] || {}).volta_para || '', temAgenda: c.dataset.bloco === 'AGENDADAS' }); return; }
         api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
@@ -2414,11 +2476,11 @@ function montarFicha(d){
   const alerta = ultimoContatoDe(p, d.contatos).dias;
   const travado = alerta !== null && alerta <= TRAVA_DIAS;
   const marca = travado ? ' data-trava="1"' : '';
-  tels.slice(0, 3).forEach(t => contatos.push(`<a class="bt zap" target="_blank" rel="noopener"${marca}
+  tels.slice(0, 3).forEach(t => contatos.push(`<a class="bt zap" target="_blank" rel="noopener" data-zap="1" data-canal="WHATSAPP" data-chave="${esc(p.chave)}"${marca}
       href="https://wa.me/55${t.d}">WhatsApp ${esc(t.txt)}</a>`));
-  if (numero) contatos.push(`<a class="bt"${marca} href="tel:+55${numero}">Ligar</a>`);
+  if (numero) contatos.push(`<a class="bt" data-zap="1" data-canal="LIGACAO" data-chave="${esc(p.chave)}"${marca} href="tel:+55${numero}">Ligar</a>`);
   if (!tels.length && p.telefone) contatos.push(`<span class="tag alerta" title="O telefone da base não pôde ser validado">Telefone inválido: ${esc(p.telefone)}</span>`);
-  if (p.email) contatos.push(`<a class="bt"${marca} href="mailto:${esc(p.email)}">E-mail</a>`);
+  if (p.email) contatos.push(`<a class="bt" data-zap="1" data-canal="EMAIL" data-chave="${esc(p.chave)}"${marca} href="mailto:${esc(p.email)}">E-mail</a>`);
   contatos.push(`<button class="bt"${marca} data-acao="mensagem">Mensagem padrão</button>`);
   contatos.push('<button class="bt" data-acao="pdf">Imprimir ficha em PDF</button>');
 
@@ -2565,7 +2627,7 @@ function montarFicha(d){
       if (!confirm('Esta paciente já foi contatada ' + quando + quem +
                    '.\n\nAbrir mesmo assim?')) return;
       b.dataset.travaOk = '1';
-      if (b.tagName === 'A') { window.open(b.href, b.target || '_self'); return; }
+      if (b.tagName === 'A') { if (b.dataset.zap) registrarZap(b.dataset.chave, b.dataset.canal); window.open(b.href, b.target || '_self'); return; }
       b.click();
     }, true);
   });
@@ -2962,11 +3024,11 @@ function escolherMensagem(p){
   };
 }
 
-function blocoMensagem(m){
+function blocoMensagem(m, semZap){
   return `<div class="sec">Texto que vai ser enviado</div>
     <div class="msg-previa">${esc(m.texto)}</div>
     ${m.link
-      ? `<a class="bt prim larga" target="_blank" rel="noopener" href="${esc(m.link)}">Abrir WhatsApp com o texto pronto</a>`
+      ? `<a class="bt prim larga" target="_blank" rel="noopener"${(!semZap && m.chave) ? ` data-zap="1" data-canal="WHATSAPP" data-chave="${esc(m.chave)}"` : ''} href="${esc(m.link)}">Abrir WhatsApp com o texto pronto</a>`
       : '<div class="aviso-box">Esta paciente não tem telefone na base. Copie o texto e envie pelo canal que você usa com ela.</div>'}
     <div class="nota">Os textos ficam na aba <b>Mensagens</b> da planilha, na coluna <b>texto</b>. Editar lá muda
       o app na hora seguinte, sem mexer no código.</div>`;
@@ -2975,7 +3037,7 @@ function blocoMensagem(m){
 function mostrarMensagem(m, p){
   abrirModal(`<h2>Contato registrado</h2>
     <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6)">Mensagem de cortesia para ${esc(p.nome)}.</div>
-    ${blocoMensagem(m)}
+    ${blocoMensagem(m, true)}
     <div class="acoes"><button class="bt larga" onclick="fecharModal()">Agora não</button></div>`);
 }
 
@@ -3021,12 +3083,16 @@ function formAgendamento(p, ref, valor){
 
 /* ---------- V4.21 — onde a paciente está e para onde ela pode ir ---------- */
 function blocoSituacao(p){
+  const pendF = p.pendente
+    ? `<div class="pend-ficha">📲 <b>Contato ainda não lançado.</b> Contato por ${esc(ROTULO_CANAL_INI[p.whats_canal] || 'WhatsApp')} iniciado por <b>${esc(p.whats_por || '—')}</b> em ${esc(p.whats_em || '—')}.
+         <span class="cont" data-ms="${Number(p.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(p.whats_ms))}</span><br>
+         Preencha os dados abaixo e salve o contato. Se não chegou a falar com ela, volte ao Acompanhamento e use “Não contatei”.</div>` : '';
   const sit = p.situacao === 'FINAL' ? 'FINALIZADOS' : (p.situacao === 'ACOMP' ? 'ACOMPANHAMENTO' : (p.origem || ''));
   if (!sit) return '';
   const quem = p.situacao === ''
     ? (p.liberada_em ? 'Devolvida à fila por ' + esc(p.liberada_por || '—') + ' em ' + esc(p.liberada_em) : 'Ainda não contatada')
     : (p.situacao === 'ACOMP' ? 'Já contatada — fica aqui até alguém decidir para onde ela vai' : 'Finalizada');
-  return `<div class="situacao-box"><span class="onde onde-${esc(sit)}">${esc(ROTULO_ONDE[sit] || sit)}</span>
+  return pendF + `<div class="situacao-box"><span class="onde onde-${esc(sit)}">${esc(ROTULO_ONDE[sit] || sit)}</span>
     <span class="quem">${quem}</span>
     ${(p.situacao === 'ACOMP' || p.situacao === 'FINAL') ? '<button class="bt-min" data-acao="mover">Mover paciente…</button>' : ''}</div>`;
 }
