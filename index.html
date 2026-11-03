@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.24 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
+<!-- RECALL E FOLLOW-UP · V4.28 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -292,6 +292,13 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 /* V4.24 — paciente em atendimento por campanha (app de Leads) */
 .tag.campanha{border-color:#B08A4E;background:#F5EEDF;color:#6E5320;font-weight:700}
 .camp-ficha{margin:0 0 12px;padding:10px 12px;border:1px solid #E2CFA5;background:#F8F1E2;border-radius:8px;font-size:13px;line-height:1.45;color:#4A3A1E}
+/* V4.28 — vincular à campanha do app de Leads */
+.bt.camp{border-color:#B08A4E;color:#6E5320;font-weight:600;background:#FBF6EC}
+.bt.camp:hover{background:#B08A4E;border-color:#B08A4E;color:#fff}
+.camp-opc{display:block;width:100%;text-align:left;border:1px solid var(--linha-forte);background:#fff;border-radius:8px;padding:10px 12px;margin:0 0 8px;cursor:pointer;font:inherit}
+.camp-opc b{display:block;font-size:13.5px;color:var(--tinta)}
+.camp-opc span{display:block;font-size:12px;color:rgba(36,30,28,.6);margin-top:3px;line-height:1.4}
+.camp-opc[aria-pressed="true"]{border-color:#B08A4E;background:#F8F1E2;box-shadow:inset 3px 0 0 #B08A4E}
 .tag.ok{border-color:var(--salvia);color:var(--salvia)}
 .tag.roxo{border-color:var(--decidir);color:var(--decidir);font-weight:600}
 .tag.flag{background:var(--vinho);border-color:var(--vinho);color:#fff}
@@ -1073,7 +1080,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.27';
+const VERSAO_TELA = 'V4.28';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1436,7 +1443,7 @@ let EM_VOO = 0;
 /* V4.15 — ações que GRAVAM. Se a mesma chamada, com os mesmos dados, já está a caminho (clique repetido
    na demora), devolve a mesma resposta em vez de mandar outra. */
 const ACOES_QUE_GRAVAM = {salvarContato:1, salvarAgendamento:1, remarcar:1, corrigirAgendamento:1, encerrar:1, resolvido:1,
-  statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1, moverPaciente:1};
+  statusAgendamento:1, marcarRealizado:1, marcarPagamento:1, classificar:1, moverPaciente:1, vincularCampanha:1};
 const GRAVANDO = {};
 let GRAVANDO_N = 0;
 async function api(acao, params){
@@ -2500,6 +2507,8 @@ function montarFicha(d){
   if (numero) contatos.push(`<a class="bt" data-zap="1" data-canal="LIGACAO" data-chave="${esc(p.chave)}"${marca} href="tel:+55${numero}">Ligar</a>`);
   if (!tels.length && p.telefone) contatos.push(`<span class="tag alerta" title="O telefone da base não pôde ser validado">Telefone inválido: ${esc(p.telefone)}</span>`);
   if (p.email) contatos.push(`<a class="bt" data-zap="1" data-canal="EMAIL" data-chave="${esc(p.chave)}"${marca} href="mailto:${esc(p.email)}">E-mail</a>`);
+  /* V4.28 — paciente com interesse na campanha ativa: vira lead da campanha no app de Leads */
+  if (!p.campanha && p.status !== 'ENCERRADA') contatos.push('<button class="bt camp" data-acao="campanha" title="A paciente passa a ser lead da campanha, com você como responsável">Vincular à campanha</button>');
   contatos.push(`<button class="bt"${marca} data-acao="mensagem">Mensagem padrão</button>`);
   contatos.push('<button class="bt" data-acao="pdf">Imprimir ficha em PDF</button>');
 
@@ -2664,6 +2673,7 @@ function montarFicha(d){
       if (a === 'mover')    return formMover({ chave: PAC.paciente.chave, nome: PAC.paciente.nome, situacao: PAC.paciente.situacao,
                                                origem: PAC.paciente.origem, temAgenda: (PAC.agendamentos || []).some(a => /AGENDADA|CONFIRMADA|REMARCADA/.test(String(a.status || '').toUpperCase())) });
       if (a === 'mensagem') return escolherMensagem(PAC.paciente);
+      if (a === 'campanha') return formVincularCampanha(PAC.paciente);
       if (a === 'pdf')      return exportarPdf({ tipo: 'FICHA', formato: 'PDF', chave: PAC.paciente.chave });
     };
   });
@@ -3006,6 +3016,64 @@ function salvarContato(confirmado){
     atualizarFichaDepois(p.chave);
     recarregarDepois(2500);
   }).catch(e => { if (bt) { bt.disabled = false; bt.textContent = 'Salvar contato'; } falhar(e); });
+}
+
+/* ==========================================================================
+   V4.28 — VINCULAR À CAMPANHA (app de Leads)
+   A paciente se interessou pela campanha ativa: ela vira lead da campanha no app
+   de Leads, com quem vinculou como responsável, e a trava vale até a data do
+   briefing. Só quem está com a paciente consegue (o servidor confere).
+   ========================================================================== */
+function formVincularCampanha(p){
+  if (!USUARIO) { abrirPortao(); return; }
+  abrirModalCarregando('buscando as campanhas ativas');
+  api('campanhasLeads', {}).then(r => {
+    const camps = (r && r.campanhas) || [];
+    if (!camps.length) {
+      abrirModal(`<h2>Vincular à campanha</h2><div class="aviso-box">Nenhuma campanha ativa no app de Leads hoje.</div>
+        <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
+      return;
+    }
+    const procs = (r.procedimentos || []).map(x => `<option value="${esc(x.valor)}">${esc(x.rotulo)}</option>`).join('');
+    abrirModal(`<h2>Vincular à campanha</h2>
+      <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">${esc(p.nome)} — em qual campanha ela tem interesse?</div>
+      ${camps.map((c, n) => `<button class="camp-opc" data-n="${n}" aria-pressed="${camps.length === 1}"><b>${esc(c.nome)}</b>
+        <span>até ${esc(c.data_fim)} · trava no Recall até ${esc(c.trava_ate)}${c.mensagem ? ' · ' + esc(String(c.mensagem).slice(0, 110)) + (String(c.mensagem).length > 110 ? '…' : '') : ''}</span></button>`).join('')}
+      <div class="grid-campo">
+        <div class="campo"><label>Procedimento de interesse</label><select id="vc-proc"><option value="">Não informado</option>${procs}</select></div>
+        <div class="campo"><label>Canal da conversa</label><select id="vc-canal">${opcoes('CANAL', 'WHATSAPP')}</select></div>
+        <div class="campo wide"><label>Observação (opcional)</label><textarea id="vc-obs" placeholder="Ex.: quer fazer 2 áreas, pediu valores da condição da campanha"></textarea></div>
+      </div>
+      <div class="acoes"><button class="bt prim larga" id="vc-ok"${camps.length === 1 ? '' : ' disabled'}>${camps.length === 1 ? 'Vincular à campanha' : 'Escolha a campanha'}</button></div>
+      <div class="nota">Ela entra como lead da campanha no app de Leads, com <b>você</b> como responsável e a fonte “Recall · contato ativo”.
+        Até a data da trava, só você a contata pelo Recall. A venda, quando aprovada, chega ao KN Vendas com o nome da campanha e é conferida pela gestão.</div>`);
+    let esc_ = camps.length === 1 ? 0 : -1;
+    el('modal-conteudo').querySelectorAll('.camp-opc').forEach(b => b.onclick = () => {
+      esc_ = Number(b.dataset.n);
+      el('modal-conteudo').querySelectorAll('.camp-opc').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      el('vc-ok').disabled = false; el('vc-ok').textContent = 'Vincular à campanha';
+    });
+    el('vc-ok').onclick = () => {
+      if (esc_ < 0) return;
+      const c = camps[esc_], bt = el('vc-ok');
+      bt.disabled = true; bt.textContent = 'Vinculando…';
+      api('vincularCampanha', { chave: p.chave, id_campanha: c.id, procedimento: el('vc-proc').value, canal: el('vc-canal').value, observacao: el('vc-obs').value.trim() })
+        .then(x => {
+          fecharModal();
+          toast(x.ja_vinculada ? 'Ela já estava vinculada a esta campanha com você.' : 'Vinculada à campanha ' + (x.campanha || c.nome) + (x.trava_ate ? ' · trava até ' + x.trava_ate : '') + '.');
+          limparCache();
+          if (PAC && PAC.paciente && PAC.paciente.chave === p.chave) {
+            const d2 = JSON.parse(JSON.stringify(PAC));
+            d2.paciente.campanha = x.campanha || c.nome; d2.paciente.campanha_por = USUARIO.nome; d2.paciente.campanha_ate = x.trava_ate || c.trava_ate;
+            CACHE['ficha:' + p.chave] = d2; CACHE_T['ficha:' + p.chave] = Date.now();
+            PAC = d2; montarFicha(d2);
+          }
+          atualizarFichaDepois(p.chave);
+          recarregarDepois(2500);
+        })
+        .catch(e => { bt.disabled = false; bt.textContent = 'Vincular à campanha'; falhar(e); });
+    };
+  }).catch(e => { fecharModal(); falhar(e); });
 }
 
 /* ==========================================================================
