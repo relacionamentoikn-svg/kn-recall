@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.28 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
+<!-- RECALL E FOLLOW-UP · V4.29 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -162,9 +162,7 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .colab small{display:block;margin-top:3px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.02em;opacity:.8}
 .colab[aria-pressed="true"]{outline:2px solid var(--vinho);background:#faf3f4}
 .sem-relatorio .bt-min[onclick^="imprimirTela"],.sem-relatorio #fc-pdf,.sem-relatorio [data-acao="pdf"],
-.sem-relatorio .barra-sel [data-a="pdf"],.sem-relatorio .barra-sel [data-a="xlsx"],.sem-relatorio .barra-sel [data-a="sintetico"],
-.conta-restrita [data-acao="encerrar"],.conta-restrita [data-acao="resolvido"],
-.conta-restrita [data-acao="veio"],.conta-restrita [data-acao="faltou"]{display:none!important}
+.sem-relatorio .barra-sel [data-a="pdf"],.sem-relatorio .barra-sel [data-a="xlsx"],.sem-relatorio .barra-sel [data-a="sintetico"]{display:none!important}
 .fx-DIAMANTE{background:var(--f-diamante)}.fx-OURO{background:var(--f-ouro)}
 .fx-BRONZE{background:var(--f-bronze)}
 .tj-DIAMANTE{background:var(--f-diamante)}.tj-OURO{background:var(--f-ouro)}
@@ -818,8 +816,8 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     </div>
     <div class="nota">Ninguém fica sem próximo passo: se você não marcar a data de retorno ao salvar o
       contato, o app marca sozinho para daqui a <b id="ac-lembrete">7</b> dias e a paciente reaparece em
-      <b>Vencidos</b>. A paciente só sai daqui por decisão sua: <b>Mover paciente</b> devolve à fila de origem
-      ou finaliza — o app nunca tira ninguém sozinho.</div>
+      <b>Vencidos</b>. A paciente só sai daqui por decisão sua: abra a ficha e use <b>Mover paciente</b> para devolver à fila de origem
+      ou <b>Finalizar paciente</b> — o app nunca tira ninguém sozinho.</div>
   </section>
 
   <!-- ===================== RECALL ===================== -->
@@ -956,8 +954,8 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
       <div class="ficha-slot" id="slot-finalizados"></div>
     </div>
     <div class="nota">Aqui ficam as pacientes que a equipe decidiu finalizar, com motivo, data e quem decidiu —
-      para monitoria e resgate futuro. Nada é apagado, e ninguém volta sozinha: para reabrir, use
-      <b>Mover paciente</b> e escolha para onde ela vai.</div>
+      para monitoria e resgate futuro. Nada é apagado, e ninguém volta sozinha: para reabrir, abra a ficha e use
+      <b>Mover paciente</b>.</div>
   </section>
 
   <!-- ===================== AGENDA ===================== -->
@@ -1080,7 +1078,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.28';
+const VERSAO_TELA = 'V4.29';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -2188,8 +2186,7 @@ function cartaoAc(x, bloco){
         <button class="bt-min${pend ? ' alerta' : ''}" data-acao="ficha">${pend ? 'Lançar contato agora' : 'Registrar contato'}</button>
         ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
         ${pend ? '<button class="bt-min" data-acao="desfazer" title="Abri mas não falei com ela: a paciente volta para onde estava">Não contatei</button>' : ''}
-        <button class="bt-min" data-acao="whats">Mensagem</button>
-        <button class="bt-min" data-acao="mover" title="Devolver à fila de origem ou finalizar">Mover…</button></div>
+        <button class="bt-min" data-acao="whats">Mensagem</button></div>
     </div></div>`;
 }
 
@@ -2209,8 +2206,6 @@ function ligarCartoesAc(){
           }).catch(falhar);
           return;
         }
-        if (b.dataset.acao === 'mover') { formMover({ chave: c.dataset.chave, nome: (ITENS_VISTOS[c.dataset.chave] || {}).paciente || c.querySelector('.pac-nome').textContent,
-          situacao: 'ACOMP', origem: (ITENS_VISTOS[c.dataset.chave] || {}).volta_para || '', temAgenda: c.dataset.bloco === 'AGENDADAS' }); return; }
         api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
           if (m.erro) { toast(m.erro); return; }
           abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
@@ -3195,7 +3190,7 @@ function formMover(c){
     opcs.push(['ORIGEM', 'Devolver ao ' + origemNome, c.temAgenda
       ? 'Indisponível: ela tem horário marcado. Enquanto o horário existir ela fica no Acompanhamento.'
       : 'Sai do Acompanhamento e volta para a lista de origem. Um novo contato a traz de volta.']);
-    if (!contaRestrita()) opcs.push(['FINALIZADOS', 'Finalizar', 'Vai para a aba Finalizados, com motivo, para monitoria e resgate futuro.']);
+    opcs.push(['FINALIZADOS', 'Finalizar', 'Vai para a aba Finalizados, com motivo, para monitoria e resgate futuro.']);
   }
   abrirModal(`<h2>Mover paciente</h2>
     <div class="sub2" style="font-size:12.5px;color:rgba(36,30,28,.6);margin-bottom:12px">${esc(c.nome)} — para onde ela vai?</div>
@@ -3437,13 +3432,11 @@ function pintarFinalizados(d){
         <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span></div>
       <div class="pac-l2">Finalizada ${esc(String(x.encerrado_em || '').split(' ')[0] || '—')}${x.finalizada_por ? ' por ' + esc(x.finalizada_por) : ''} · motivo: ${esc(rotuloLista('ENCERRAMENTO', x.motivo) || x.motivo || '—')}</div>
       <div class="pac-l3"><span class="tag">${x.tentativas}ª tentativa</span>${x.valor ? `<span class="tag val">${brl(x.valor)} no histórico</span>` : ''}
-        <span class="tag">veio de ${esc(ROTULO_ONDE[x.origem] || x.origem || '—')}</span>
-        <button class="bt-min" data-acao="mover">Mover…</button></div>
+        <span class="tag">veio de ${esc(ROTULO_ONDE[x.origem] || x.origem || '—')}</span></div>
     </div></div>`).join('') : '<div class="card vazio">Nenhuma paciente finalizada com esses filtros.</div>';
   el('fz-lista').querySelectorAll('.pac').forEach(c => {
     const it = ITENS_VISTOS[c.dataset.chave] || {};
     c.onclick = ev => {
-      if (ev.target.closest('[data-acao]')) { ev.stopPropagation(); formMover({ chave: c.dataset.chave, nome: it.paciente || '', situacao: 'FINAL', origem: it.origem || '' }); return; }
       abrirFicha(c.dataset.chave, it);
     };
     c.onkeydown = ev => { if (ev.key === 'Enter') c.click(); };
