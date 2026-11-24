@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.30 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
+<!-- RECALL E FOLLOW-UP · V4.33 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -753,6 +753,185 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 #fc-corpo .sec.aberto .dobra-arw{transform:rotate(180deg)}
 #fc-corpo .dobra-alvo{display:none}
 #fc-corpo .dobra-alvo.aberto{display:block}
+
+/* ===================== V4.32 — cartão painel de datas, blocos, ficha em tela cheia ===================== */
+.ficha-slot{display:none!important}
+.split{max-width:1240px;margin-left:auto;margin-right:auto}
+@media(min-width:1100px){.split{grid-template-columns:minmax(0,1fr)!important}}
+.pacA-w{flex:1;min-width:0}
+.pacA{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,440px);gap:16px;padding:16px 18px}
+@media(max-width:820px){.pacA{grid-template-columns:1fr;gap:12px;padding:14px}}
+.pa-esq{min-width:0;display:flex;flex-direction:column;gap:6px}
+.pa-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pa-st{font:700 11.5px Inter,sans-serif;border-radius:999px;padding:4px 10px;letter-spacing:.02em;white-space:nowrap}
+.pa-ch{font:500 12px Inter,sans-serif;color:#5E5550;border:1px solid rgba(36,30,28,.2);border-radius:999px;padding:3px 9px;background:#fff;white-space:nowrap}
+.pa-nome{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:22px;line-height:1.15;margin-top:2px}
+.pa-obs{font-size:14.5px;line-height:1.45;color:#3B3330}
+.pa-lin{font-size:13px;line-height:1.45;color:#5E5550}
+.pa-bts{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.btA{font:600 13.5px Inter,sans-serif;border-radius:10px;padding:0 14px;height:40px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--linha-forte);background:#fff;color:var(--tinta);text-decoration:none;cursor:pointer;white-space:nowrap}
+.btA:hover{border-color:var(--tinta)}
+.btA.z{background:var(--salvia);border-color:var(--salvia);color:#fff}
+.btA.v{background:var(--vinho);border-color:var(--vinho);color:#fff}
+.btA.al{background:#C0392B;border-color:#C0392B;color:#fff}
+.btA:disabled{opacity:.4;cursor:default}
+.pa-cx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:start}
+.pa-q{background:#fff;border:1px solid var(--linha);border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.pa-q .r{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5E5550;font-weight:600}
+.pa-q b{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pa-q span:last-child{font-size:12.5px;color:#5E5550;line-height:1.3}
+.pa-q.venc{background:#FBEDEB;border-color:#C0392B}.pa-q.venc b,.pa-q.venc span:last-child{color:#9E2A1F}
+.pa-q.prox{background:#FFF6E6;border-color:#B8894A}.pa-q.prox span:last-child{color:#7A5A22;font-weight:600}
+.pa-q.val b{color:#7A5A22}
+.pa-q.ok{background:#EEF3EF;border-color:#4F6B58}.pa-q.ok b{color:#3E5A47}
+.pa-q.semd{background:#F4F0F8;border-color:#7A5C99}.pa-q.semd span:last-child{color:#5E4380}
+.pac .pend-alerta{margin:0}
+.blk-bar{display:flex;gap:8px;justify-content:flex-end;margin:4px 0 8px}
+.blk{margin:0 0 10px}
+.blk-h{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:8px 18px;border-radius:12px;border:1px solid var(--linha);
+  background:#fff;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.blk.on .blk-h{border-radius:12px 12px 0 0}
+.blk-h .blk-seta{transition:transform .15s;flex:none}
+.blk.on .blk-h .blk-seta{transform:rotate(90deg)}
+.blk-h .pt{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.blk-h b{font-size:15px}
+.blk-h .n{background:var(--c);color:#fff;border-radius:999px;padding:2px 10px;font:600 13px 'IBM Plex Mono',monospace}
+.blk-h .sp{flex:1}
+.blk-h .v{font:500 13px 'IBM Plex Mono',monospace;color:#7A5A22}
+.blk-c{display:none}
+.blk.on .blk-c{display:flex;flex-direction:column;gap:10px;padding:12px;background:rgba(184,137,74,.07);border:1px solid var(--linha);border-top:0;border-radius:0 0 12px 12px}
+/* ficha: tela cheia por cima de qualquer aba */
+#ficha,#ficha.lateral{position:fixed!important;inset:0!important;top:0!important;width:100%!important;max-width:none!important;max-height:none!important;
+  border:0!important;border-radius:0!important;z-index:46;transform:translateY(12px);opacity:0;pointer-events:none;
+  transition:opacity .16s ease,transform .16s ease;display:flex;flex-direction:column;box-shadow:none}
+#ficha.on{transform:none;opacity:1;pointer-events:auto}
+#ficha .fc-topo{padding:12px 28px;gap:12px}
+#ficha .fc-topo .volta{min-height:42px;font-size:14px;padding:0 14px}
+#ficha .fc-dica{font-size:12.5px;opacity:.8}
+#ficha .fc-pos{font:600 13px 'IBM Plex Mono',monospace;white-space:nowrap}
+#ficha .fc-rolo{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#ficha .fc-cab{max-width:1420px;margin:0 auto;padding:20px 28px 0}
+#ficha .fc-cab .tit{font-family:'Fraunces',Georgia,serif;font-size:32px;font-weight:600;line-height:1.1;color:var(--tinta)}
+#ficha .fc-cab .sub span{background:#fff;border:1px solid rgba(36,30,28,.2);color:#5E5550;border-radius:999px;padding:3px 10px;font-size:12px;
+  display:inline-block;margin:8px 6px 0 0;font-family:Inter,sans-serif;letter-spacing:0}
+#ficha .fc-corpo{overflow:visible;flex:none;max-width:1420px;margin:0 auto;padding:16px 28px 40px}
+.fc-grid{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:20px;align-items:start}
+@media(max-width:1000px){.fc-grid{grid-template-columns:1fr}#ficha .fc-dica{display:none}}
+.fc-dir{position:sticky;top:0;display:flex;flex-direction:column;gap:14px}
+@media(max-width:1000px){.fc-dir{position:static}}
+.fc-reg{border:2px solid var(--vinho)!important}
+.fc-agora{background:#FFF6E6;border:1px solid #B8894A;border-radius:14px;padding:14px 18px;font-size:15px;line-height:1.5;margin:4px 0 14px;display:flex;gap:12px}
+.fc-agora svg{flex:none;margin-top:2px}
+.fc-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:8px}
+@media(max-width:700px){.fc-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fc-kpi .pa-q b{font-size:22px}
+.fc-mini{font-size:12.5px;color:#5E5550;margin:0 0 12px}
+.fc-dir .acoes .bt{flex:1 1 auto}
+/* fechados: origem dos fechamentos */
+.ft-l{display:grid;grid-template-columns:12px minmax(130px,190px) minmax(0,1fr) 90px 120px;gap:10px;align-items:center;padding:6px 0;font-size:13.5px}
+.ft-l i{width:10px;height:10px;border-radius:50%}
+.ft-b{height:10px;background:rgba(36,30,28,.08);border-radius:5px;overflow:hidden}.ft-b span{display:block;height:100%}
+.ft-n{font:500 12.5px 'IBM Plex Mono',monospace;text-align:right}.ft-v{font:600 13px 'IBM Plex Mono',monospace;text-align:right;color:#7A5A22}
+@media(max-width:640px){.ft-l{grid-template-columns:12px 1fr 70px}.ft-b,.ft-v{display:none}}
+.btn-atz.btn-rel{width:auto!important;min-width:0!important;padding:0 12px!important;font-size:12px!important;letter-spacing:.06em}
+
+/* ===================== V4.33 — layout profissional: largura única, cabeçalho compacto, faixa de indicadores ===================== */
+header.topo{height:60px;padding:0 32px;box-sizing:border-box}
+header.topo .marca{font-size:18px;font-weight:600}
+header.topo .hdr-dir{gap:8px}
+header.topo .atz{font-size:10.5px;margin-right:6px}
+header.topo .quem,header.topo .btn-atz{height:36px!important;min-width:36px;border-radius:8px;font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:0!important}
+header.topo .btn-atz.btn-rel,header.topo .btn-atz.btn-sair{width:auto!important;padding:0 14px!important}
+.barra-abas{display:flex;align-items:center;gap:16px;background:#fff;border-bottom:1px solid var(--linha);position:sticky;top:60px;z-index:19;padding:0 32px}
+.barra-abas nav.tabs{position:static;border:0;flex:1 1 auto;min-width:0;gap:20px;background:none}
+.barra-abas nav.tabs button{font-family:Inter,sans-serif;font-size:13.5px;font-weight:600;letter-spacing:0;text-transform:none;color:#5E5550;padding:14px 0 12px;display:flex;align-items:center;gap:6px}
+.barra-abas nav.tabs button.on{color:var(--vinho)}
+.barra-abas nav.tabs .tn{font:600 11px 'IBM Plex Mono',monospace;background:#EFE8E0;color:#5E5550;border-radius:999px;padding:1px 7px}
+.barra-abas nav.tabs .tn:empty{display:none}
+.barra-abas nav.tabs button.on .tn{background:var(--vinho);color:#fff}
+.barra-abas .bg-faixa{position:static;border:0;padding:0;background:none;flex:0 1 300px;min-width:200px}
+.barra-abas .bg-cx{max-width:none}
+.barra-abas .bg-cx input{height:36px;padding-top:0;padding-bottom:0;font-size:13.5px}
+@media(max-width:900px){.barra-abas{flex-direction:column;align-items:stretch;gap:0;padding:0 16px}.barra-abas .bg-faixa{flex:none;padding:8px 0}header.topo{padding:0 16px}}
+.tela{max-width:1440px;padding:22px 32px 40px;box-sizing:border-box}
+@media(max-width:760px){.tela{padding:14px 16px 32px}}
+.split{max-width:none!important;margin:0!important}
+/* títulos das telas: o bloco vinho virou título + número + subtítulo */
+.cab-tela{grid-template-columns:1fr!important;gap:14px;margin-bottom:14px}
+.hero{background:none!important;color:var(--tinta)!important;padding:0!important;border-radius:0!important;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;box-shadow:none!important}
+.hero .rot{font-family:'Fraunces',Georgia,serif!important;font-size:28px!important;font-weight:600;letter-spacing:0!important;text-transform:none!important;opacity:1!important;color:var(--tinta)}
+.hero .grande{font-size:20px!important;margin:0!important;color:var(--vinho)}
+.hero .grande small{font-family:Inter,sans-serif;font-size:14px!important;color:#5E5550;opacity:1!important}
+.hero .sub{flex-basis:100%;font-family:Inter,sans-serif!important;font-size:13.5px!important;color:#5E5550;opacity:1!important;letter-spacing:0!important}
+.card{border-radius:12px}
+.card h3{font-size:10.5px}
+/* faixa de indicadores (Acompanhamento) */
+.pg-cab{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px}
+.pg-tit{margin:0;font-family:'Fraunces',Georgia,serif;font-size:28px;font-weight:600;line-height:1.1}
+.pg-sub{font-size:13.5px;color:#5E5550;margin-top:4px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:14px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}
+.kpi{background:#fff;border:1px solid var(--linha);border-top:3px solid var(--c);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;
+  text-align:left;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.kpi .r{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#5E5550}
+.kpi b{font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi small{font-size:12px;color:#5E5550}
+.kpi[aria-pressed="true"]{outline:2px solid var(--c);background:#FFFBF6}
+.kpi.dest{background:#FBEDEB}.kpi.dest .r,.kpi.dest b,.kpi.dest small{color:#9E2A1F}
+.kpi.fixo{cursor:default}
+@media(max-width:900px){.kpi{padding:9px 10px}.kpi b{font-size:22px}.kpi small{display:none}}
+.avisos{background:#fff;border:1px solid var(--linha);border-left:4px solid #C0392B;border-radius:10px;margin-bottom:14px}
+.avisos .av{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:13.5px}
+.avisos .av+.av{border-top:1px solid rgba(36,30,28,.08)}
+.avisos .av i{width:8px;height:8px;border-radius:50%;flex:none}
+.avisos .av span{flex:1;min-width:0}
+.ac-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media(max-width:1100px){.ac-grid{grid-template-columns:minmax(0,1fr)}.ac-rail{order:-1;min-width:0}.rail-card{min-width:0;overflow:hidden}}
+.ac-main{min-width:0;display:flex;flex-direction:column;gap:10px}
+.barra-ferr{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;background:#fff;border:1px solid var(--linha);border-radius:10px;padding:8px 10px}
+.barra-ferr .busca-cx{flex:1 1 240px;min-width:0}
+.barra-ferr .filtro-campo{flex:0 0 auto}
+.barra-ferr .sepv{width:1px;height:28px;background:rgba(36,30,28,.15);align-self:center}
+.ac-rotulo{font-size:12.5px;color:#5E5550;padding:0 2px}
+.ac-rail{position:sticky;top:124px;display:flex;flex-direction:column;gap:14px}
+@media(max-width:1100px){.ac-rail{position:static}}
+.rail-card{background:#fff;border:1px solid var(--linha);border-radius:12px;padding:14px 10px 10px}
+.rail-h{display:flex;justify-content:space-between;align-items:baseline;padding:0 8px 8px;font-size:12px;color:#5E5550}
+.rail-h .lbl{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:#5E5550}
+.eq{display:flex;flex-direction:column;gap:6px;width:100%;padding:9px 10px;border-radius:10px;border:1px solid transparent;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.eq:hover{background:#FAF7F3}
+.eq[aria-pressed="true"]{background:#F6EFE6;border-color:rgba(92,26,43,.35)}
+.eq .l1{display:flex;justify-content:space-between;font-size:14px}
+.eq .l1 b:last-child{font-family:'IBM Plex Mono',monospace}
+.eq .bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:#EFE8E0}
+.eq .bar span{display:block;height:100%}
+.eq small{font-size:12px;color:#5E5550}
+@media(max-width:1100px){#ac-colabs{display:flex;gap:6px;overflow-x:auto;padding:0 6px 4px}.eq{flex:0 0 auto;width:auto;min-width:150px;border-color:var(--linha)}}
+.rail-fech{background:var(--salvia);color:#fff;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.rail-fech .r{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.rail-fech b{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600}
+.rail-fech span{font-size:13px;opacity:.92}
+.rail-fech button{align-self:flex-start;margin-top:6px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.14);color:#fff;font:600 13px Inter,sans-serif;padding:0 12px;cursor:pointer}
+.rail-leg{display:flex;flex-direction:column;gap:8px;font-size:12.5px;color:#3B3330;padding:14px 16px}
+.rail-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+@media(max-width:1100px){.rail-leg{display:none}}
+.mini div{background:#fff!important;border-radius:12px!important;padding:12px 14px!important}
+.mini b{font-size:26px!important;color:var(--tinta)!important}
+.mini span{font-size:10.5px!important;letter-spacing:.08em!important;color:#5E5550!important;font-weight:600;margin-top:5px!important}
+.sec-imp button,.bt-min{font-family:Inter,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:0!important;height:34px;padding:0 14px!important;border-radius:8px!important}
+.sec,.sec-imp .sec{font-family:Inter,sans-serif;font-size:12.5px;letter-spacing:0;text-transform:none;color:#5E5550;font-weight:500}
+@media(max-width:620px){
+  header.topo{height:auto;padding:10px 12px;position:static}
+  header.topo .hdr-dir{gap:6px;flex-wrap:wrap}
+  header.topo .atz{flex:1 1 100%;order:2;flex-direction:row;flex-wrap:wrap;gap:0 10px;align-items:baseline}
+  header.topo .quem,header.topo .btn-atz{height:34px!important}
+  header.topo .btn-atz.btn-rel,header.topo .btn-atz.btn-sair{padding:0 10px!important}
+  .barra-abas{top:0}
+  .kpi b.vl{font-size:15px!important;line-height:22px!important}
+  .ac-grid{gap:12px}
+}
+.blk-mais{align-self:center;border:0;background:none;color:var(--vinho);font:600 13px Inter,sans-serif;padding:8px 12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -780,6 +959,7 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     <div class="hdr-dir">
       <div class="atz"><span id="atz-txt">—</span><span id="atz-base"></span><span id="atz-ver"></span></div>
       <button class="quem" id="bt-quem" onclick="abrirPortao()">Identificar-se</button>
+      <button class="btn-atz btn-rel" id="bt-rel" onclick="abrirRelatorio()" title="Relatório em PDF ou Excel de qualquer aba, com período e colaboradora">RELATÓRIO</button>
       <button class="btn-atz" id="bt-atz" onclick="atualizarAgora()" title="Atualizar dados">↻</button>
       <button class="btn-atz btn-sair" id="btn-sair" onclick="sairDoApp()" title="Sair e esquecer este aparelho">SAIR</button>
     </div>
@@ -787,55 +967,51 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 
   <div class="alerta-versao" id="alerta-versao"></div>
 
+  <div class="barra-abas">
   <nav class="tabs">
-    <button data-tela="acompanhamento" class="on" onclick="irPara('acompanhamento')">Acompanhamento</button>
-    <button data-tela="recall" onclick="irPara('recall')">Recall</button>
-    <button data-tela="dormente" onclick="irPara('dormente')">Dormente</button>
-    <button data-tela="highticket" onclick="irPara('highticket')">High Ticket</button>
-    <button data-tela="follow" onclick="irPara('follow')">Follow-up</button>
-    <button data-tela="fechados" onclick="irPara('fechados')">Fechados</button>
-    <button data-tela="finalizados" onclick="irPara('finalizados')">Finalizados</button>
-    <button data-tela="agenda" onclick="irPara('agenda')">Agenda</button>
-    <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
+    <button data-tela="acompanhamento" class="on" onclick="irPara('acompanhamento')">Acompanhamento<span class="tn" id="tn-acompanhamento"></span></button>
+    <button data-tela="recall" onclick="irPara('recall')">Recall<span class="tn" id="tn-recall"></span></button>
+    <button data-tela="dormente" onclick="irPara('dormente')">Dormente<span class="tn" id="tn-dormente"></span></button>
+    <button data-tela="highticket" onclick="irPara('highticket')">High Ticket<span class="tn" id="tn-highticket"></span></button>
+    <button data-tela="follow" onclick="irPara('follow')">Follow-up<span class="tn" id="tn-follow"></span></button>
+    <button data-tela="fechados" onclick="irPara('fechados')">Fechados<span class="tn" id="tn-fechados"></span></button>
+    <button data-tela="finalizados" onclick="irPara('finalizados')">Finalizados<span class="tn" id="tn-finalizados"></span></button>
+    <button data-tela="agenda" onclick="irPara('agenda')">Agenda<span class="tn" id="tn-agenda"></span></button>
+    <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores<span class="tn" id="tn-indicadores"></span></button>
   </nav>
 
   <div class="bg-faixa">
     <div class="bg-cx">
-      <input id="bg-campo" autocomplete="off" placeholder="Buscar paciente em toda a carteira — nome, telefone ou nº do orçamento">
+      <input id="bg-campo" autocomplete="off" placeholder="Buscar paciente na carteira toda">
       <button class="lupa" id="bg-lupa" title="Buscar">&#9906;</button>
       <div class="bg-painel" id="bg-painel"></div>
     </div>
+  </div>
   </div>
 
   <!-- ===================== ACOMPANHAMENTO =====================
        A fila do dia. Quem já foi contatada sai do Recall e vive aqui até
        fechar, agendar ou ser encerrada pela gestora. -->
   <section class="tela on" id="tela-acompanhamento">
-    <div class="cab-tela cab-ac">
-      <div class="hero">
-        <div class="rot">Acompanhamento</div>
-        <div class="grande" id="ac-grande">—</div>
-        <div class="sub" id="ac-sub">—</div>
-      </div>
-      <div class="card">
-        <h3>Status paciente <span class="aux">toque num bloco para filtrar</span></h3>
-        <div class="regua" id="ac-regua"></div>
-        <div class="legenda" id="ac-legenda"></div>
-        <div id="ac-colabs-box" style="display:none">
-          <h3 style="margin-top:18px">Por colaboradora <span class="aux">toque num nome para filtrar</span></h3>
-          <div class="colabs" id="ac-colabs"></div>
-        </div>
-      </div>
-      <div class="filtros bloco" id="ac-filtros"></div>
-    </div>
+    <div class="pg-cab"><div><h1 class="pg-tit">Acompanhamento</h1>
+      <div class="pg-sub" id="ac-sub">Quem já recebeu contato e o próximo passo de cada uma</div></div></div>
+    <div class="kpis" id="ac-kpis"></div>
     <div id="ac-aviso"></div>
-    <div id="ac-ativos"></div>
-    <div class="split">
-      <div>
-        <div class="sec-imp"><div class="sec" id="ac-rotulo">Fila do dia</div><button class="bt-min" onclick="imprimirTela('acompanhamento')" title="Imprime em PDF as pacientes que estão nesta tela, do jeito que elas estão filtradas">Imprimir relatório</button></div>
+    <div class="ac-grid">
+      <div class="ac-main">
+        <div class="barra-ferr" id="ac-filtros"></div>
+        <div id="ac-ativos"></div>
+        <div class="ac-rotulo" id="ac-rotulo">Fila do dia</div>
         <div class="lista" id="ac-lista"><div class="carregando">Carregando…</div></div>
       </div>
-      <div class="ficha-slot" id="slot-acompanhamento"></div>
+      <aside class="ac-rail">
+        <div class="rail-card" id="ac-colabs-box" style="display:none">
+          <div class="rail-h"><span class="lbl">Equipe</span><span>toque para filtrar</span></div>
+          <div id="ac-colabs"></div>
+        </div>
+        <div id="ac-fech"></div>
+        <div class="rail-card rail-leg"><span class="rail-h" style="padding:0"><span class="lbl">Como ler as cores</span></span><div id="ac-legenda" style="display:flex;flex-direction:column;gap:8px"></div></div>
+      </aside>
     </div>
     <div class="nota">Ninguém fica sem próximo passo: se você não marcar a data de retorno ao salvar o
       contato, o app marca sozinho para daqui a <b id="ac-lembrete">7</b> dias e a paciente reaparece em
@@ -971,6 +1147,11 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
       </div>
     </div>
     <div class="filtros bloco" id="fh-filtros" style="margin-bottom:14px"></div>
+    <div class="card" style="margin-bottom:14px">
+      <h3>De onde vieram os fechamentos <span class="aux">o que a paciente era no dia do contato, pela Base do ERP</span></h3>
+      <div id="fh-tipos"></div>
+    </div>
+    <div id="fh-trat" style="margin-bottom:14px"></div>
     <div class="card" id="fh-equipe-box" style="margin-bottom:14px">
       <h3>Por colaboradora <span class="aux">toque numa linha para filtrar</span></h3>
       <div class="tab-rol"><table class="tab-fech" id="fh-equipe"></table></div>
@@ -1018,6 +1199,7 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 
   <!-- ===================== AGENDA ===================== -->
   <section class="tela" id="tela-agenda">
+    <div class="pg-cab"><div><h1 class="pg-tit">Agenda</h1><div class="pg-sub">Horários marcados pelo app e o que aconteceu com cada um</div></div></div>
     <div class="filtros bloco" id="ag-filtros"></div>
     <div class="ind-cards" id="ag-kpis"></div>
     <div class="split">
@@ -1029,6 +1211,7 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 
   <!-- ===================== INDICADORES ===================== -->
   <section class="tela" id="tela-indicadores">
+    <div class="pg-cab"><div><h1 class="pg-tit">Indicadores</h1><div class="pg-sub">Resultado de cada frente no mês escolhido</div></div></div>
     <div class="filtros bloco" id="ind-filtros"></div>
     <div class="navmes">
       <button onclick="andarMes(-1)" title="mês anterior">‹</button>
@@ -1042,16 +1225,20 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
 
 <!-- ===================== FICHA (camada sobre qualquer tela) ===================== -->
 <div id="ficha-fundo" onclick="fecharFicha()"></div>
-<aside id="ficha" aria-hidden="true">
+<aside id="ficha" aria-hidden="true" role="dialog" aria-label="Ficha da paciente">
   <div class="fc-topo">
-    <button class="volta" onclick="fecharFicha()">← Voltar</button>
-    <div style="flex:1;min-width:0">
-      <div class="tit" id="fc-nome">—</div>
-      <div class="sub" id="fc-sub">—</div>
-    </div>
+    <button class="volta" onclick="fecharFicha()">‹ Voltar à lista</button>
+    <span class="fc-dica">a lista volta no mesmo ponto em que você estava</span>
+    <span style="flex:1"></span>
+    <button class="volta" id="fc-ant" onclick="andarFicha(-1)" aria-label="Paciente anterior">‹</button>
+    <span class="fc-pos" id="fc-pos"></span>
+    <button class="volta" id="fc-prox" onclick="andarFicha(1)" aria-label="Próxima paciente">›</button>
     <button class="volta acao-topo" id="fc-pdf" title="Imprimir a ficha em PDF">PDF</button>
   </div>
-  <div class="fc-corpo" id="fc-corpo"><div class="carregando">Carregando…</div></div>
+  <div class="fc-rolo">
+    <div class="fc-cab"><div class="tit" id="fc-nome">—</div><div class="sub" id="fc-sub">—</div></div>
+    <div class="fc-corpo" id="fc-corpo"><div class="carregando">Carregando…</div></div>
+  </div>
 </aside>
 
 <div id="modal"><div class="painel"><button class="fechar" onclick="fecharModal()">×</button>
@@ -1136,7 +1323,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.30';
+const VERSAO_TELA = 'V4.33';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1236,6 +1423,7 @@ const semDinheiro = () => !!(USUARIO && USUARIO.ver_valores === false);
 const abasConta = () => (USUARIO && Array.isArray(USUARIO.abas)) ? USUARIO.abas : null;
 const contaRestrita = () => !!abasConta();
 const semRelatorio = () => semDinheiro() || contaRestrita();
+function pintarBotaoRelatorio(){ const b = el('bt-rel'); if (b) b.style.display = (USUARIO && !semRelatorio()) ? '' : 'none'; }
 function podeAba(t){
   const a = abasConta();
   if (t === 'highticket' && semDinheiro()) return false;
@@ -1636,7 +1824,7 @@ function abrirModal(html){
   el('modal').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
-function fecharModal(){ el('modal').classList.remove('on'); document.body.style.overflow = ''; }
+function fecharModal(){ el('modal').classList.remove('on'); document.body.style.overflow = el('ficha') && el('ficha').classList.contains('on') ? 'hidden' : ''; }
 function abrirModalCarregando(titulo){
   abrirModal(`<div class="mod-carreg"><img class="mod-mono" alt="" src="${monogramaSrc()}">
     <span>${esc(titulo || 'carregando')}</span></div>`);
@@ -1705,7 +1893,7 @@ function resetarFicha(){
    diferentes, para a ficha ser sempre a mesma. */
 function posicionarFicha(){
   const f = el('ficha');
-  const desktop = window.innerWidth >= 1100;
+  const desktop = false;   // V4.32 — a ficha é sempre uma camada em tela cheia
   const slot = document.querySelector('.tela.on .ficha-slot');
   if (desktop && slot){
     if (f.parentElement !== slot) slot.appendChild(f);
@@ -1791,6 +1979,7 @@ function aplicarContexto(ctx){
 /** Nome de quem está dentro, com marca clara quando a sessão é técnica. */
 function pintarUsuario(){
   const b = el('bt-quem');
+  pintarBotaoRelatorio();   // V4.32
   if (!USUARIO){ b.textContent = 'Identificar-se'; b.classList.remove('suporte'); return; }
   const tecnico = !!USUARIO.oculto;
   // o nome da conta já pode ser "SUPORTE"; o marcador não repete a palavra,
@@ -1891,6 +2080,7 @@ function pintarFila(tela, d){
   const ehHt = tela === 'highticket';
 
   el(pre + '-grande').innerHTML = `${d.na_aba.toLocaleString('pt-BR')}<small style="margin-left:8px">pacientes</small>`;
+  contagemAba(tela, d.na_aba);
   el(pre + '-sub').textContent = (semValor(d.valor) ? '' : brl(d.valor) + ' em histórico · ') +
     d.total.toLocaleString('pt-BR') + ' na carteira · ' + (d.em_acompanhamento || 0) + ' já no Acompanhamento · ' + d.encerradas + ' finalizadas';
 
@@ -1994,65 +2184,6 @@ function avisoCampanhaFicha(p){
     ${minha ? 'Os registros seguem normalmente.' : 'Contato, WhatsApp e agendamento por esta tela ficam bloqueados até essa data para não haver abordagem dupla.'}</div>`;
 }
 
-function cartaoPaciente(p, tela){
-  const tags = [];
-  if (p.campanha) tags.push(tagCampanha(p));
-  if (p.perfil) tags.push(`<span class="tag${p.perfil === 'NUNCA_APROVOU' ? ' roxo' : ''}">${esc(ROTULO_PERFIL[p.perfil] || p.perfil)}</span>`);
-  if (p.classe_ht) tags.push(`<span class="tag ht ${esc(p.classe_ht)}">Alto padrão · ${esc(p.classe_ht)}</span>`);
-  if (p.valor)  tags.push(`<span class="tag val">${brl(p.valor)} no histórico</span>`);
-  if (p.temperatura) tags.push(`<span class="tag ${esc(p.temperatura)}">${esc(ROTULO_TEMP[p.temperatura] || p.temperatura)}</span>`);
-  /* a marca vem no cartão, antes de a ficha abrir: quem varre a lista vê o
-     aviso sem precisar entrar em cada paciente */
-  const dRec = diasDesde(p.ultimo_contato);
-  if (dRec !== null && dRec <= TRAVA_DIAS){
-    tags.push(`<span class="tag alerta">Contatada ${dRec === 0 ? 'hoje' : 'há ' + dRec + ' dia(s)'} — não repetir</span>`);
-  }
-  tags.push(`<span class="tag">${p.tentativas
-    ? p.tentativas + 'ª tentativa' + (p.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', p.ultimo_canal)) : '')
-    : 'Nunca contatada'}</span>`);
-  if (p.abertos) tags.push(`<span class="tag">${p.abertos} orçamento(s) aberto(s) · ${brl(p.valor_aberto)}</span>`);
-  if (p.proximo) tags.push(`<span class="tag alerta">Retornar ${esc(p.proximo)}</span>`);
-
-  const origem = p.ultimo_orcamento
-    ? `Último orçamento ${esc(p.ultimo_orcamento)}${p.ultimo_orcamento_num ? ' · ORÇ ' + esc(p.ultimo_orcamento_num) : ''}${p.ultimo_orcamento_situacao ? ' · ' + esc(p.ultimo_orcamento_situacao) : ''}`
-    : 'Sem orçamento datado';
-  const marcada = tela && SEL[tela] && SEL[tela].indexOf(p.chave) > -1;
-
-  return `<div class="pac${marcada ? ' escolhida' : ''}" data-chave="${esc(p.chave)}" role="button" tabindex="0">
-    <div class="tarja tj-${esc(p.faixa)}"></div>
-    ${tela ? `<label class="sel-cx" title="Selecionar para imprimir">
-      <input type="checkbox" data-sel="${esc(p.chave)}"${marcada ? ' checked' : ''}></label>` : ''}
-    <div class="pac-in">
-      <div class="pac-l1">
-        <span class="pac-nome">${esc(p.paciente)}</span>
-        <span class="pac-cid">${esc(p.cidade)}${p.uf ? ' · ' + esc(p.uf) : ''}</span>
-        <span class="pac-dias"><b>${p.dias == null ? '—' : p.dias}</b><span>dias</span></span>
-      </div>
-      <div class="pac-l2">${origem}${p.ultima_compra ? ' · última compra ' + esc(p.ultima_compra) : ''} · ${p.aprovados} aprovado(s)${p.primeiro ? ' · paciente desde ' + esc(p.primeiro) : ''}</div>
-      <div class="pac-l3">${tags.join('')}</div>
-    </div></div>`;
-}
-
-function ligarCartoes(container, tela){
-  container.querySelectorAll('.pac').forEach(c => {
-    const cx = c.querySelector('[data-sel]');
-    if (cx) cx.onchange = ev => {
-      ev.stopPropagation();
-      alternarSel(tela, cx.dataset.sel, cx.checked);
-      c.classList.toggle('escolhida', cx.checked);
-    };
-    const abrir = ev => {
-      if (ev.target.closest('.sel-cx') || ev.target.closest('[data-acao]')) return;
-      container.querySelectorAll('.pac').forEach(x => x.removeAttribute('aria-current'));
-      c.setAttribute('aria-current', 'true');
-      abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]);
-    };
-    c.onclick = abrir;
-    ligarAquecimento(c);
-    c.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); abrir(ev); } };
-  });
-}
-
 /* ==========================================================================
    ACOMPANHAMENTO — a fila do dia
    ========================================================================== */
@@ -2113,7 +2244,12 @@ function montarFiltrosAc(){
   cx.innerHTML =
     campoBusca('ac-busca', 'Buscar nesta fila por nome ou telefone', AC.busca) +
     (contaRestrita() ? '' : campoSelecao('ac-origem', 'Origem', origens, AC.origem)) +
-    campoSelecao('ac-ordem', 'Ordenar por', ORDENS_AC, AC_ORDEM);
+    campoSelecao('ac-ordem', 'Ordenar por', ORDENS_AC, AC_ORDEM) +
+    '<span class="sepv"></span><button class="btA" id="ac-abrir">Abrir todos</button><button class="btA" id="ac-recolher">Recolher</button>' +
+    (semRelatorio() ? '' : '<button class="btA" id="ac-imprimir" title="Imprime em PDF as pacientes desta tela, do jeito que estão filtradas">Imprimir</button>');
+  el('ac-abrir').onclick = () => abrirTodosBlocos(true);
+  el('ac-recolher').onclick = () => abrirTodosBlocos(false);
+  if (el('ac-imprimir')) el('ac-imprimir').onclick = () => imprimirTela('acompanhamento');
   if (el('ac-origem')) el('ac-origem').onchange = () => { AC.origem = el('ac-origem').value; carregarAcompanhamento().catch(falhar); };
   el('ac-ordem').onchange = () => {
     AC_ORDEM = el('ac-ordem').value;
@@ -2131,30 +2267,36 @@ function pintarAcompanhamento(d){
   const total = blocosAc().reduce((s2, x) => s2 + (r[x[0]] || 0), 0) || 1;
   el('ac-lembrete').textContent = d.lembrete_dias;
 
-  el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
-  el('ac-sub').textContent = `${r.PENDENTES ? r.PENDENTES + ' sem lançar · ' : ''}${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
-    `${d.fechadas ? d.fechadas + ' fecharam (aba Fechados) · ' : ''}${d.encerradas} finalizadas`;
-
-  el('ac-regua').innerHTML = blocosAc().map(x => {
-    return `<button style="flex:${pesoRegua(r[x[0]] || 0, total)} 1 0;background:${x[3]}" data-b="${x[0]}"
-      aria-pressed="${AC.bloco === x[0]}"><b>${r[x[0]] || 0}</b><span>${x[1].toLowerCase()}</span></button>`;
-  }).join('');
-  el('ac-regua').querySelectorAll('button').forEach(b => {
+  /* V4.33 — faixa de indicadores (toque filtra), equipe na coluna da direita, legenda curta */
+  el('ac-sub').textContent = `${d.total.toLocaleString('pt-BR')} em acompanhamento · ${d.fechadas ? d.fechadas + ' em Fechados · ' : ''}${d.encerradas} finalizadas · toque num número para filtrar`;
+  contagemAba('acompanhamento', d.total);
+  const SUBK = { PENDENTES: 'contato aberto sem registro', VENCIDOS: 'retorno chegou ou passou', SEM_DATA: 'sem próximo passo',
+                 AGUARDANDO: 'retorno marcado à frente', AGENDADAS: 'com horário marcado' };
+  el('ac-kpis').innerHTML = blocosAc().map(x => `<button class="kpi${x[0] === 'VENCIDOS' && r.VENCIDOS ? ' dest' : ''}" style="--c:${x[3]}" data-b="${x[0]}"
+      aria-pressed="${AC.bloco === x[0]}"><span class="r">${esc(x[1])}</span><b>${(r[x[0]] || 0).toLocaleString('pt-BR')}</b><small>${SUBK[x[0]] || ''}</small></button>`).join('') +
+    `<div class="kpi fixo" style="--c:#241E1C"><span class="r">Em aberto</span><b class="vl" style="font-size:${semValor(d.valor_aberto) ? 28 : 21}px;line-height:28px">${brl(d.valor_aberto)}</b><small>em orçamentos da fila</small></div>`;
+  el('ac-kpis').querySelectorAll('[data-b]').forEach(b => {
     b.onclick = () => { AC.bloco = (AC.bloco === b.dataset.b) ? 'TODOS' : b.dataset.b; pintarAcompanhamento(d); };
   });
-  el('ac-legenda').innerHTML = blocosAc().map(x =>
-    `<div><i style="background:${x[3]}"></i><b>${x[1]}</b> ${x[2]}</div>`).join('');
+  const DEF_LEG = { PENDENTES: 'contato aberto, sem registro', VENCIDOS: 'o retorno combinado chegou', SEM_DATA: 'falta combinar o próximo passo',
+                    AGUARDANDO: 'retorno marcado para frente', AGENDADAS: 'já tem horário' };
+  el('ac-legenda').innerHTML = blocosAc().map(x => `<span><i style="background:${x[3]}"></i><b>${esc(x[1])}</b> — ${DEF_LEG[x[0]] || ''}</span>`).join('');
 
   const cols = d.colaboradoras || [];
   el('ac-colabs-box').style.display = cols.length ? '' : 'none';
-  el('ac-colabs').innerHTML = (cols.length ? `<button class="colab todas" data-n="TODAS" aria-pressed="${AC.colab === 'TODAS'}">
-      <b>Todas</b><span class="n">${d.todas_total != null ? d.todas_total : cols.reduce((n, c) => n + c.total, 0)} em andamento</span></button>` : '') +
-    cols.map(c => `<button class="colab" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}">
-      <b>${esc(c.nome)}</b><span class="n">${c.total} em andamento</span>
-      <small>${c.PENDENTES ? '<b style="color:#C0392B">' + c.PENDENTES + ' sem lançar</b> · ' : ''}${c.VENCIDOS} vencidas · ${c.SEM_DATA} sem data · ${c.AGUARDANDO} aguardando · ${c.AGENDADAS} agendadas</small></button>`).join('');
+  const barra = c => { const t = (c.PENDENTES || 0) + (c.VENCIDOS || 0) + (c.SEM_DATA || 0) + (c.AGUARDANDO || 0) + (c.AGENDADAS || 0) || 1;
+    return '<div class="bar">' + blocosAc().map(x => (c[x[0]] ? `<span style="width:${(100 * c[x[0]] / t).toFixed(1)}%;background:${x[3]}"></span>` : '')).join('') + '</div>'; };
+  const resumoC = c => [c.PENDENTES ? `<b style="color:#B3261E">${c.PENDENTES} sem lançar</b>` : '', c.VENCIDOS ? `<span style="color:#9E2A1F;font-weight:600">${c.VENCIDOS} vencidas</span>` : '',
+    c.SEM_DATA ? c.SEM_DATA + ' sem data' : '', c.AGUARDANDO ? c.AGUARDANDO + ' aguardando' : '', c.AGENDADAS ? c.AGENDADAS + ' agendadas' : ''].filter(Boolean).join(' · ');
+  const todasN = d.todas_total != null ? d.todas_total : cols.reduce((n, c) => n + c.total, 0);
+  const somaT = {}; cols.forEach(c => blocosAc().forEach(x => { somaT[x[0]] = (somaT[x[0]] || 0) + (c[x[0]] || 0); }));
+  el('ac-colabs').innerHTML = (cols.length ? `<button class="eq" data-n="TODAS" aria-pressed="${AC.colab === 'TODAS'}"><div class="l1"><b>Todas</b><b>${todasN}</b></div>${barra(somaT)}</button>` : '') +
+    cols.map(c => `<button class="eq" data-n="${esc(c.nome)}" aria-pressed="${AC.colab === c.nome}"><div class="l1"><b>${esc(c.nome)}</b><b>${c.total}</b></div>
+      ${barra(c)}<small>${resumoC(c) || '—'}</small></button>`).join('');
   el('ac-colabs').querySelectorAll('button').forEach(b => {
     b.onclick = () => { AC.colab = (AC.colab === b.dataset.n) ? 'TODAS' : b.dataset.n; carregarAcompanhamento().catch(falhar); };
   });
+  pintarFechMes();
   /* Filtros ligados ficam à vista, cada um com seu X, e um botão que limpa tudo.
      Antes dava para ficar preso numa colaboradora sem enxergar como sair. */
   const ativos = [];
@@ -2178,30 +2320,25 @@ function pintarAcompanhamento(d){
     };
   });
 
-  el('ac-aviso').innerHTML = ((r.PENDENTES || 0)
-    ? `<div class="aviso-box" style="border-color:#C0392B"><b>${r.PENDENTES} paciente(s) com contato iniciado (WhatsApp, ligação ou e-mail) e ainda não lançado.</b>
-       Abra o cartão em vermelho, registre o que aconteceu e salve. Se não chegou a falar com ela, use “Não contatei”.</div>` : '') +
-    ((r.SEM_DATA || 0)
-    ? `<div class="aviso-box"><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b>
-       São as que caem no esquecimento: marque a data do retorno ou decida para onde ela vai.</div>` : '') +
-    ((d.divergentes || 0) && !AC.divergentes
-    ? `<div class="aviso-box"><b>${d.divergentes} horário(s) lançado(s) no app não batem com a agenda do ERP.</b>
-       Cancelado, outra data ou hora, ou ausente no ERP. Nada foi alterado: confira e ajuste.
-       <button class="bt-min" id="ac-div" style="margin-left:8px">Ver só estas</button></div>` : '');
+  const pendIt = ((d.blocos.PENDENTES || {}).itens || [])[0];
+  const avs = [];
+  if (r.PENDENTES) avs.push(`<div class="av"><i style="background:#B3261E"></i><span><b>${r.PENDENTES} contato(s) iniciado(s) e não lançado(s)</b>${pendIt ? ' — ' + esc(pendIt.paciente) + (pendIt.whats_por ? ', aberto por ' + esc(pendIt.whats_por) : '') + (pendIt.whats_em ? ' em ' + esc(String(pendIt.whats_em).split(' ')[0]) : '') : ''}. Registre o que aconteceu ou use “Não contatei”.</span>
+      ${pendIt ? `<button class="btA al" id="ac-lancar" data-ch="${esc(pendIt.chave)}">Lançar agora</button>` : ''}</div>`);
+  if (r.SEM_DATA) avs.push(`<div class="av"><i style="background:#7A5C99"></i><span><b>${r.SEM_DATA} paciente(s) contatada(s) e sem próximo passo.</b> Marque a data do retorno ou decida para onde ela vai.</span>
+      <button class="btA" id="ac-semdata">Ver</button></div>`);
+  if ((d.divergentes || 0) && !AC.divergentes) avs.push(`<div class="av"><i style="background:#B8894A"></i><span><b>${d.divergentes} horário(s) lançado(s) no app não batem com a agenda do ERP</b> — cancelado, outra data ou ausente no ERP. Nada foi alterado.</span>
+      <button class="btA" id="ac-div">Ver ${d.divergentes === 1 ? 'este' : 'os ' + d.divergentes}</button></div>`);
+  el('ac-aviso').innerHTML = avs.length ? '<div class="avisos">' + avs.join('') + '</div>' : '';
+  if (el('ac-lancar')) el('ac-lancar').onclick = () => abrirFicha(el('ac-lancar').dataset.ch, ITENS_VISTOS[el('ac-lancar').dataset.ch]);
+  if (el('ac-semdata')) el('ac-semdata').onclick = () => { AC.bloco = 'SEM_DATA'; pintarAcompanhamento(d); };
   if (el('ac-div')) el('ac-div').onclick = () => { AC.divergentes = '1'; AC.bloco = 'TODOS'; carregarAcompanhamento().catch(falhar); };
 
   const mostrar = AC.bloco === 'TODOS' ? blocosAc().map(x => x[0]) : [AC.bloco];
   Object.keys(d.blocos || {}).forEach(k => guardarItens(((d.blocos[k] || {}).itens || [])));
   let html = '';
+  AC_DADOS = d;
   if (AC_ORDEM === 'SITUACAO') {
-    mostrar.forEach(k => {
-      const b = d.blocos[k];
-      if (!b || !b.qtd) return;
-      const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
-      html += `<div class="sec-bloco" style="--c:${meta[3]}"><b>${meta[1]}</b><span class="n">${b.qtd}</span>` +
-        `${b.valor_aberto ? `<span class="v">${brl(b.valor_aberto)} em aberto</span>` : ''}</div>` +
-        b.itens.map(x => cartaoAc(x, k)).join('');
-    });
+    html = htmlBlocos(d, mostrar);   // V4.32 — blocos que abrem e fecham
   } else {
     /* V4.30 — lista única na ordem escolhida; a cor da tarja e a etiqueta de cada cartão continuam dizendo o bloco */
     const todos = [];
@@ -2211,10 +2348,11 @@ function pintarAcompanhamento(d){
       ordenarItensAc(todos).map(o => cartaoAc(o.x, o.k)).join('');
   }
   el('ac-rotulo').textContent = AC.bloco === 'TODOS'
-    ? `Fila do dia — ${d.total.toLocaleString('pt-BR')} paciente(s)`
+    ? `Fila do dia · ${d.total.toLocaleString('pt-BR')} paciente(s)`
     : `${BLOCOS_AC.filter(x => x[0] === AC.bloco)[0][1]} — ${(d.blocos[AC.bloco] || {}).qtd || 0} paciente(s)`;
   el('ac-lista').innerHTML = html || '<div class="card vazio">Nada nesta fila. Comece pelo Recall ou pelo Follow-up.</div>';
   ligarCartoesAc();
+  ligarBlocos();
 }
 
 /* V4.23 — há quanto tempo o WhatsApp foi aberto sem o contato ser lançado */
@@ -2248,72 +2386,6 @@ document.addEventListener('click', ev => {
   const a = ev.target && ev.target.closest ? ev.target.closest('a[data-zap]') : null;
   if (a) registrarZap(a.dataset.chave, a.dataset.canal);
 });
-
-function cartaoAc(x, bloco){
-  const tags = [];
-  if (x.campanha) tags.push(tagCampanha(x));
-  tags.push(`<span class="tag">${esc(ROTULO_ORIGEM[x.origem] || x.origem)}</span>`);
-  tags.push(`<span class="tag">${x.tentativas}ª tentativa${x.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', x.ultimo_canal)) : ''}</span>`);
-  if (x.temperatura) tags.push(`<span class="tag ${esc(x.temperatura)}">${esc(ROTULO_TEMP[x.temperatura] || x.temperatura)}</span>`);
-  if (x.valor_aberto) tags.push(`<span class="tag val">${brl(x.valor_aberto)} em aberto</span>`);
-  if (bloco === 'AGENDADAS' && x.agenda) { /* o agendamento ganha bloco próprio, abaixo */ }
-  else if (bloco === 'VENCIDOS')
-    tags.push(`<span class="tag alerta">${x.atraso === 0 ? 'Retornar hoje' : 'Vencido há ' + x.atraso + ' dia(s)'}</span>`);
-  else if (bloco === 'AGUARDANDO')
-    tags.push(`<span class="tag">Retornar ${esc(x.proximo)}</span>`);
-  else
-    tags.push('<span class="tag roxo">Sem próximo passo</span>');
-
-  const cor = BLOCOS_AC.filter(b => b[0] === bloco)[0][3];
-  if (bloco === 'AGENDADAS' && x.agenda) guardarAgEdit(x.agenda, x.paciente, x.chave);
-  const pend = bloco === 'PENDENTES' || x.pendente;
-  const bannerP = pend ? `<div class="pend-alerta"><span class="pulso"></span>CONTATO AINDA NÃO LANÇADO — registre o que aconteceu<span class="cont" data-ms="${Number(x.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(x.whats_ms))}</span></div>` : '';
-  const quandoP = pend ? `<div class="pend-quando">📲 Contato por <b>${esc(ROTULO_CANAL_INI[x.whats_canal] || 'WhatsApp')}</b> iniciado por <b>${esc(x.whats_por || x.dono || '—')}</b> em <b>${esc(x.whats_em || '—')}</b> · ainda sem registro</div>` : '';
-  return `<div class="pac${pend ? ' pend' : ''}" data-chave="${esc(x.chave)}" data-bloco="${esc(bloco)}" role="button" tabindex="0">
-    <div class="tarja" style="background:${cor}"></div>
-    <div class="pac-in">${bannerP}
-      <div class="pac-l1">
-        <span class="pac-nome">${esc(x.paciente)}</span>
-        <span class="pac-cid">${esc(x.cidade || '')}</span>
-        <span class="pac-dias"><b>${x.dias == null ? '—' : x.dias}</b><span>dias</span></span>
-      </div>
-      ${quandoP}<div class="pac-l2">Último contato ${esc(x.ultimo_contato || '—')}${x.ultimo_autor ? ' · ' + esc(x.ultimo_autor) : ''}${x.ultima_obs ? ' — “' + esc(String(x.ultima_obs).substring(0, 120)) + '”' : ''}</div>
-      ${bloco === 'AGENDADAS' && x.agenda ? blocoAgendado(x.agenda) : ''}
-      <div class="pac-l3">${tags.join('')}
-        <button class="bt-min${pend ? ' alerta' : ''}" data-acao="ficha">${pend ? 'Lançar contato agora' : 'Registrar contato'}</button>
-        ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
-        ${pend ? '<button class="bt-min" data-acao="desfazer" title="Abri mas não falei com ela: a paciente volta para onde estava">Não contatei</button>' : ''}
-        <button class="bt-min" data-acao="whats">Mensagem</button></div>
-    </div></div>`;
-}
-
-function ligarCartoesAc(){
-  el('ac-lista').querySelectorAll('.pac').forEach(c => {
-    c.querySelectorAll('[data-acao]').forEach(b => {
-      b.onclick = ev => {
-        ev.stopPropagation();
-        if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); return; }
-        if (b.dataset.acao === 'corrigir') { formCorrigir(b.dataset.agid); return; }
-        if (b.dataset.acao === 'desfazer') {
-          if (!USUARIO) { abrirPortao(); return; }
-          if (!confirm('Você abriu o contato mas não chegou a falar com a paciente?\n\nA paciente volta para onde estava e nada é registrado como contato.')) return;
-          api('whatsDesfazer', { chave: c.dataset.chave, autor: USUARIO.nome }).then(r => {
-            if (r && r.erro) { toast(r.erro); return; }
-            limparCache(); toast('Desfeito: a paciente voltou para onde estava.'); carregarAcompanhamento().catch(() => {});
-          }).catch(falhar);
-          return;
-        }
-        api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
-          if (m.erro) { toast(m.erro); return; }
-          abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
-            <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
-        }).catch(falhar);
-      };
-    });
-    c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave); };
-    ligarAquecimento(c);
-  });
-}
 
 /* ==========================================================================
    SELEÇÃO E EXPORTAÇÃO
@@ -2514,8 +2586,12 @@ function ligarAquecimento(c){
 
 function abrirFicha(chave, jaSabido){
   if (!chave) return;
-  const lateral = el('ficha').classList.contains('lateral');
-  if (!lateral) POSICAO_ROLAGEM = window.scrollY || 0;
+  if (el('ficha').parentElement !== document.body) document.body.appendChild(el('ficha'));
+  el('ficha').classList.remove('lateral');
+  const lateral = false;
+  const jaAberta = el('ficha').classList.contains('on');
+  if (!jaAberta) POSICAO_ROLAGEM = window.scrollY || 0;
+  atualizarNavFicha(chave);
   el('fc-nome').textContent = 'Abrindo ficha…';
   el('fc-sub').textContent = '';
   el('fc-pdf').style.display = 'none';
@@ -2675,14 +2751,26 @@ function montarFicha(d){
   const refOpts = '<option value="">Recall (sem orçamento)</option>' +
     abertos.map(o => `<option value="${esc(o.num)}">ORÇ ${esc(o.num)} · ${brl(o.valor)}</option>`).join('');
 
-  el('fc-corpo').innerHTML = `
-    <div class="fc-resumo">
-      <div><b>${p.dias == null ? '—' : p.dias}</b><span>dias sem orçamento</span></div>
-      <div><b>${p.aprovados}</b><span>aprovados</span></div>
-      <div><b>${brl(p.valor)}</b><span>histórico</span></div>
-      <div><b>${brl(p.ticket)}</b><span>ticket médio</span></div>
-    </div>
-    <div class="acoes">${contatos.join('')}</div>
+  /* V4.32 — duas colunas: à esquerda o que ela é; à direita o que fazer (registrar) e o histórico */
+  const uC = ultimoContatoDe(p, d.contatos);
+  const ultAprov = d.orcamentos.filter(o => /aprovad/i.test(o.situacao))[0];
+  const qR = quandoRetorno(p.proximo);
+  const abertosV = abertos.reduce((s2, o) => s2 + (Number(o.valor) || 0), 0);
+  const kpis = [
+    quadro('Último contato', uC.quando ? ddmm(uC.quando) : 'nunca', [uC.quando ? haDias(uC.quando) : 'ainda não contatada', uC.autor].filter(Boolean).map(esc).join(' · ')),
+    p.proximo ? quadro('Retorno', ddmm(p.proximo), qR.txt, qR.cls) : quadro('Retorno', '—', 'sem data', p.tentativas ? 'semd' : ''),
+    ultAprov ? quadro('Último fechamento', semValor(ultAprov.valor) ? ddmm(ultAprov.data) : brl(ultAprov.valor), 'orç. ' + esc(ultAprov.num) + ' · ' + esc(ultAprov.data), 'ok')
+             : quadro('Último fechamento', '—', 'nunca aprovou'),
+    totSess ? quadro('Sessões pendentes', String(totSess), 'em ' + totPac + ' pacote(s)', 'prox')
+            : quadro('Em aberto', abertos.length ? brl(abertosV) : '—', abertos.length ? abertos.length + ' orçamento(s)' : 'nenhum orçamento aberto', abertos.length ? 'val' : '')
+  ].join('');
+  const icAgora = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A5A22" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v6M12 16.5v.5"></path></svg>';
+
+  el('fc-corpo').innerHTML = `<div class="fc-grid"><div class="fc-esq">
+    <div class="acoes" style="margin-top:0">${contatos.join('')}</div>
+    <div class="fc-agora">${icAgora}<div><b>O que fazer agora:</b> ${oQueFazer(p, d, totSess, totPac)}</div></div>
+    <div class="fc-kpi">${kpis}</div>
+    <div class="fc-mini">${p.dias == null ? '—' : p.dias} dias sem orçamento · ${p.aprovados} aprovado(s) · histórico ${brl(p.valor)} · ticket médio ${brl(p.ticket)}${p.desde ? ' · paciente desde ' + esc(p.desde) : ''}</div>
     ${blocoClasse(p)}
     ${blocoSituacao(p)}
     ${p.status === 'ENCERRADA' ? `<div class="aviso-box">Finalizada${p.encerrado_em ? ' em ' + esc(p.encerrado_em) : ''} — motivo: ${esc(rotuloLista('ENCERRAMENTO', p.motivo_encerramento) || p.motivo_encerramento)}.
@@ -2693,17 +2781,16 @@ function montarFicha(d){
     <div class="card dobra-alvo aberto" style="padding:4px 14px">${pendHtml}
       <div class="pend-nota">Agendar grava na aba Agenda. Realizado é auditoria — registra que já foi feito, para acertar o ERP. Tudo entra no fechamento do dia.</div></div>` : ''}
 
-    <div class="sec sec-dobra"><span>Histórico de orçamentos — ${d.orcamentos.length}</span><span class="dobra-arw">▾</span></div>
-    <div class="card dobra-alvo" style="padding:4px 14px">${orcs}</div>
-
-    <div class="sec">Tentativas de contato — ${d.contatos.length}</div>
-    <div class="card"><div class="tl">${cts}</div></div>
+    <div class="sec sec-dobra aberto"><span>Orçamentos — ${d.orcamentos.length}</span><span class="dobra-arw">▾</span></div>
+    <div class="card dobra-alvo aberto" style="padding:4px 14px">${orcs}</div>
 
     <div class="sec sec-dobra"><span>Agendamentos &amp; relacionamento — via Agenda (ERP Clínica nas Nuvens)</span><span class="dobra-arw">▾</span></div>
     <div class="card dobra-alvo" style="padding:4px 14px 12px">${relGap}${relEsp}${relUlt}</div>
+  </div>
 
-    <div class="sec">Registrar novo contato</div>
-    <div class="card">
+  <div class="fc-dir">
+    <div class="card fc-reg">
+      <div class="sec" style="margin-top:0">Registrar contato</div>
       <div class="grid-campo">
         <div class="campo"><label>Canal</label><select id="f-canal">${opcoes('CANAL')}</select></div>
         <div class="campo"><label>Resultado</label><select id="f-res">${opcoes('RESULTADO')}</select></div>
@@ -2721,13 +2808,15 @@ function montarFicha(d){
       </div>
       <div class="acoes">
         <button class="bt prim" data-acao="salvar">Salvar contato</button>
+        <button class="bt" data-acao="salvar-prox">Salvar e ir para a próxima</button>
         <button class="bt" data-acao="agendar">Agendar</button>
         <button class="bt" data-acao="encerrar">Finalizar paciente</button>
       </div>
-      <div class="nota">Se você não marcar a data, o app marca sozinho para daqui a <b>${LEMBRETE_DIAS} dias</b> e
-        ela reaparece em <b>Vencidos</b>, na aba Acompanhamento — ninguém cai no esquecimento. Ao salvar, a
-        mensagem de cortesia já sai montada com o nome dela; quem aperta enviar é você.</div>
-    </div>`;
+      <div class="nota">Sem data marcada, o app marca sozinho para daqui a <b>${LEMBRETE_DIAS} dias</b> e ela reaparece em
+        <b>Vencidos</b>. Ao salvar, a mensagem de cortesia já sai montada com o nome dela; quem aperta enviar é você.</div>
+    </div>
+    <div class="card"><div class="sec" style="margin-top:0">Histórico de contatos — ${d.contatos.length}</div><div class="tl">${cts}</div></div>
+  </div></div>`;
 
   el('fc-corpo').querySelectorAll('#f-temp button').forEach(b => {
     b.onclick = () => {
@@ -2759,7 +2848,8 @@ function montarFicha(d){
   el('fc-corpo').querySelectorAll('[data-acao]').forEach(b => {
     b.onclick = () => {
       const a = b.dataset.acao;
-      if (a === 'salvar')   return salvarContato(false);
+      if (a === 'salvar')   { IR_PROXIMA = false; return salvarContato(false); }
+      if (a === 'salvar-prox') { IR_PROXIMA = true; return salvarContato(false); }
       if (a === 'agendar')  return formAgendamento(PAC.paciente);
       if (a === 'encerrar') return formEncerrar();
       if (a === 'mover')    return formMover({ chave: PAC.paciente.chave, nome: PAC.paciente.nome, situacao: PAC.paciente.situacao,
@@ -3107,6 +3197,7 @@ function salvarContato(confirmado){
     PAC = d2; montarFicha(d2);
     atualizarFichaDepois(p.chave);
     recarregarDepois(2500);
+    if (IR_PROXIMA) { IR_PROXIMA = false; setTimeout(() => andarFicha(1), 400); }   // V4.32
   }).catch(e => { if (bt) { bt.disabled = false; bt.textContent = 'Salvar contato'; } falhar(e); });
 }
 
@@ -3514,6 +3605,7 @@ async function carregarFinalizados(){
 }
 function pintarFinalizados(d){
   el('fz-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">finalizadas</small>`;
+  contagemAba('finalizados', d.total);
   el('fz-sub').textContent = (semValor(d.valor) ? '' : brl(d.valor) + ' em histórico · ') + 'monitoria e resgate futuro';
   const pm = d.por_motivo || {}, mots = Object.keys(pm).sort((a, b) => pm[b] - pm[a]);
   const tot = mots.reduce((s2, k) => s2 + pm[k], 0) || 1;
@@ -3575,6 +3667,9 @@ const n0 = v => (Number(v) || 0).toLocaleString('pt-BR');
 function pintarFechados(d){
   const k = d.kpi || {};
   montarFiltrosFh(d);
+  pintarTiposFech(d);   // V4.32
+  contagemAba('fechados', ((d.em_tratamento || {}).itens || []).length || null);
+  if (d.periodo && d.periodo.cod === 'MES' && (!d.colab || d.colab === 'TODAS')) { CACHE['fh:' + assinatura({ periodo: 'MES', colab: 'TODAS', ordem: 'DATA' })] = d; }
   const temValor = !semValor(k.valor);
   el('fh-grande').innerHTML = temValor
     ? `${brl(k.valor)}<small style="margin-left:8px">fechado</small>`
@@ -3622,17 +3717,463 @@ function pintarFechados(d){
   });
 }
 const ROTULO_VIA = { CONTATO: 'contato', AGENDAMENTO: 'horário lançado' };
+
+/* ==========================================================================
+   V4.32 — CARTÃO "PAINEL DE DATAS" (modelo A)
+   Três quadros que respondem de relance: quando foi o último contato, quando
+   é o retorno, quanto há em aberto (ou há quanto tempo ela não faz orçamento).
+   ========================================================================== */
+const ddmm = s => { const m = String(s || '').match(/^(\d{2})\/(\d{2})/); return m ? m[1] + '/' + m[2] : '—'; };
+function haDias(s){
+  const n = diasDesde(String(s || '').split(' ')[0]);
+  if (n === null) return '';
+  return n <= 0 ? 'hoje' : (n === 1 ? 'ontem' : 'há ' + n + ' dias');
+}
+/* retorno: passou / hoje / amanhã / em N dias, e a cor do quadro */
+function quandoRetorno(s){
+  const n = diasDesde(String(s || '').split(' ')[0]);
+  if (n === null) return { txt: '', cls: '' };
+  if (n > 0) return { txt: 'passou há ' + n + (n === 1 ? ' dia' : ' dias'), cls: 'venc' };
+  if (n === 0) return { txt: 'hoje', cls: 'venc' };
+  if (n === -1) return { txt: 'amanhã', cls: 'prox' };
+  return { txt: 'em ' + (-n) + ' dias', cls: n >= -3 ? 'prox' : '' };
+}
+const quadro = (rot, valor, sub, cls) => `<div class="pa-q ${cls || ''}"><span class="r">${rot}</span><b${String(valor).length > 9 ? ' style="font-size:16px"' : ''}>${valor}</b><span>${sub || '&nbsp;'}</span></div>`;
+function botaoZap(chave, telefone, ultimo){
+  const tels = listaTelefones(telefone);
+  if (!tels.length) return '';
+  const dRec = diasDesde(String(ultimo || '').split(' ')[0]);
+  const trava = dRec !== null && dRec <= TRAVA_DIAS ? ' data-trava="1"' : '';
+  return `<a class="btA z" target="_blank" rel="noopener" data-acao="zap" data-chave="${esc(chave)}"${trava}
+    href="https://wa.me/55${tels[0].d}">WhatsApp</a>`;
+}
+/* o WhatsApp do cartão: confere a trava de contato recente e registra o clique */
+function cliqueZapCartao(b, ev){
+  if (b.dataset.trava === '1' && b.dataset.travaOk !== '1'){
+    ev.preventDefault();
+    const x = ITENS_VISTOS[b.dataset.chave] || {};
+    const q = haDias(x.ultimo_contato);
+    if (!confirm('Esta paciente já foi contatada ' + q + (x.ultimo_autor ? ' por ' + x.ultimo_autor : '') + '.\n\nAbrir mesmo assim?')) return;
+    b.dataset.travaOk = '1';
+    registrarZap(b.dataset.chave, 'WHATSAPP');
+    window.open(b.href, '_blank');
+    return;
+  }
+  registrarZap(b.dataset.chave, 'WHATSAPP');
+}
+
+function cartaoAc(x, bloco){
+  const meta = BLOCOS_AC.filter(b => b[0] === bloco)[0];
+  const cor = meta[3];
+  const pend = bloco === 'PENDENTES' || x.pendente;
+  let st;
+  if (pend) st = ['SEM LANÇAR', '#B3261E', '#fff'];
+  else if (bloco === 'VENCIDOS') st = [x.atraso === 0 ? 'RETORNAR HOJE' : 'VENCIDO HÁ ' + x.atraso + (x.atraso === 1 ? ' DIA' : ' DIAS'), '#C0392B', '#fff'];
+  else if (bloco === 'AGUARDANDO') { const q = quandoRetorno(x.proximo); st = ['RETORNO ' + (q.txt ? q.txt.toUpperCase() : ddmm(x.proximo)), '#B8894A', '#241E1C']; }
+  else if (bloco === 'AGENDADAS') st = ['AGENDADA' + (x.agenda ? ' ' + ddmm(x.agenda.data) : ''), '#4F6B58', '#fff'];
+  else st = ['SEM PRÓXIMO PASSO', '#7A5C99', '#fff'];
+
+  const chips = [`<span class="pa-st" style="background:${st[1]};color:${st[2]}">${esc(st[0])}</span>`];
+  if (x.campanha) chips.push(tagCampanha(x));
+  chips.push(`<span class="pa-ch">${esc(ROTULO_ORIGEM[x.origem] || x.origem || '')}</span>`);
+  chips.push(`<span class="pa-ch">${x.tentativas ? x.tentativas + 'ª tentativa' : 'primeiro contato'}${x.ultimo_canal ? ' · ' + esc(rotuloLista('CANAL', x.ultimo_canal)) : ''}</span>`);
+  if (x.temperatura) chips.push(`<span class="pa-ch">${esc(ROTULO_TEMP[x.temperatura] || x.temperatura)}</span>`);
+
+  const ret = bloco === 'AGENDADAS' && x.agenda
+    ? quadro('Agendada', ddmm(x.agenda.data), esc(fmtHora(x.agenda.hora) || ''), 'ok')
+    : (x.proximo ? (q => quadro('Retorno', ddmm(x.proximo), q.txt, q.cls))(quandoRetorno(x.proximo)) : quadro('Retorno', '—', 'sem data', 'semd'));
+  const terceiro = x.valor_aberto
+    ? quadro('Em aberto', brl(x.valor_aberto), (x.dias == null ? '' : x.dias + ' d sem orçamento'), 'val')
+    : quadro('Sem orçamento', x.dias == null ? '—' : x.dias + ' d', 'em aberto: —');
+
+  if (bloco === 'AGENDADAS' && x.agenda) guardarAgEdit(x.agenda, x.paciente, x.chave);
+  const bannerP = pend ? `<div class="pend-alerta"><span class="pulso"></span>CONTATO AINDA NÃO LANÇADO — registre o que aconteceu<span class="cont" data-ms="${Number(x.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(x.whats_ms))}</span></div>` : '';
+  const quandoP = pend ? `<div class="pend-quando">Contato por <b>${esc(ROTULO_CANAL_INI[x.whats_canal] || 'WhatsApp')}</b> iniciado por <b>${esc(x.whats_por || x.dono || '—')}</b> em <b>${esc(x.whats_em || '—')}</b> · ainda sem registro</div>` : '';
+
+  return `<div class="pac${pend ? ' pend' : ''}" data-chave="${esc(x.chave)}" data-bloco="${esc(bloco)}" role="button" tabindex="0">
+    <div class="tarja" style="background:${cor}"></div>
+    <div class="pacA-w">${bannerP}<div class="pacA">
+      <div class="pa-esq">
+        <div class="pa-chips">${chips.join('')}</div>
+        <div class="pa-nome">${esc(x.paciente)}</div>
+        ${quandoP}
+        ${x.ultima_obs ? `<div class="pa-obs">“${esc(String(x.ultima_obs).substring(0, 220))}”</div>` : ''}
+        ${bloco === 'AGENDADAS' && x.agenda ? blocoAgendado(x.agenda) : ''}
+        <div class="pa-bts">
+          ${botaoZap(x.chave, x.telefone, x.ultimo_contato)}
+          <button class="btA ${pend ? 'al' : 'v'}" data-acao="ficha">${pend ? 'Lançar contato agora' : 'Registrar contato'}</button>
+          ${pend ? '<button class="btA" data-acao="desfazer" title="Abri mas não falei com ela: a paciente volta para onde estava">Não contatei</button>' : ''}
+          ${bloco === 'AGENDADAS' && x.agenda ? botaoCorrigirAg(x.agenda) : ''}
+          <button class="btA" data-acao="whats">Mensagem</button>
+        </div>
+      </div>
+      <div class="pa-cx">
+        ${quadro('Último contato', ddmm(x.ultimo_contato), [haDias(x.ultimo_contato), x.ultimo_autor].filter(Boolean).map(esc).join(' · '))}
+        ${ret}
+        ${terceiro}
+      </div>
+    </div></div></div>`;
+}
+
+function ligarCartoesAc(raiz){
+  (raiz || el('ac-lista')).querySelectorAll('.pac').forEach(c => {
+    c.querySelectorAll('[data-acao]').forEach(b => {
+      b.onclick = ev => {
+        ev.stopPropagation();
+        if (b.dataset.acao === 'zap') { cliqueZapCartao(b, ev); return; }
+        if (b.dataset.acao === 'ficha') { abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); return; }
+        if (b.dataset.acao === 'corrigir') { formCorrigir(b.dataset.agid); return; }
+        if (b.dataset.acao === 'desfazer') {
+          if (!USUARIO) { abrirPortao(); return; }
+          if (!confirm('Você abriu o contato mas não chegou a falar com a paciente?\n\nA paciente volta para onde estava e nada é registrado como contato.')) return;
+          api('whatsDesfazer', { chave: c.dataset.chave, autor: USUARIO.nome }).then(r => {
+            if (r && r.erro) { toast(r.erro); return; }
+            limparCache(); toast('Desfeito: a paciente voltou para onde estava.'); carregarAcompanhamento().catch(() => {});
+          }).catch(falhar);
+          return;
+        }
+        api('mensagem', { evento: 'RETORNO', chave: c.dataset.chave }).then(m => {
+          if (m.erro) { toast(m.erro); return; }
+          abrirModal(`<h2>Mensagem de retorno</h2>${blocoMensagem(m)}
+            <div class="acoes"><button class="bt larga" onclick="fecharModal()">Fechar</button></div>`);
+        }).catch(falhar);
+      };
+    });
+    c.onclick = ev => { if (!ev.target.closest('[data-acao]')) abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); };
+    c.onkeydown = ev => { if (ev.key === 'Enter' && ev.target === c) abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]); };
+    ligarAquecimento(c);
+  });
+}
+
+/* Blocos que abrem e fecham. Bloco fechado não desenha os cartões: a tela fica
+   mais leve, não mais pesada. A escolha fica guardada no aparelho. */
+let AC_ABERTOS = { PENDENTES: 1, VENCIDOS: 1 };
+try { const a = JSON.parse(localStorage.getItem('recall_ac_abertos') || 'null'); if (a && typeof a === 'object') AC_ABERTOS = a; } catch (e) {}
+function guardarAbertos(){ try { localStorage.setItem('recall_ac_abertos', JSON.stringify(AC_ABERTOS)); } catch (e) {} }
+let AC_DADOS = null;
+const SETA_BLK = '<svg class="blk-seta" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>';
+function htmlBlocos(d, mostrar){
+  const forcado = AC.bloco !== 'TODOS';   // filtrado pelo indicador: o bloco vem aberto
+  let h = '';
+  mostrar.forEach(k => {
+    const b = d.blocos[k];
+    if (!b || !b.qtd) return;
+    const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
+    const aberto = forcado || !!AC_ABERTOS[k];
+    h += `<div class="blk${aberto ? ' on' : ''}" style="--c:${meta[3]}">
+      <button class="blk-h" data-blk="${k}" aria-expanded="${aberto}">${SETA_BLK}<i class="pt"></i><b>${meta[1]}</b>
+        <span class="n">${b.qtd}</span><span class="sp"></span>
+        ${b.valor_aberto ? `<span class="v">${brl(b.valor_aberto)} em aberto</span>` : ''}</button>
+      <div class="blk-c" data-blkc="${k}">${aberto ? corpoBloco(k, b.itens) : ''}</div></div>`;
+  });
+  return h;
+}
+function ligarBlocos(){
+  const lista = el('ac-lista');
+  lista.querySelectorAll('[data-blk]').forEach(bt => {
+    bt.onclick = () => {
+      const k = bt.dataset.blk, box = bt.parentElement, corpo = box.querySelector('.blk-c');
+      const abrir = !box.classList.contains('on');
+      if (AC.bloco === 'TODOS') { if (abrir) AC_ABERTOS[k] = 1; else delete AC_ABERTOS[k]; guardarAbertos(); }
+      box.classList.toggle('on', abrir); bt.setAttribute('aria-expanded', abrir);
+      if (abrir && AC_DADOS) { corpo.innerHTML = corpoBloco(k, (AC_DADOS.blocos[k] || {}).itens || []); ligarCartoesAc(corpo); ligarMais(corpo); }
+      else corpo.innerHTML = '';
+    };
+  });
+  ligarMais(lista);
+}
+/* V4.33 — 20 cartões por bloco; "Mostrar mais" desenha os próximos 40, sem ir à planilha */
+const AC_LIM = {};
+function corpoBloco(k, itens){
+  const lim = AC_LIM[k] || 20;
+  const resto = itens.length - lim;
+  return itens.slice(0, lim).map(x => cartaoAc(x, k)).join('') +
+    (resto > 0 ? `<button class="blk-mais" data-mais="${k}">Mostrar mais ${Math.min(resto, 40)}${resto > 40 ? ' · faltam ' + resto : ''}</button>` : '');
+}
+function ligarMais(raiz){
+  raiz.querySelectorAll('[data-mais]').forEach(bt => {
+    bt.onclick = () => {
+      const k = bt.dataset.mais, corpo = bt.parentElement;
+      AC_LIM[k] = (AC_LIM[k] || 20) + 40;
+      corpo.innerHTML = corpoBloco(k, ((AC_DADOS && AC_DADOS.blocos[k]) || {}).itens || []);
+      ligarCartoesAc(corpo); ligarMais(corpo);
+    };
+  });
+}
+function abrirTodosBlocos(abrir){
+  AC_ABERTOS = {};
+  if (abrir) BLOCOS_AC.forEach(x => { AC_ABERTOS[x[0]] = 1; });
+  guardarAbertos();
+  if (AC_DADOS) pintarAcompanhamento(AC_DADOS);
+}
+/* número ao lado do nome da aba — só com o que já foi carregado, nenhuma ida a mais à planilha */
+function contagemAba(tela, n){ const e = el('tn-' + tela); if (e) e.textContent = n == null ? '' : Number(n).toLocaleString('pt-BR'); }
+/* Fechados do mês na coluna da direita: usa o que já está guardado; se não houver, busca depois que a tela terminou */
+let FECH_MES_PEDIDO = false;
+function pintarFechMes(){
+  const cx = el('ac-fech'); if (!cx) return;
+  const ch = 'fh:' + assinatura({ periodo: 'MES', colab: 'TODAS', ordem: 'DATA' });
+  const d = CACHE[ch];
+  if (d && d.kpi) {
+    const k = d.kpi;
+    cx.innerHTML = `<div class="rail-fech"><span class="r">Fechados em ${esc(NOMES_MES[(parseBR((CTX && CTX.hoje) || '') || new Date()).getMonth()])}</span>
+      <b>${semValor(k.valor) ? k.fechamentos + ' orçamentos' : brl(k.valor)}</b><span>${k.fechamentos} orçamento(s) de ${k.pacientes_fechadas} paciente(s) depois do contato</span>
+      <button id="ac-verfech">Ver Fechados</button></div>`;
+    el('ac-verfech').onclick = () => irPara('fechados');
+    return;
+  }
+  cx.innerHTML = '';
+  if (FECH_MES_PEDIDO || !USUARIO) return;
+  FECH_MES_PEDIDO = true;
+  setTimeout(() => {
+    if (EM_VOO > 0) { FECH_MES_PEDIDO = false; return; }
+    api('fechados', { periodo: 'MES', colab: 'TODAS', ordem: 'DATA' }).then(r => { if (r && !r.erro) { CACHE[ch] = r; pintarFechMes(); } }).catch(() => {});
+  }, 1500);
+}
+
+/* ==========================================================================
+   V4.32 — CARTÃO DAS FILAS (Recall, Dormente, High Ticket) no mesmo desenho
+   ========================================================================== */
+const COR_FAIXA_A = { QUENTE: '#2E7D57', MORNO: '#C98A16', FRIO: '#C0623A', DORMENTE: '#8C807A', FOLLOWUP: '#5C1A2B' };
+function cartaoPaciente(p, tela){
+  const chips = [];
+  if (p.faixa) chips.push(`<span class="pa-st" style="background:${COR_FAIXA_A[p.faixa] || '#5C1A2B'};color:#fff">${esc(p.faixa === 'FOLLOWUP' ? 'FOLLOW-UP' : p.faixa)}</span>`);
+  if (p.campanha) chips.push(tagCampanha(p));
+  if (p.classe_ht) chips.push(`<span class="pa-ch">Alto padrão · ${esc(p.classe_ht)}</span>`);
+  if (p.perfil) chips.push(`<span class="pa-ch">${esc(ROTULO_PERFIL[p.perfil] || p.perfil)}</span>`);
+  if (p.temperatura) chips.push(`<span class="pa-ch">${esc(ROTULO_TEMP[p.temperatura] || p.temperatura)}</span>`);
+  const dRec = diasDesde(p.ultimo_contato);
+  if (dRec !== null && dRec <= TRAVA_DIAS) chips.push(`<span class="pa-st" style="background:#C0392B;color:#fff">CONTATADA ${dRec === 0 ? 'HOJE' : 'HÁ ' + dRec + ' DIA(S)'} — NÃO REPETIR</span>`);
+  if (p.proximo) { const q = quandoRetorno(p.proximo); if (q.cls === 'venc') chips.push(`<span class="pa-st" style="background:#C0392B;color:#fff">RETORNO ${esc(q.txt.toUpperCase())}</span>`); }
+
+  const linha = p.ultimo_orcamento
+    ? `Último orçamento ${esc(p.ultimo_orcamento)}${p.ultimo_orcamento_num ? ' · ORÇ ' + esc(p.ultimo_orcamento_num) : ''}${p.ultimo_orcamento_situacao ? ' · ' + esc(p.ultimo_orcamento_situacao) : ''} · ${p.aprovados} aprovado(s)${p.primeiro ? ' · paciente desde ' + esc(p.primeiro) : ''}`
+    : 'Sem orçamento datado';
+  const marcada = tela && SEL[tela] && SEL[tela].indexOf(p.chave) > -1;
+  const terceiro = p.abertos
+    ? quadro('Em aberto', brl(p.valor_aberto), p.abertos + ' orçamento(s)', 'val')
+    : quadro('Histórico', brl(p.valor), p.aprovados + ' aprovado(s)');
+  return `<div class="pac${marcada ? ' escolhida' : ''}" data-chave="${esc(p.chave)}" role="button" tabindex="0">
+    <div class="tarja tj-${esc(p.faixa)}"></div>
+    ${tela ? `<label class="sel-cx" title="Selecionar para imprimir">
+      <input type="checkbox" data-sel="${esc(p.chave)}"${marcada ? ' checked' : ''}></label>` : ''}
+    <div class="pacA-w"><div class="pacA">
+      <div class="pa-esq">
+        <div class="pa-chips">${chips.join('')}</div>
+        <div class="pa-nome">${esc(p.paciente)}</div>
+        <div class="pa-lin">${linha}${p.cidade ? ' · ' + esc(p.cidade) + (p.uf ? '/' + esc(p.uf) : '') : ''}</div>
+        <div class="pa-bts">
+          ${botaoZap(p.chave, p.telefone, p.ultimo_contato)}
+          <button class="btA v" data-acao="ficha">Registrar contato</button>
+        </div>
+      </div>
+      <div class="pa-cx">
+        ${quadro('Último contato', p.ultimo_contato ? ddmm(p.ultimo_contato) : 'nunca', p.ultimo_contato ? haDias(p.ultimo_contato) + (p.tentativas ? ' · ' + p.tentativas + 'ª tent.' : '') : 'ainda não contatada')}
+        ${quadro('Último orçamento', ddmm(p.ultimo_orcamento), p.dias == null ? '' : p.dias + ' dias atrás')}
+        ${terceiro}
+      </div>
+    </div></div></div>`;
+}
+
+function ligarCartoes(container, tela){
+  container.querySelectorAll('.pac').forEach(c => {
+    const cx = c.querySelector('[data-sel]');
+    if (cx) cx.onchange = ev => {
+      ev.stopPropagation();
+      alternarSel(tela, cx.dataset.sel, cx.checked);
+      c.classList.toggle('escolhida', cx.checked);
+    };
+    c.querySelectorAll('[data-acao]').forEach(b => {
+      b.onclick = ev => {
+        ev.stopPropagation();
+        if (b.dataset.acao === 'zap') { cliqueZapCartao(b, ev); return; }
+        if (b.dataset.acao === 'ficha') abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]);
+      };
+    });
+    const abrir = ev => {
+      if (ev.target.closest('.sel-cx') || ev.target.closest('[data-acao]')) return;
+      abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave]);
+    };
+    c.onclick = abrir;
+    ligarAquecimento(c);
+    c.onkeydown = ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === c){ ev.preventDefault(); abrir(ev); } };
+  });
+}
+
+/* ==========================================================================
+   V4.32 — FICHA EM TELA CHEIA, com anterior / próxima
+   A lista fica parada por baixo: voltar devolve a pessoa ao mesmo ponto.
+   ========================================================================== */
+let FICHA_LISTA = [];
+let IR_PROXIMA = false;
+function listaDaTela(){
+  const vistas = [], ja = {};
+  document.querySelectorAll('.tela.on [data-chave]').forEach(c => {
+    if (c.closest('#ficha') || c.closest('#modal')) return;
+    const k = c.dataset.chave;
+    if (k && !ja[k] && (c.classList.contains('pac') || c.classList.contains('agc'))) { ja[k] = 1; vistas.push(k); }
+  });
+  return vistas;
+}
+function atualizarNavFicha(chave){
+  FICHA_LISTA = listaDaTela();
+  const i = FICHA_LISTA.indexOf(chave);
+  el('fc-pos').textContent = i > -1 ? (i + 1) + ' de ' + FICHA_LISTA.length : '';
+  el('fc-ant').disabled = i <= 0;
+  el('fc-prox').disabled = i < 0 || i >= FICHA_LISTA.length - 1;
+}
+function andarFicha(passo){
+  if (!PAC || !PAC.paciente) return;
+  const i = FICHA_LISTA.indexOf(PAC.paciente.chave);
+  const k = FICHA_LISTA[i + passo];
+  if (!k) { toast(passo > 0 ? 'Esta é a última paciente da lista.' : 'Esta é a primeira paciente da lista.'); return; }
+  abrirFicha(k, ITENS_VISTOS[k]);
+  const r = el('ficha').querySelector('.fc-rolo'); if (r) r.scrollTop = 0;
+}
+
+/* O que fazer agora: uma frase que junta retorno, sessões pagas, orçamento aberto e contato recente. */
+function oQueFazer(p, d, totSess, totPac){
+  const u = ultimoContatoDe(p, d.contatos);
+  const abertos = d.orcamentos.filter(o => /aberto/i.test(o.situacao));
+  const valAb = abertos.reduce((s, o) => s + (Number(o.valor) || 0), 0);
+  const sess = totSess ? ` Ela tem <b>${totSess} ${totSess === 1 ? 'sessão paga' : 'sessões pagas'}</b> pendente(s) em ${totPac} pacote(s): ofereça horário.` : '';
+  const ab = abertos.length && !semValor(valAb) ? ` Há <b>${brl(valAb)}</b> em ${abertos.length} orçamento(s) aberto(s).` : '';
+  if (p.pendente) return `Contato iniciado por ${esc(p.whats_por || '—')} e ainda <b>não lançado</b>. Registre ao lado o que aconteceu.`;
+  if (p.status === 'FECHADA' || p.situacao === 'FECH') return `Fechou${p.ultimo_aprovado_num ? ' o orçamento <b>' + esc(p.ultimo_aprovado_num) + '</b>' : ''} em ${esc(p.ultima_compra || '—')}.${sess || ' Acompanhe o tratamento.'}`;
+  if (p.status === 'ENCERRADA') return 'Paciente finalizada. Ela só volta à fila por decisão de alguém (Mover paciente).';
+  if (u.dias !== null && u.dias <= TRAVA_DIAS) return `Já foi contatada ${u.dias === 0 ? 'hoje' : 'há ' + u.dias + ' dia(s)'}${u.autor ? ' por ' + esc(u.autor) : ''}. Evite insistir antes do retorno combinado.${sess}`;
+  if (p.proximo) {
+    const q = quandoRetorno(p.proximo);
+    if (q.cls === 'venc') return `O retorno combinado (${esc(p.proximo)}) <b>${esc(q.txt)}</b>. Retome o contato hoje.${sess}${ab}`;
+    return `Retorno combinado para <b>${esc(p.proximo)}</b> (${esc(q.txt)}).${sess}${ab}`;
+  }
+  if (!p.tentativas) return `Ainda não contatada.${ab ? ab + ' Comece por ele.' : ''}${sess}${!ab && !sess ? ' Faça o primeiro contato.' : ''}`;
+  return `Contatada, mas sem data de retorno: combine o próximo passo.${sess}${ab}`;
+}
+
+/* ==========================================================================
+   V4.32 — RELATÓRIOS (PDF e Excel) de qualquer aba, com período e colaboradora
+   ========================================================================== */
+const REL_OPCOES = [['acompanhamento','Acompanhamento'],['contatos','Atividade da equipe (contatos lançados)'],['recall','Recall'],
+  ['dormente','Dormente'],['highticket','High Ticket'],['follow','Follow-up'],['fechados','Fechados (detalhado)'],
+  ['finalizados','Finalizados'],['agenda','Agenda'],['indicadores','Indicadores do mês']];
+const REL_DA_TELA = { acompanhamento:'acompanhamento', recall:'recall', dormente:'dormente', highticket:'highticket',
+  follow:'follow', fechados:'fechados', finalizados:'finalizados', agenda:'agenda', indicadores:'indicadores' };
+function isoDe(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function periodoRel(cod){
+  const h = parseBR((CTX && CTX.hoje) || '') || new Date();
+  const y = h.getFullYear(), m = h.getMonth();
+  if (cod === 'HOJE') return [h, h];
+  if (cod === '7') return [new Date(y, m, h.getDate() - 6), h];
+  if (cod === '30') return [new Date(y, m, h.getDate() - 29), h];
+  if (cod === '90') return [new Date(y, m, h.getDate() - 89), h];
+  if (cod === 'MES') return [new Date(y, m, 1), h];
+  if (cod === 'MES_ANT') return [new Date(y, m - 1, 1), new Date(y, m, 0)];
+  if (cod === 'PROX14') return [h, new Date(y, m, h.getDate() + 13)];
+  return [null, null];
+}
+function abrirRelatorio(){
+  if (!USUARIO){ abrirPortao(); return; }
+  if (semRelatorio()){ toast('Seu acesso é de contato com pacientes e não inclui relatórios.'); return; }
+  const tela = telaAtiva();
+  const nomes = (USUARIOS_ABERTOS || []).map(u => u.nome || u).filter(Boolean);
+  abrirModal(`<h2>Relatório</h2>
+    <div class="grid-campo">
+      <div class="campo wide"><label>Qual relatório</label><select id="rl-aba">${REL_OPCOES.map(o =>
+        `<option value="${o[0]}"${o[0] === (REL_DA_TELA[tela] || 'acompanhamento') ? ' selected' : ''}>${esc(o[1])}</option>`).join('')}</select></div>
+      <div class="campo"><label>Período</label><select id="rl-per">
+        <option value="MES">Este mês</option><option value="MES_ANT">Mês passado</option><option value="HOJE">Hoje</option>
+        <option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option>
+        <option value="PROX14">Próximos 14 dias (agenda)</option><option value="TUDO">Sem filtro de data</option><option value="PERS">Escolher datas…</option></select></div>
+      <div class="campo"><label>Colaboradora</label><select id="rl-col"><option value="TODAS">Todas</option>${nomes.map(n => `<option>${esc(n)}</option>`).join('')}</select></div>
+      <div class="campo" id="rl-de-c" style="display:none"><label>De</label><input id="rl-de" type="date"></div>
+      <div class="campo" id="rl-ate-c" style="display:none"><label>Até</label><input id="rl-ate" type="date"></div>
+      <div class="campo wide"><label>Formato</label><div class="escala" id="rl-fmt">
+        <button data-v="PDF" aria-pressed="true">PDF</button><button data-v="PDF0" aria-pressed="false">PDF sem valores</button><button data-v="XLSX" aria-pressed="false">Excel</button></div></div>
+    </div>
+    <div class="nota" id="rl-nota"></div>
+    <div class="acoes"><button class="bt prim" id="rl-ir">Gerar relatório</button><button class="bt" onclick="fecharModal()">Cancelar</button></div>`);
+  const notas = {
+    acompanhamento: 'Pacientes em acompanhamento, com situação, último contato, retorno e valor. O período vale para a data do último contato.',
+    contatos: 'Cada contato lançado no período, com resumo por colaboradora (contatos, pacientes, interesse, agendou).',
+    recall: 'A fila com os filtros que estão na tela. O período vale para a data do último orçamento.',
+    dormente: 'A fila com os filtros que estão na tela. O período vale para a data do último orçamento.',
+    highticket: 'A carteira de alto padrão. O período vale para a data do último orçamento.',
+    follow: 'Orçamentos em aberto do período, com farol e valor.',
+    fechados: 'Cada orçamento fechado depois do contato: crédito, o que a paciente era no dia do contato (follow-up ou recall, e há quantos dias sem orçamento), o orçamento anterior e o último fechamento antes deste. Inclui quem está em tratamento.',
+    finalizados: 'Pacientes finalizadas no período, por quem e por qual motivo.',
+    agenda: 'Horários do período, do ERP e do app. A colaboradora filtra por quem lançou ou pela profissional.',
+    indicadores: 'Indicadores do mês de início do período.'
+  };
+  const pintarNota = () => { el('rl-nota').textContent = notas[el('rl-aba').value] || ''; };
+  pintarNota();
+  el('rl-aba').onchange = () => { pintarNota(); if (el('rl-aba').value === 'agenda' && el('rl-per').value === 'MES') el('rl-per').value = 'PROX14'; };
+  el('rl-per').onchange = () => { const p = el('rl-per').value === 'PERS'; el('rl-de-c').style.display = p ? '' : 'none'; el('rl-ate-c').style.display = p ? '' : 'none'; };
+  el('rl-fmt').querySelectorAll('button').forEach(b => { b.onclick = () => { el('rl-fmt').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); }; });
+  el('rl-ir').onclick = () => {
+    const aba = el('rl-aba').value, per = el('rl-per').value;
+    let de = '', ate = '';
+    if (per === 'PERS') { de = el('rl-de').value; ate = el('rl-ate').value; if (!de || !ate) { toast('Escolha as duas datas.'); return; } }
+    else { const pr = periodoRel(per); if (pr[0]) { de = isoDe(pr[0]); ate = isoDe(pr[1]); } }
+    const f = (el('rl-fmt').querySelector('[aria-pressed="true"]') || {}).dataset || { v: 'PDF' };
+    const params = { aba: aba, de: de ? de.split('-').reverse().join('/') : '', ate: ate ? ate.split('-').reverse().join('/') : '',
+      colab: el('rl-col').value, formato: f.v === 'XLSX' ? 'XLSX' : 'PDF', semvalores: f.v === 'PDF0' ? '1' : '0' };
+    if (FILTROS[aba]) Object.keys(FILTROS[aba]).forEach(k => { if (k !== 'aba') params[k] = FILTROS[aba][k]; });
+    if (aba === 'acompanhamento') params.origem = AC.origem;
+    gerarRelatorio(params);
+  };
+}
+async function gerarRelatorio(params){
+  abrirModalCarregando(params.formato === 'PDF' ? 'gerando o relatório em PDF' : 'gerando o relatório em Excel');
+  try {
+    const r = await api('relatorio', params);
+    if (r.erro){ fecharModal(); toast(r.erro); return; }
+    entregarArquivo(r);
+  } catch (e) { fecharModal(); falhar(e); }
+}
+
+/* ==========================================================================
+   V4.32 — FECHADOS: de onde veio cada fechamento e quem está em tratamento
+   ========================================================================== */
+const COR_TIPO_FECH = { FOLLOWUP: '#5C1A2B', ATIVA: '#4F6B58', RECALL_QUENTE: '#2E7D57', RECALL_MORNO: '#C98A16',
+  RECALL_FRIO: '#C0623A', DORMENTE: '#8C807A', NOVA: '#7A5C99' };
+function pintarTiposFech(d){
+  const t = d.por_tipo || [], tot = t.reduce((s, x) => s + x.n, 0) || 1;
+  el('fh-tipos').innerHTML = t.length ? t.map(x => `<div class="ft-l"><i style="background:${COR_TIPO_FECH[x.tipo] || '#999'}"></i>
+      <b>${esc(x.rotulo)}</b><span class="ft-b"><span style="width:${Math.round(100 * x.n / tot)}%;background:${COR_TIPO_FECH[x.tipo] || '#999'}"></span></span>
+      <span class="ft-n">${x.n} · ${Math.round(100 * x.n / tot)}%</span><span class="ft-v">${brl(x.valor)}</span></div>`).join('')
+    : '<div class="vazio">Nenhum fechamento no período.</div>';
+  const tr = (d.em_tratamento || {}).itens || [];
+  el('fh-trat').innerHTML = tr.length ? `<details class="fh-sem" open><summary><b>${tr.length} paciente(s) em Fechados agora</b> — só voltam ao Follow-up ou ao Recall quando terminarem as sessões do que fecharam.
+      ${d.em_tratamento.carga_pendentes ? 'Relatório de pendentes carregado em ' + esc(d.em_tratamento.carga_pendentes) + '.' : ''}</summary>
+      <div class="tab-rol"><table class="tab-fech"><thead><tr><th>Paciente</th><th>Orç.</th><th>Fechou em</th><th>Crédito</th><th>Sessões a fazer</th><th>Situação</th></tr></thead><tbody>
+      ${tr.map(x => `<tr data-ch="${esc(x.chave)}"><td><b>${esc(x.paciente)}</b></td><td>${esc(x.num)}</td><td>${esc(x.data)}</td><td>${esc(x.credito || '—')}</td>
+        <td>${x.sessoes || '—'}</td><td>${x.situacao === 'EM_TRATAMENTO' ? 'Em tratamento' : (x.situacao === 'AGUARDANDO_RELATORIO' ? 'Aguardando relatório de pendentes' : 'Recém-fechada')}</td></tr>`).join('')}
+      </tbody></table></div></details>` : '';
+  el('fh-trat').querySelectorAll('tr[data-ch]').forEach(r => { r.onclick = () => { if (!contaRestrita()) abrirFicha(r.dataset.ch, ITENS_VISTOS[r.dataset.ch] || { paciente: r.cells[0].textContent }); }; });
+}
 function cartaoFechado(x){
   const proc = String(x.procedimentos || '').replace(/<br\s*\/?>/gi, ' ').replace(/\s+/g, ' ').trim();
+  const fa = x.fech_anterior, oa = x.orc_anterior;
   return `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
-    <div class="tarja" style="background:${x.credito ? 'var(--salvia)' : 'var(--f-dormente)'}"></div><div class="pac-in">
-      <div class="pac-l1"><span class="pac-nome">${esc(x.paciente)}</span>
-        <span class="pac-dias"><b>${x.dias}</b><span>dias após o contato</span></span></div>
-      <div class="pac-l2">Orçamento <b>${esc(x.num)}</b> aprovado em <b>${esc(x.data)}</b>${x.responsavel ? ' · responsável no ERP: ' + esc(x.responsavel) : ''}${proc ? ' — ' + esc(proc.substring(0, 140)) : ''}</div>
-      <div class="pac-l3">${x.credito ? `<span class="tag ok">Crédito: ${esc(x.credito)}</span>` : `<span class="tag">Sem crédito — último contato de ${esc(x.ultimo_toque_por || '—')}</span>`}
-        ${semValor(x.valor) ? '' : `<span class="tag val">${brl(x.valor)}</span>`}
-        <span class="tag">último ${esc(ROTULO_VIA[x.via] || 'contato')} em ${esc(x.contato_em)}</span></div>
-    </div></div>`;
+    <div class="tarja" style="background:${x.credito ? (COR_TIPO_FECH[x.tipo] || 'var(--salvia)') : 'var(--f-dormente)'}"></div>
+    <div class="pacA-w"><div class="pacA">
+      <div class="pa-esq">
+        <div class="pa-chips"><span class="pa-st" style="background:${COR_TIPO_FECH[x.tipo] || '#5C1A2B'};color:#fff">${esc((x.tipo_rotulo || '').toUpperCase())}</span>
+          ${x.credito ? `<span class="pa-ch">Crédito: <b>${esc(x.credito)}</b></span>` : `<span class="pa-ch">Sem crédito — último contato de ${esc(x.ultimo_toque_por || '—')}</span>`}
+          ${x.aba_contato ? `<span class="pa-ch">contato lançado pela aba ${esc(ROTULO_ORIGEM[x.aba_contato] || x.aba_contato)}</span>` : ''}</div>
+        <div class="pa-nome">${esc(x.paciente)}</div>
+        <div class="pa-obs" style="font-size:14px">${esc(x.explicacao || '')}</div>
+        <div class="pa-lin">Orçamento <b>${esc(x.num)}</b> aprovado em <b>${esc(x.data)}</b>${x.responsavel ? ' · responsável no ERP: ' + esc(x.responsavel) : ''}${proc ? ' — ' + esc(proc.substring(0, 160)) : ''}</div>
+        <div class="pa-lin">Orçamento anterior: ${oa ? `<b>${esc(oa.num)}</b> de ${esc(oa.data)} (${esc(oa.situacao)})` : 'nenhum'} ·
+          Último fechamento antes deste: ${fa ? `<b>${esc(fa.num)}</b> em ${esc(fa.data)}${semValor(fa.valor) ? '' : ' · ' + brl(fa.valor)} · <b>${fa.dias} dias antes</b>` : '<b>nenhum — primeiro fechamento</b>'}</div>
+      </div>
+      <div class="pa-cx">
+        ${quadro('Fechou', ddmm(x.data), semValor(x.valor) ? '' : brl(x.valor), 'ok')}
+        ${quadro('Último contato', ddmm(x.contato_em), x.dias + ' dia(s) antes · ' + esc(ROTULO_VIA[x.via] || 'contato'))}
+        ${quadro('Sem orçamento', x.dias_sem_orcamento == null ? '—' : x.dias_sem_orcamento + ' d', 'no dia do contato', '')}
+      </div>
+    </div></div></div>`;
 }
 
 /* ==========================================================================
@@ -3678,6 +4219,7 @@ function pintarFollow(d){
   const total = FAROIS_FU.reduce((s, x) => s + (pf[x[0]] || 0), 0) || 1;
 
   el('fu-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">orçamentos</small>`;
+  contagemAba('follow', d.total);
   el('fu-sub').textContent = brl(d.valor) + ' em aberto · janela de ' + d.janela + ' dias · ' +
     d.todos + ' no total (' + brl(d.valor_todos) + ')';
 
