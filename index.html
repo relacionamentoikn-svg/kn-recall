@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- RECALL E FOLLOW-UP · V4.29 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
+<!-- RECALL E FOLLOW-UP · V4.30 — este arquivo vai no repositório kn-recall. NÃO é o do KN Vendas nem o do Leads. -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gestão Recall e Follow-up</title>
@@ -428,6 +428,28 @@ nav.tabs button.on{color:var(--vinho);border-bottom-color:var(--vinho);font-weig
 .onde-DORMENTE{background:rgba(140,128,122,.22);color:#5F5651}
 .onde-FOLLOWUP{background:rgba(79,107,88,.16);color:var(--salvia)}
 .onde-ENCERRADA,.onde-FINALIZADOS{background:rgba(138,58,76,.14);color:var(--vinho-2)}
+.onde-FECHADOS{background:rgba(79,107,88,.16);color:var(--salvia)}
+/* V4.30 — Fechados: funil do contato ao fechamento e tabela da equipe */
+.funil{display:flex;align-items:stretch;gap:4px;flex-wrap:wrap}
+.fn-passo{flex:1 1 120px;background:#fff;border:1px solid var(--linha);border-radius:10px;padding:10px 11px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.fn-passo b{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;line-height:1.05;color:var(--tinta);font-variant-numeric:tabular-nums}
+.fn-passo span{font-size:11.5px;font-weight:600;color:var(--tinta)}
+.fn-passo small{font-size:10.5px;color:rgba(36,30,28,.6);line-height:1.35}
+.fn-passo.fn-fim{background:var(--salvia);border-color:var(--salvia)}
+.fn-passo.fn-fim b,.fn-passo.fn-fim span,.fn-passo.fn-fim small{color:#fff}
+.fn-seta{align-self:center;font-style:normal;color:rgba(36,30,28,.35);font-size:20px;padding:0 1px}
+@media(max-width:640px){.fn-seta{display:none}.fn-passo{flex:1 1 45%}}
+.tab-rol{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-fech{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
+.tab-fech th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;color:rgba(36,30,28,.55);text-align:right;padding:6px 8px;border-bottom:1px solid var(--linha-forte);white-space:nowrap}
+.tab-fech td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--linha);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tab-fech th:first-child,.tab-fech td:first-child{text-align:left}
+.tab-fech tbody tr{cursor:pointer}
+.tab-fech tbody tr:hover{background:rgba(79,107,88,.07)}
+.tab-fech tbody tr.on{background:rgba(79,107,88,.14)}
+.fh-sem{margin-top:14px}
+.fh-sem summary{cursor:pointer;font-size:12px;color:rgba(36,30,28,.7);padding:8px 2px}
+.ord-aviso{font-size:11px;color:rgba(36,30,28,.6);margin:0 0 8px}
 .onde-ACOMPANHAMENTO{background:rgba(79,107,88,.22);color:#2F4B38}
 .situacao-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border:1px solid rgba(36,30,28,.12);border-radius:8px;background:rgba(255,255,255,.5);font-size:12.5px}
 .situacao-box .quem{color:rgba(36,30,28,.6);flex:1 1 180px}
@@ -771,6 +793,7 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     <button data-tela="dormente" onclick="irPara('dormente')">Dormente</button>
     <button data-tela="highticket" onclick="irPara('highticket')">High Ticket</button>
     <button data-tela="follow" onclick="irPara('follow')">Follow-up</button>
+    <button data-tela="fechados" onclick="irPara('fechados')">Fechados</button>
     <button data-tela="finalizados" onclick="irPara('finalizados')">Finalizados</button>
     <button data-tela="agenda" onclick="irPara('agenda')">Agenda</button>
     <button data-tela="indicadores" onclick="irPara('indicadores')">Indicadores</button>
@@ -816,8 +839,8 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     </div>
     <div class="nota">Ninguém fica sem próximo passo: se você não marcar a data de retorno ao salvar o
       contato, o app marca sozinho para daqui a <b id="ac-lembrete">7</b> dias e a paciente reaparece em
-      <b>Vencidos</b>. A paciente só sai daqui por decisão sua: abra a ficha e use <b>Mover paciente</b> para devolver à fila de origem
-      ou <b>Finalizar paciente</b> — o app nunca tira ninguém sozinho.</div>
+      <b>Vencidos</b>. A paciente sai daqui por decisão sua (abra a ficha e use <b>Mover paciente</b> ou <b>Finalizar paciente</b>)
+      ou quando fecha orçamento no ERP depois do contato: aí ela vai para a aba <b>Fechados</b>, com o crédito de quem contatou.</div>
   </section>
 
   <!-- ===================== RECALL ===================== -->
@@ -930,6 +953,41 @@ input.inv{border-color:#C0392B!important;background:#FDF3F1}
     <div class="nota">O farol pega <b>o pior dos dois critérios</b>: a idade do orçamento e o atraso do retorno
       prometido. Orçamento novo com retorno vencido fica vermelho do mesmo jeito. Passando de 30 dias, a
       paciente sai desta tela e entra na fila de Recall, com a faixa dela.</div>
+  </section>
+
+  <!-- ===================== FECHADOS (V4.30) =====================
+       Cruzamento do app com o ERP: quem fechou orçamento depois do contato,
+       quanto, e para quem vai o crédito. -->
+  <section class="tela" id="tela-fechados">
+    <div class="cab-tela">
+      <div class="hero">
+        <div class="rot">Fechados · o que o app gerou</div>
+        <div class="grande" id="fh-grande">—</div>
+        <div class="sub" id="fh-sub">—</div>
+      </div>
+      <div class="card">
+        <h3>Do contato ao fechamento <span class="aux" id="fh-per">—</span></h3>
+        <div class="funil" id="fh-funil"></div>
+      </div>
+    </div>
+    <div class="filtros bloco" id="fh-filtros" style="margin-bottom:14px"></div>
+    <div class="card" id="fh-equipe-box" style="margin-bottom:14px">
+      <h3>Por colaboradora <span class="aux">toque numa linha para filtrar</span></h3>
+      <div class="tab-rol"><table class="tab-fech" id="fh-equipe"></table></div>
+    </div>
+    <div class="split">
+      <div>
+        <div class="sec" id="fh-rotulo">Orçamentos fechados depois do contato</div>
+        <div class="lista" id="fh-lista"><div class="carregando">Carregando…</div></div>
+        <div id="fh-sem"></div>
+      </div>
+      <div class="ficha-slot" id="slot-fechados"></div>
+    </div>
+    <div class="nota">O app cruza, a cada carga do relatório de orçamentos do ERP, o que foi aprovado com o que a equipe
+      registrou aqui. Orçamento aprovado no mesmo dia ou depois do último contato (ou horário lançado) conta como
+      <b>fechamento</b>: a paciente sai do Acompanhamento e o crédito vai para quem fez esse último contato, se foi até
+      <b>30 dias</b> antes. Mais que isso, aparece como sem crédito. A conta segue o relatório: fechamento de hoje
+      entra quando o relatório novo for carregado.</div>
   </section>
 
   <!-- ===================== FINALIZADOS ===================== -->
@@ -1078,7 +1136,7 @@ if (!API_URL) { try { API_URL = localStorage.getItem('kassila_recall_url') || ''
 
 /* Versão DESTA tela. Precisa bater com a do Codigo.gs; o cabeçalho mostra as
    duas e avisa quando divergem. */
-const VERSAO_TELA = 'V4.29';
+const VERSAO_TELA = 'V4.30';
 
 let CTX = null, USUARIO = null, PAC = null, ULTIMA = null;
 let MES = null, ESCOPO = 'RECALL', PERIODO_AGENDA = 14;
@@ -1100,7 +1158,7 @@ const FILTROS = {
      relacionamento — mas, como nas outras abas, V4.21: contatada vive no Acompanhamento. */
   highticket: { aba: 'HIGHTICKET', faixa: 'TODAS', perfil: 'TODOS', temperatura: 'TODAS', ordem: 'VALOR', busca: '', so_novas: 'SIM' }
 };
-const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS', divergentes: '' };
+const AC = { bloco: 'TODOS', origem: 'TODAS', busca: '', colab: 'TODAS', divergentes: '', limite: 600 };
 const FU = { farol: 'TODOS', ordem: 'PRIORIDADE', busca: '' };
 
 /* Cache de tela. Cada aba guarda a última resposta boa; ao voltar nela o app
@@ -1190,13 +1248,14 @@ function podeAba(t){
     case 'highticket':  return tem('HIGHTICKET');
     case 'follow':      return tem('FOLLOWUP');
     case 'finalizados': return tem('RECALL') || tem('DORMENTE') || tem('HIGHTICKET') || tem('FOLLOWUP');
+    case 'fechados':    return true;   // V4.30: cada conta vê os próprios fechamentos
     case 'agenda':      return true;   // V4.11: a Agenda é aberta a todas as contas
     case 'indicadores': return tem('INDICADORES');
   }
   return false;
 }
 function primeiraAbaLivre(){
-  const ordem = ['acompanhamento','recall','dormente','highticket','follow','finalizados','agenda','indicadores'];
+  const ordem = ['acompanhamento','recall','dormente','highticket','follow','fechados','finalizados','agenda','indicadores'];
   for (let k = 0; k < ordem.length; k++) if (podeAba(ordem[k])) return ordem[k];
   return 'acompanhamento';
 }
@@ -1599,11 +1658,11 @@ const ROTULO_PERFIL = {
 };
 const ROTULO_TEMP = { FORTE: 'Forte', MEDIO: 'Médio', FRACO: 'Fraco' };
 const ROTULO_ONDE = { RECALL: 'Recall', DORMENTE: 'Dormente', FOLLOWUP: 'Follow-up',
-  HIGHTICKET: 'High Ticket', ACOMPANHAMENTO: 'Acompanhamento', FINALIZADOS: 'Finalizados',
+  HIGHTICKET: 'High Ticket', ACOMPANHAMENTO: 'Acompanhamento', FINALIZADOS: 'Finalizados', FECHADOS: 'Fechados',
                       ENCERRADA: 'Finalizados', SEM_DATA: 'Sem data' };
 /* V4.21 — aba (tela) onde cada lugar vive */
 const TELA_DO_ONDE = { RECALL: 'recall', DORMENTE: 'dormente', FOLLOWUP: 'follow', HIGHTICKET: 'highticket',
-  ACOMPANHAMENTO: 'acompanhamento', FINALIZADOS: 'finalizados', ENCERRADA: 'finalizados' };
+  ACOMPANHAMENTO: 'acompanhamento', FINALIZADOS: 'finalizados', ENCERRADA: 'finalizados', FECHADOS: 'fechados' };
 const COR_FAIXA = { QUENTE: 'var(--f-quente)', MORNO: 'var(--f-morno)',
                     FRIO: 'var(--f-frio)', DORMENTE: 'var(--f-dormente)' };
 
@@ -1624,6 +1683,7 @@ function irPara(t){
   if (t === 'dormente')    carregarFila('dormente').catch(falhar);
   if (t === 'highticket')  carregarFila('highticket').catch(falhar);
   if (t === 'follow')      carregarFollow().catch(falhar);
+  if (t === 'fechados')    carregarFechados().catch(falhar);
   if (t === 'finalizados') carregarFinalizados().catch(falhar);
   if (t === 'agenda')      carregarAgenda().catch(falhar);
   if (t === 'indicadores') carregarIndicadores().catch(falhar);
@@ -1690,6 +1750,7 @@ function recarregarTelaAtiva(){
   if (t === 'recall')      return carregarFila('recall');
   if (t === 'dormente')    return carregarFila('dormente');
   if (t === 'follow')      return carregarFollow();
+  if (t === 'fechados')    return carregarFechados();
   if (t === 'finalizados') return carregarFinalizados();
   if (t === 'agenda')      return carregarAgenda();
   if (t === 'indicadores') return carregarIndicadores();
@@ -2026,13 +2087,40 @@ async function carregarAcompanhamento(){
   }
 }
 
+/* V4.30 — ordem da fila. "Situação" é a de sempre (por bloco); as outras juntam os blocos numa lista só. */
+const ORDENS_AC = [['SITUACAO','Situação (blocos)'],['CONTATO_REC','Último contato — mais recente'],['CONTATO_ANT','Último contato — mais antigo'],
+  ['RETORNO','Data de retorno — mais atrasada'],['VALOR','Valor em aberto — maior'],['HISTORICO','Valor do histórico — maior'],
+  ['DIAS','Dias sem orçamento — mais'],['NOME','Nome — A a Z']];
+let AC_ORDEM = 'SITUACAO';
+try { const o = localStorage.getItem('recall_ac_ordem'); if (o && ORDENS_AC.some(x => x[0] === o)) AC_ORDEM = o; } catch (e) {}
+function ordenarItensAc(lista){
+  const t = s => { const d = parseBR(s); return d ? d.getTime() : null; };
+  const nulosNoFim = (a, b, f) => (a === null && b === null) ? 0 : (a === null ? 1 : (b === null ? -1 : f(a, b)));
+  const cmp = {
+    CONTATO_REC: (a, b) => nulosNoFim(t(a.x.ultimo_contato), t(b.x.ultimo_contato), (p, q) => q - p),
+    CONTATO_ANT: (a, b) => nulosNoFim(t(a.x.ultimo_contato), t(b.x.ultimo_contato), (p, q) => p - q),
+    RETORNO:     (a, b) => nulosNoFim(t(a.x.proximo), t(b.x.proximo), (p, q) => p - q),
+    VALOR:       (a, b) => (Number(b.x.valor_aberto) || 0) - (Number(a.x.valor_aberto) || 0),
+    HISTORICO:   (a, b) => (Number(b.x.valor) || 0) - (Number(a.x.valor) || 0),
+    DIAS:        (a, b) => nulosNoFim(a.x.dias == null ? null : a.x.dias, b.x.dias == null ? null : b.x.dias, (p, q) => q - p),
+    NOME:        (a, b) => String(a.x.paciente).localeCompare(String(b.x.paciente), 'pt-BR')
+  }[AC_ORDEM];
+  return cmp ? lista.slice().sort((a, b) => cmp(a, b) || String(a.x.paciente).localeCompare(String(b.x.paciente), 'pt-BR')) : lista;
+}
 function montarFiltrosAc(){
   const origens = [['TODAS','Todas as origens'],['RECALL','Recall'],['DORMENTE','Dormente'],['FOLLOWUP','Follow-up']];
   const cx = el('ac-filtros');
   cx.innerHTML =
     campoBusca('ac-busca', 'Buscar nesta fila por nome ou telefone', AC.busca) +
-    (contaRestrita() ? '' : campoSelecao('ac-origem', 'Origem', origens, AC.origem));
+    (contaRestrita() ? '' : campoSelecao('ac-origem', 'Origem', origens, AC.origem)) +
+    campoSelecao('ac-ordem', 'Ordenar por', ORDENS_AC, AC_ORDEM);
   if (el('ac-origem')) el('ac-origem').onchange = () => { AC.origem = el('ac-origem').value; carregarAcompanhamento().catch(falhar); };
+  el('ac-ordem').onchange = () => {
+    AC_ORDEM = el('ac-ordem').value;
+    try { localStorage.setItem('recall_ac_ordem', AC_ORDEM); } catch (e) {}
+    const ch = 'ac:' + assinatura(AC);
+    if (CACHE[ch]) pintarAcompanhamento(CACHE[ch]); else carregarAcompanhamento().catch(falhar);
+  };
   ligarBusca(cx, 'ac-busca', v => { AC.busca = v; carregarAcompanhamento().catch(falhar); });
 }
 
@@ -2045,7 +2133,7 @@ function pintarAcompanhamento(d){
 
   el('ac-grande').innerHTML = `${d.total.toLocaleString('pt-BR')}<small style="margin-left:8px">em acompanhamento</small>`;
   el('ac-sub').textContent = `${r.PENDENTES ? r.PENDENTES + ' sem lançar · ' : ''}${r.VENCIDOS || 0} para hoje · ${brl(d.valor_aberto)} em orçamento aberto · ` +
-    `${d.encerradas} finalizadas`;
+    `${d.fechadas ? d.fechadas + ' fecharam (aba Fechados) · ' : ''}${d.encerradas} finalizadas`;
 
   el('ac-regua').innerHTML = blocosAc().map(x => {
     return `<button style="flex:${pesoRegua(r[x[0]] || 0, total)} 1 0;background:${x[3]}" data-b="${x[0]}"
@@ -2105,14 +2193,23 @@ function pintarAcompanhamento(d){
   const mostrar = AC.bloco === 'TODOS' ? blocosAc().map(x => x[0]) : [AC.bloco];
   Object.keys(d.blocos || {}).forEach(k => guardarItens(((d.blocos[k] || {}).itens || [])));
   let html = '';
-  mostrar.forEach(k => {
-    const b = d.blocos[k];
-    if (!b || !b.qtd) return;
-    const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
-    html += `<div class="sec-bloco" style="--c:${meta[3]}"><b>${meta[1]}</b><span class="n">${b.qtd}</span>` +
-      `${b.valor_aberto ? `<span class="v">${brl(b.valor_aberto)} em aberto</span>` : ''}</div>` +
-      b.itens.map(x => cartaoAc(x, k)).join('');
-  });
+  if (AC_ORDEM === 'SITUACAO') {
+    mostrar.forEach(k => {
+      const b = d.blocos[k];
+      if (!b || !b.qtd) return;
+      const meta = BLOCOS_AC.filter(x => x[0] === k)[0];
+      html += `<div class="sec-bloco" style="--c:${meta[3]}"><b>${meta[1]}</b><span class="n">${b.qtd}</span>` +
+        `${b.valor_aberto ? `<span class="v">${brl(b.valor_aberto)} em aberto</span>` : ''}</div>` +
+        b.itens.map(x => cartaoAc(x, k)).join('');
+    });
+  } else {
+    /* V4.30 — lista única na ordem escolhida; a cor da tarja e a etiqueta de cada cartão continuam dizendo o bloco */
+    const todos = [];
+    mostrar.forEach(k => { ((d.blocos[k] || {}).itens || []).forEach(x => todos.push({ x: x, k: k })); });
+    const nome = (ORDENS_AC.filter(o => o[0] === AC_ORDEM)[0] || [0, ''])[1];
+    html = `<div class="ord-aviso">Ordenado por <b>${esc(nome.toLowerCase())}</b>. A cor da faixa à esquerda continua mostrando a situação de cada paciente.</div>` +
+      ordenarItensAc(todos).map(o => cartaoAc(o.x, o.k)).join('');
+  }
   el('ac-rotulo').textContent = AC.bloco === 'TODOS'
     ? `Fila do dia — ${d.total.toLocaleString('pt-BR')} paciente(s)`
     : `${BLOCOS_AC.filter(x => x[0] === AC.bloco)[0][1]} — ${(d.blocos[AC.bloco] || {}).qtd || 0} paciente(s)`;
@@ -3169,8 +3266,11 @@ function blocoSituacao(p){
     ? `<div class="pend-ficha">📲 <b>Contato ainda não lançado.</b> Contato por ${esc(ROTULO_CANAL_INI[p.whats_canal] || 'WhatsApp')} iniciado por <b>${esc(p.whats_por || '—')}</b> em ${esc(p.whats_em || '—')}.
          <span class="cont" data-ms="${Number(p.whats_ms) || 0}">sem lançar há ${esc(textoDecorrido(p.whats_ms))}</span><br>
          Preencha os dados abaixo e salve o contato. Se não chegou a falar com ela, volte ao Acompanhamento e use “Não contatei”.</div>` : '';
-  const sit = p.situacao === 'FINAL' ? 'FINALIZADOS' : (p.situacao === 'ACOMP' ? 'ACOMPANHAMENTO' : (p.origem || ''));
+  const sit = p.situacao === 'FINAL' ? 'FINALIZADOS' : (p.situacao === 'ACOMP' ? 'ACOMPANHAMENTO' : (p.situacao === 'FECH' ? 'FECHADOS' : (p.origem || '')));
   if (!sit) return avisoCampanhaFicha(p);
+  if (p.situacao === 'FECH') return avisoCampanhaFicha(p) + pendF + `<div class="situacao-box"><span class="onde onde-FECHADOS">Fechados</span>
+    <span class="quem">Fechou${p.ultimo_aprovado_num ? ' o orçamento <b>' + esc(p.ultimo_aprovado_num) + '</b>' : ''} em ${esc(p.ultima_compra || '—')}${p.ultimo_contato ? ', depois do contato de ' + esc(p.ultimo_contato) : ', depois de um horário lançado no app'}. O crédito está na aba Fechados.
+      Um contato novo a traz de volta ao Acompanhamento.</span></div>`;
   const quem = p.situacao === ''
     ? (p.liberada_em ? 'Devolvida à fila por ' + esc(p.liberada_por || '—') + ' em ' + esc(p.liberada_em) : 'Ainda não contatada')
     : (p.situacao === 'ACOMP' ? 'Já contatada — fica aqui até alguém decidir para onde ela vai' : 'Finalizada');
@@ -3441,6 +3541,98 @@ function pintarFinalizados(d){
     };
     c.onkeydown = ev => { if (ev.key === 'Enter') c.click(); };
   });
+}
+
+/* ==========================================================================
+   FECHADOS (V4.30) — o que o app gerou: do contato ao orçamento fechado no ERP
+   ========================================================================== */
+const FH = { periodo: 'MES', colab: 'TODAS', ordem: 'DATA' };
+const PERIODOS_FH = [['MES','Este mês'],['MES_ANT','Mês passado'],['7','Últimos 7 dias'],['30','Últimos 30 dias'],['90','Últimos 90 dias'],['TUDO','Desde o início']];
+async function carregarFechados(){
+  const ch = 'fh:' + assinatura(FH);
+  if (CACHE[ch]) pintarFechados(CACHE[ch]);
+  else { montarFiltrosFh(null); el('fh-lista').innerHTML = blocoCarregando('cruzando contatos com os orçamentos do ERP'); }
+  marcarAtualizando('fh-lista', !!CACHE[ch]);
+  try {
+    const d = await api('fechados', FH);
+    CACHE[ch] = d; pintarFechados(d);
+  } catch (e) {
+    blocoFalha('fh-lista', e, () => carregarFechados().catch(() => {}));
+  } finally { marcarAtualizando('fh-lista', false); }
+}
+function montarFiltrosFh(d){
+  const cx = el('fh-filtros');
+  const nomes = d ? (d.por_colab || []).map(c => c.nome) : [];
+  if (FH.colab !== 'TODAS' && nomes.indexOf(FH.colab) < 0) nomes.push(FH.colab);
+  cx.innerHTML = campoSelecao('fh-periodo', 'Período', PERIODOS_FH, FH.periodo) +
+    (contaRestrita() ? '' : campoSelecao('fh-colab', 'Colaboradora', [['TODAS','Todas']].concat(nomes.map(n => [n, n])), FH.colab)) +
+    campoSelecao('fh-ordem', 'Ordem da lista', [['DATA','Data do fechamento'],['VALOR','Maior valor'],['COLAB','Colaboradora']], FH.ordem);
+  el('fh-periodo').onchange = () => { FH.periodo = el('fh-periodo').value; carregarFechados().catch(falhar); };
+  if (el('fh-colab')) el('fh-colab').onchange = () => { FH.colab = el('fh-colab').value; carregarFechados().catch(falhar); };
+  el('fh-ordem').onchange = () => { FH.ordem = el('fh-ordem').value; carregarFechados().catch(falhar); };
+}
+const n0 = v => (Number(v) || 0).toLocaleString('pt-BR');
+function pintarFechados(d){
+  const k = d.kpi || {};
+  montarFiltrosFh(d);
+  const temValor = !semValor(k.valor);
+  el('fh-grande').innerHTML = temValor
+    ? `${brl(k.valor)}<small style="margin-left:8px">fechado</small>`
+    : `${n0(k.fechamentos)}<small style="margin-left:8px">orçamento(s) fechado(s)</small>`;
+  el('fh-sub').textContent = `${n0(k.fechamentos)} orçamento(s) de ${n0(k.pacientes_fechadas)} paciente(s)` +
+    (temValor && k.fechamentos ? ` · ticket ${brl(k.ticket)}` : '') +
+    (k.dias_medio != null ? ` · ${String(k.dias_medio).replace('.', ',')} dias, em média, do contato ao fechamento` : '') +
+    ` · ${d.periodo.rotulo.toLowerCase()} (${d.periodo.txt})`;
+  el('fh-per').textContent = d.colab && d.colab !== 'TODAS' ? d.colab + ' · ' + d.periodo.rotulo : 'Equipe toda · ' + d.periodo.rotulo;
+  const passo = (n, rot, sub, destaque) => `<div class="fn-passo${destaque ? ' fn-fim' : ''}"><b>${n}</b><span>${rot}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const pc = (a, b) => b ? Math.round(1000 * a / b) / 10 : 0;
+  el('fh-funil').innerHTML =
+    passo(n0(k.contatadas), 'pacientes contatadas', n0(k.contatos) + ' contatos lançados') + '<i class="fn-seta">›</i>' +
+    passo(n0(k.interesse), 'com interesse', pc(k.interesse, k.contatos).toLocaleString('pt-BR') + '% dos contatos') + '<i class="fn-seta">›</i>' +
+    passo(n0(k.agendamentos), 'horários lançados', k.compareceu ? n0(k.compareceu) + ' compareceram' : 'no app') + '<i class="fn-seta">›</i>' +
+    passo(n0(k.pacientes_fechadas), 'fecharam', String(k.conversao || 0).replace('.', ',') + '% das contatadas' + (temValor ? ' · ' + brl(k.valor) : ''), true);
+
+  /* por colaboradora */
+  const cols = d.por_colab || [];
+  el('fh-equipe-box').style.display = cols.length > 1 || (cols.length && !contaRestrita()) ? '' : 'none';
+  el('fh-equipe').innerHTML = `<thead><tr><th>Colaboradora</th><th>Contatos</th><th>Pacientes</th><th>Interesse</th><th>Horários</th>
+      <th>Fechamentos</th><th>Valor fechado</th><th>Ticket</th><th>Conversão</th><th>Dias até fechar</th></tr></thead><tbody>` +
+    cols.map(c => `<tr data-n="${esc(c.nome)}" class="${FH.colab === c.nome ? 'on' : ''}"><td><b>${esc(c.nome)}</b></td><td>${n0(c.contatos)}</td><td>${n0(c.contatadas)}</td>
+      <td>${n0(c.interesse)}</td><td>${n0(c.agendamentos)}</td><td><b>${n0(c.fechamentos)}</b></td><td><b>${brl(c.valor)}</b></td>
+      <td>${c.fechamentos ? brl(c.ticket) : '—'}</td><td>${String(c.conversao || 0).replace('.', ',')}%</td><td>${c.dias_medio == null ? '—' : String(c.dias_medio).replace('.', ',')}</td></tr>`).join('') +
+    `</tbody>`;
+  el('fh-equipe').querySelectorAll('tr[data-n]').forEach(tr => {
+    tr.onclick = () => { if (contaRestrita()) return; FH.colab = FH.colab === tr.dataset.n ? 'TODAS' : tr.dataset.n; carregarFechados().catch(falhar); };
+  });
+
+  /* lista */
+  const itens = d.itens || [];
+  guardarItens(itens.map(x => ({ chave: x.chave, paciente: x.paciente })));
+  el('fh-rotulo').textContent = `Orçamentos fechados depois do contato — ${n0(itens.length)}`;
+  el('fh-lista').innerHTML = itens.length ? itens.map(cartaoFechado).join('')
+    : `<div class="card vazio">Nenhum orçamento fechado neste período depois de contato do app.<br>
+       <small>A fonte é o relatório de orçamentos do ERP${d.base_ate ? ' (carregado com orçamentos até ' + esc(d.base_ate) + ')' : ''}. Fechamento recente aparece quando o relatório novo for carregado.</small></div>`;
+  const sem = d.sem_credito || [];
+  el('fh-sem').innerHTML = sem.length ? `<details class="fh-sem"><summary>${n0(sem.length)} fechamento(s) de pacientes já contatadas, mas com o último contato há mais de ${d.janela} dias
+      ${semValor(k.valor_sem_credito) ? '' : '· ' + brl(k.valor_sem_credito)} — sem crédito</summary>${sem.map(cartaoFechado).join('')}</details>` : '';
+  /* conta restrita: a paciente que fechou costuma sair da faixa liberada para ela, então a ficha não abre daqui */
+  if (!contaRestrita()) document.querySelectorAll('#fh-lista .pac, #fh-sem .pac').forEach(c => {
+    c.onclick = () => abrirFicha(c.dataset.chave, ITENS_VISTOS[c.dataset.chave] || {});
+    c.onkeydown = ev => { if (ev.key === 'Enter') c.click(); };
+  });
+}
+const ROTULO_VIA = { CONTATO: 'contato', AGENDAMENTO: 'horário lançado' };
+function cartaoFechado(x){
+  const proc = String(x.procedimentos || '').replace(/<br\s*\/?>/gi, ' ').replace(/\s+/g, ' ').trim();
+  return `<div class="pac" data-chave="${esc(x.chave)}" role="button" tabindex="0">
+    <div class="tarja" style="background:${x.credito ? 'var(--salvia)' : 'var(--f-dormente)'}"></div><div class="pac-in">
+      <div class="pac-l1"><span class="pac-nome">${esc(x.paciente)}</span>
+        <span class="pac-dias"><b>${x.dias}</b><span>dias após o contato</span></span></div>
+      <div class="pac-l2">Orçamento <b>${esc(x.num)}</b> aprovado em <b>${esc(x.data)}</b>${x.responsavel ? ' · responsável no ERP: ' + esc(x.responsavel) : ''}${proc ? ' — ' + esc(proc.substring(0, 140)) : ''}</div>
+      <div class="pac-l3">${x.credito ? `<span class="tag ok">Crédito: ${esc(x.credito)}</span>` : `<span class="tag">Sem crédito — último contato de ${esc(x.ultimo_toque_por || '—')}</span>`}
+        ${semValor(x.valor) ? '' : `<span class="tag val">${brl(x.valor)}</span>`}
+        <span class="tag">último ${esc(ROTULO_VIA[x.via] || 'contato')} em ${esc(x.contato_em)}</span></div>
+    </div></div>`;
 }
 
 /* ==========================================================================
